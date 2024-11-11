@@ -1,6 +1,6 @@
 import { json, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link } from "@remix-run/react";
-import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2 } from "lucide-react"
+import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, MessageSquareDiff } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -89,10 +89,16 @@ export default function MemberProfile() {
           <h3 className="font-semibold mb-2">Current plan</h3>
           <p className="text-lg font-bold mb-1">{member.plan}</p>
           <p className="text-sm text-green-500 mb-2">• Expiring in 2 months</p>
+          <div className="space-x-4">
           <Button variant="outline" size="sm">
             <RefreshCcw className="h-4 w-4 mr-2" />
             Change plan
           </Button>
+          <Button variant="outline" size="sm">
+            <MessageSquareDiff className="h-4 w-4 mr-2" />
+            Add plan
+          </Button>
+          </div>
         </CardContent>
       </Card>
 

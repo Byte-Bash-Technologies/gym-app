@@ -40,7 +40,7 @@ export default function NewMemberForm() {
       {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-6 w-6" onClick={() => window.history.back()} />
           <h1 className="text-xl font-bold">New member</h1>
         </div>
         <div className="flex items-center gap-4">

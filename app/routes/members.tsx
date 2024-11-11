@@ -60,34 +60,34 @@ export default function MembersPage() {
             <UserPlus className="h-5 w-5 text-purple-500" />
           </div>
         </div>
-
+        <h2 className="text-lg font-semibold mb-4">All members</h2>
         {/* Members List */}
-        <Card className="bg-purple-50 p-4">
-          <h2 className="text-lg font-semibold mb-4">All members</h2>
-          <div className="space-y-4">
-            {members.map((member) => (
-              <Link key={member.id} to={`/members/${member.id}`} className="block">
-                <div className="flex items-center justify-between bg-white p-3 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <AvatarImage src="/placeholder.svg" alt={member.name} />
-                      <AvatarFallback>{member.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold">{member.name}</p>
-                      <p className="text-sm text-gray-500">{member.phone}</p>
-                      <p className="text-xs text-gray-400">{member.plan}</p>
-                    </div>
-                  </div>
-                  <span className={`text-sm font-medium ${
-                    member.status === "Active" ? "text-green-500" :
-                    member.status === "Expired" ? "text-red-500" :
-                    "text-yellow-500"
-                  }`}>
-                    {member.status}
-                  </span>
+        <Card className="bg-purple-100 p-4">
+          
+          <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
+            {members.map((member, index) => (
+                <Link 
+                key={index} 
+                to={`/members/${member.id}`} 
+                className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0"
+                >
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src="/placeholder.svg" alt={member.name} />
+                  <AvatarFallback>{member.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="font-semibold">{member.name}</h3>
+                  <p className="text-sm text-muted-foreground">{member.phone}</p>
+                  <p className="text-sm text-muted-foreground">{member.plan}</p>
                 </div>
-              </Link>
+                <div className={`
+                  h-2 w-2 rounded-full
+                  ${member.status === 'Active' ? 'bg-green-500' : 
+                  member.status === 'Expired' ? 'bg-red-500' : 
+                  'bg-yellow-500'}
+                `} />
+                {member.status}
+                </Link>
             ))}
           </div>
         </Card>

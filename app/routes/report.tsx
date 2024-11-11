@@ -122,7 +122,7 @@ export default function ReportPage() {
               <div key={i} className="flex items-center justify-between bg-purple-100 p-3 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <Avatar>
-                    <img src="/placeholder.svg" alt="Benston" className="rounded-full" />
+                    <img src="/placeholder.svg" alt="Img" className="rounded-full" />
                   </Avatar>
                   <div>
                     <p className="font-semibold">Benston</p>
