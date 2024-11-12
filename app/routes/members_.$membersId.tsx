@@ -1,9 +1,11 @@
 import { json, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link } from "@remix-run/react";
-import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, MessageSquareDiff } from "lucide-react"
+import { useLoaderData, Link, Outlet, useLocation } from "@remix-run/react";
+import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Badge } from "~/components/ui/badge"
+import { Sheet, SheetTrigger } from "~/components/ui/sheet"
 
 interface Member {
   id: number;
@@ -17,6 +19,7 @@ interface Member {
   bloodType: string;
   height: string;
   weight: string;
+  balance: number;
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
@@ -32,14 +35,17 @@ export const loader: LoaderFunction = async ({ params }) => {
     dob: "23-1-2002",
     bloodType: "B +ive",
     height: "198 cm",
-    weight: "70 kg"
+    weight: "70 kg",
+    balance: 1500
   };
 
   return json({ member });
 };
 
 export default function MemberProfile() {
-  const { member } = useLoaderData<{ member: Member }>();
+  const { member } = useLoaderData<typeof loader>();
+  const location = useLocation();
+  const isPaymentOpen = location.pathname.endsWith('/payment');
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -89,16 +95,34 @@ export default function MemberProfile() {
           <h3 className="font-semibold mb-2">Current plan</h3>
           <p className="text-lg font-bold mb-1">{member.plan}</p>
           <p className="text-sm text-green-500 mb-2">• Expiring in 2 months</p>
-          <div className="space-x-4">
-          <Button variant="outline" size="sm">
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Change plan
-          </Button>
-          <Button variant="outline" size="sm">
-            <MessageSquareDiff className="h-4 w-4 mr-2" />
-            Add plan
-          </Button>
-          </div>
+            <Link to="addplans">
+            <Button variant="outline" size="sm">
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Change plan
+            </Button>
+            </Link>
+        </CardContent>
+      </Card>
+
+      {/* Balance Section */}
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-lg font-bold">Balance</CardTitle>
+          <Badge variant="destructive">₹{member.balance}</Badge>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500 mb-2">Outstanding balance on your account</p>
+          <Sheet open={isPaymentOpen}>
+            <SheetTrigger asChild>
+              <Link to="payment">
+                <Button variant="outline" size="sm">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Pay Balance
+                </Button>
+              </Link>
+            </SheetTrigger>
+            <Outlet />
+          </Sheet>
         </CardContent>
       </Card>
 

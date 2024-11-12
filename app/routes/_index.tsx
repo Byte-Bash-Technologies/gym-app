@@ -1,247 +1,130 @@
 import { json, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link } from "@remix-run/react";
-import { Bell, Phone, Settings, ChevronDown, Home, Wallet, PieChart, Users } from "lucide-react"
-import { Button } from "~/components/ui/button"
-import { Card, CardContent } from "~/components/ui/card"
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
+import { useLoaderData, Link, useNavigate } from "@remix-run/react";
+import { ArrowLeft, Dumbbell, Volleyball, Users, DollarSign, Calendar, ChevronRight, Settings } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
+import { Badge } from "~/components/ui/badge"
 
-interface Stats {
-  activeMembers: number;
-  expiringSoon: number;
-  expiredMembers: number;
-  totalMembers: number;
-}
-
-interface Birthday {
-  id: number;
+interface Facility {
+  id: string;
   name: string;
-  avatar: string;
+  type: "gym" | "badminton";
+  members: number;
+  revenue: number;
+  lastBilling: string;
 }
 
-interface TransactionStats {
-  received: number;
-  paid: number;
-  pending: number;
+interface LoaderData {
+  facilities: Facility[];
+  userName: string;
 }
 
 export const loader: LoaderFunction = async () => {
-  // Mock data
-  const stats: Stats = {
-    activeMembers: 120,
-    expiringSoon: 130,
-    expiredMembers: 120,
-    totalMembers: 120
-  };
-
-  const birthdays: Birthday[] = [
-    { id: 1, name: "Member 1", avatar: "/placeholder.svg" },
-    { id: 2, name: "Member 2", avatar: "/placeholder.svg" },
-    { id: 3, name: "Member 3", avatar: "/placeholder.svg" },
+  // Mock data - replace with actual data fetching in a real application
+  const facilities: Facility[] = [
+    { id: "1", name: "Jain workout zone", type: "gym", members: 250, revenue: 15000, lastBilling: "2023-04-01" },
+    { id: "2", name: "Fitness First", type: "gym", members: 180, revenue: 12000, lastBilling: "2023-04-05" },
+    { id: "3", name: "Gold's Gym", type: "gym", members: 300, revenue: 20000, lastBilling: "2023-04-03" },
+    { id: "4", name: "Smash Masters", type: "badminton", members: 100, revenue: 8000, lastBilling: "2023-04-02" },
+    { id: "5", name: "Shuttle Stars", type: "badminton", members: 80, revenue: 6000, lastBilling: "2023-04-04" },
+    { id: "6", name: "Racquet Club", type: "badminton", members: 120, revenue: 9000, lastBilling: "2023-04-06" },
   ];
 
-  const transactionStats: TransactionStats = {
-    received: 54,
-    paid: 20,
-    pending: 26
-  };
+  const userName = "John Doe"; // Replace with actual user name fetching logic
 
-  return json({
-    stats,
-    birthdays,
-    transactionStats,
-    income: 5660.00,
-    previousIncome: 5240.00,
-    weeklyIncome: 22658.00,
-  });
+  return json({ facilities, userName });
 };
 
-export default function Index() {
-  const { stats, birthdays, transactionStats, income, previousIncome, weeklyIncome } = useLoaderData<typeof loader>();
+export default function Dashboard() {
+  const { facilities, userName } = useLoaderData<LoaderData>();
+
+  const gyms = facilities.filter(f => f.type === "gym");
+  const badmintonFacilities = facilities.filter(f => f.type === "badminton");
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder.svg" alt="Jain workout zone" />
-            <AvatarFallback>J</AvatarFallback>
-          </Avatar>
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold">Jain workout zone</h1>
-            <ChevronDown className="h-5 w-5 ml-1" />
-          </div>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
-          <Link to="/settings">
-            <Settings className="h-6 w-6 text-purple-500" />
+        <div className="flex items-center">
+          <Link to="/">
+           {/* <ArrowLeft className="h-6 w-6 mr-2" /> */}
           </Link>
+          <h1 className="text-xl font-bold">Facility Dashboard</h1>
         </div>
+        <Link to="/settings">
+          <Settings className="h-6 w-6 text-gray-600" />
+        </Link>
       </header>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 p-4">
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-gray-600">Active members</p>
-            <p className="text-4xl font-bold text-green-500">{stats.activeMembers}</p>
+      {/* Main Content */}
+      <main className="container mx-auto p-4">
+        <h2 className="text-2xl font-bold mb-4">Welcome, {userName}</h2>
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="all">All Facilities</TabsTrigger>
+            <TabsTrigger value="gyms">Gyms</TabsTrigger>
+            <TabsTrigger value="badminton">Badminton</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all">
+            <FacilityGrid facilities={facilities} />
+          </TabsContent>
+          <TabsContent value="gyms">
+            <FacilityGrid facilities={gyms} />
+          </TabsContent>
+          <TabsContent value="badminton">
+            <FacilityGrid facilities={badmintonFacilities} />
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+}
+
+function FacilityGrid({ facilities }: { facilities: Facility[] }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {facilities.map((facility) => (
+        <Card 
+          key={facility.id} 
+          className={`${facility.type === "gym" ? "border-blue-200" : "border-green-200"} cursor-pointer hover:shadow-md transition-shadow`}
+          onClick={() => navigate(`/home/?facilityId=${facility.id}`)}
+        >
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>{facility.name}</CardTitle>
+              <Badge variant={facility.type === "gym" ? "default" : "secondary"}>
+                {facility.type === "gym" ? (
+                  <Dumbbell className="h-4 w-4 mr-1" />
+                ) : (
+                  <Volleyball className="h-4 w-4 mr-1" />
+                )}
+                {facility.type === "gym" ? "Gym" : "Badminton"}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <Users className="h-5 w-5 mr-2 text-blue-500" />
+                <span>{facility.members} members</span>
+              </div>
+              <div className="flex items-center">
+                <DollarSign className="h-5 w-5 mr-2 text-green-500" />
+                <span>${facility.revenue.toLocaleString()} revenue</span>
+              </div>
+              <div className="flex items-center">
+                <Calendar className="h-5 w-5 mr-2 text-purple-500" />
+                <span>Last billed: {new Date(facility.lastBilling).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <ChevronRight className="h-6 w-6 text-gray-400" />
+            </div>
           </CardContent>
         </Card>
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-gray-600">Expiring soon</p>
-            <p className="text-4xl font-bold text-yellow-500">{stats.expiringSoon}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-gray-600">Expired members</p>
-            <p className="text-4xl font-bold text-red-500">{stats.expiredMembers}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-gray-600">Total members</p>
-            <p className="text-4xl font-bold text-blue-500">{stats.totalMembers}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Birthdays Section */}
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Birthdays Today</h2>
-        <div className="flex space-x-4">
-          {birthdays.map((birthday) => (
-            <Avatar key={birthday.id} className="h-16 w-16 ring-2 ring-purple-100">
-              <AvatarImage src={birthday.avatar} alt={birthday.name} />
-              <AvatarFallback>{birthday.name[0]}</AvatarFallback>
-            </Avatar>
-          ))}
-        </div>
-      </div>
-
-      {/* Transactions Section */}
-      <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Transactions</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <Card className="bg-white p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Transcations</h3>
-              <Button variant="secondary" size="sm">Today</Button>
-            </div>
-            <div className="relative w-48 h-48 mx-auto">
-              <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke="#e2e8f0"
-                  strokeWidth="10"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="10"
-                  strokeDasharray={`${transactionStats.received * 2.83} ${283 - transactionStats.received * 2.83}`}
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke="#22c55e"
-                  strokeWidth="10"
-                  strokeDasharray={`${transactionStats.paid * 2.83} ${283 - transactionStats.paid * 2.83}`}
-                  strokeDashoffset={-transactionStats.received * 2.83}
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke="#ef4444"
-                  strokeWidth="10"
-                  strokeDasharray={`${transactionStats.pending * 2.83} ${283 - transactionStats.pending * 2.83}`}
-                  strokeDashoffset={-(transactionStats.received + transactionStats.paid) * 2.83}
-                />
-              </svg>
-            </div>
-            <div className="space-y-2 mt-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
-                  <span>Total received</span>
-                </div>
-                <span>{transactionStats.received}% ↑</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
-                  <span>Total Paid</span>
-                </div>
-                <span>{transactionStats.paid}% ↑</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
-                  <span>Total Pending</span>
-                </div>
-                <span>{transactionStats.pending}% ↓</span>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="bg-white p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Income</h3>
-              <Button variant="secondary" size="sm">Today</Button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center">
-                  <h3 className="text-4xl font-bold">${income.toFixed(2)}</h3>
-                  <span className="ml-2 text-green-500">↑ 2.5%</span>
-                </div>
-                <p className="text-sm text-gray-500">Compared to ${previousIncome} yesterday</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Last week incomes</p>
-                <p className="text-2xl font-bold">${weeklyIncome.toFixed(2)}</p>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-4 rounded-t-3xl">
-        <div className="flex justify-around items-center text-gray-500">
-          <Link to="/" className="flex flex-col items-center">
-            <div className="bg-purple-500 rounded-full p-3">
-              <Home className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xs text-purple-500">Home</span>
-          </Link>
-          <Link to="/transaction" className="flex flex-col items-center text-gray-500">
-            <Wallet className="h-6 w-6" />
-            <span className="text-xs">Transaction</span>
-          </Link>
-          <Link to="/report" className="flex flex-col items-center text-gray-500">
-            <PieChart className="h-6 w-6" />
-            <span className="text-xs">Report</span>
-          </Link>
-          <Link to="/members" className="flex flex-col items-center text-gray-500">
-            <Users className="h-6 w-6" />
-            <span className="text-xs">Members</span>
-          </Link>
-        </div>
-      </nav>
+      ))}
     </div>
   );
 }

@@ -137,9 +137,9 @@ export default function ReportPage() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-4 rounded-t-3xl">
+      <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
         <div className="flex justify-around items-center">
-          <Link to="/" className="flex flex-col items-center text-gray-500">
+          <Link to="/home" className="flex flex-col items-center text-gray-500">
               <Home className="h-6 w-6 "/>
             <span className="text-xs">Home</span>
           </Link>

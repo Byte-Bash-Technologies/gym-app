@@ -37,7 +37,17 @@ export const loader: LoaderFunction = async () => {
 };
 
 export default function Transactions() {
-  const { transactions, income, previousIncome, weeklyIncome, stats } = useLoaderData();
+  const { transactions, income, previousIncome, weeklyIncome, stats } = useLoaderData<{
+    transactions: Transaction[];
+    income: number;
+    previousIncome: number;
+    weeklyIncome: number;
+    stats: {
+      received: number;
+      paid: number;
+      pending: number;
+    };
+  }>();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -195,7 +205,7 @@ export default function Transactions() {
         {/* Transactions List */}
         <Card className="bg-purple-50">
           <CardContent className="p-4">
-            {transactions.map((transaction) => (
+            {transactions.map((transaction : Transaction) => (
               <div
                 key={transaction.id}
                 className="flex items-center justify-between bg-white p-4 rounded-lg mb-2 last:mb-0"
@@ -218,9 +228,9 @@ export default function Transactions() {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-4 rounded-t-3xl">
+      <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
         <div className="flex justify-around items-center">
-          <Link to="/" className="flex flex-col items-center text-gray-500">
+          <Link to="/home" className="flex flex-col items-center text-gray-500">
               <Home className="h-6 w-6"/>
             <span className="text-xs font-bold">Home</span>
           </Link>
@@ -236,7 +246,7 @@ export default function Transactions() {
           </Link>
           <Link to="/members" className="flex flex-col items-center text-gray-500">
             <Users className="h-6 w-6" />
-            <span className="text-xs text-purple-500">Members</span>
+            <span className="text-xs">Members</span>
           </Link>
         </div>
       </nav>
