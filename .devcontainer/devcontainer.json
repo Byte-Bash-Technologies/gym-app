@@ -10,7 +10,8 @@
         "esbenp.prettier-vscode",
         "vscode-icons-team.vscode-icons",
         "GitHub.copilot",
-        "GitHub.copilot-chat"
+        "GitHub.copilot-chat",
+        "MS-vsliveshare.vsliveshare"
     ],
     "forwardPorts": [5173],
     "portsAttributes": {

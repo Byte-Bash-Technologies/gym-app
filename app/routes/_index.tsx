@@ -1,6 +1,6 @@
 import { json, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate } from "@remix-run/react";
-import { ArrowLeft, Dumbbell, Volleyball, Users, DollarSign, Calendar, ChevronRight, Settings } from "lucide-react";
+import { Dumbbell, Volleyball, Users, DollarSign, Calendar, ChevronRight, Settings } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { Badge } from "~/components/ui/badge"
