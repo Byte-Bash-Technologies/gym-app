@@ -25,7 +25,7 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "robots.txt", "apple-touch-icon.png"],
       manifest: {
-        name: "Sports Dot Member Management",
+        name: "Sports Dot",
         short_name: "Sports Dot",
         description: "Sports Dot Member Management,manage your gym and badminton court members with ease",
         theme_color: "#ffffff",
