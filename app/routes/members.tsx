@@ -5,7 +5,7 @@ import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Card } from "~/components/ui/card"
-import { supabase } from "~/utils/supabase.server";
+
 interface Member {
   id: number
   name: string
@@ -15,7 +15,7 @@ interface Member {
 }
 
 // Mock data
-/*
+
 const mockMembers: Member[] = [
   { id: 1, name: "Benston", phone: "+ 91 98765432", plan: "1 month plan", status: "Active" },
   { id: 2, name: "Benny", phone: "+ 91 98765432", plan: "3 months plan", status: "Active" },
@@ -24,19 +24,19 @@ const mockMembers: Member[] = [
   { id: 5, name: "Ragul", phone: "+ 91 98765432", plan: "6 months plan", status: "Active" },
   { id: 6, name: "Maxwel", phone: "+ 91 98765432", plan: "3 months plan", status: "Active" },
 ];
-*/
+
 export const loader: LoaderFunction = async () => {
-  const { data: members, error } = await supabase
-    .from('members')
-    .select('id, full_name, email, phone, status')
-    .order('full_name', { ascending: true });
+  // const { data: members, error } = await supabase
+  //   .from('members')
+  //   .select('id, full_name, email, phone, status')
+  //   .order('full_name', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching members:', error);
-    throw new Response("Error fetching members", { status: 500 });
-  }
+  // if (error) {
+  //   console.error('Error fetching members:', error);
+  //   throw new Response("Error fetching members", { status: 500 });
+  // }
 
-  return json({ members });
+  return json({ members: mockMembers });
 };
 
 export default function MembersPage() {
