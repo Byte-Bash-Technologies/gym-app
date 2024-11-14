@@ -23,7 +23,7 @@ interface Member {
   full_name: string;
   phone: string;
   plan: string;
-  status: "Active" | "Expired" | "Expire soon";
+  status: "active" | "expired" | "expire soon";
 }
 
 export const loader: LoaderFunction = async () => {
@@ -41,6 +41,10 @@ export const loader: LoaderFunction = async () => {
 
 export default function MembersPage() {
   const { members } = useLoaderData<{ members: Member[] }>();
+
+const capitalizeFirstLetter = (string: string) => {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+};
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
@@ -82,8 +86,11 @@ export default function MembersPage() {
                 className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0"
               >
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src="/placeholder.svg" alt={member.full_name} />
-                  <AvatarFallback>{member.full_name}</AvatarFallback>
+                <AvatarImage
+                  src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
+                  alt={member.full_name}
+                />
+                  <AvatarFallback>{member.full_name[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <h3 className="font-semibold">{member.full_name}</h3>
@@ -96,15 +103,15 @@ export default function MembersPage() {
                   className={`
                   h-2 w-2 rounded-full
                   ${
-                    member.status === "Active"
+                    member.status === "active"
                       ? "bg-green-500"
-                      : member.status === "Expired"
+                      : member.status === "expired"
                       ? "bg-red-500"
                       : "bg-yellow-500"
                   }
                 `}
                 />
-                {member.status}
+                {capitalizeFirstLetter(member.status)}
               </Link>
             ))}
           </div>

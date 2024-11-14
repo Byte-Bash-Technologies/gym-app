@@ -7,8 +7,7 @@ import {
   useActionData,
   useFetcher,
   Link,
-  Outlet,
-} from "@remix-run/react";
+  Outlet,useLocation} from "@remix-run/react";
 import {
   ArrowLeft,
   Bell,
@@ -19,7 +18,7 @@ import {
   Pencil,
   CreditCard,
   CalendarPlus,
-  Save,
+  Trash2,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
@@ -28,6 +27,9 @@ import { Badge } from "~/components/ui/badge";
 import { Sheet, SheetTrigger } from "~/components/ui/sheet";
 import { Input } from "~/components/ui/input";
 import { supabase } from "~/utils/supabase.server";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
+import { toast } from "~/hooks/use-toast"
+import { Label } from "~/components/ui/label";
 
 // interface Member {
 //   id: string;
@@ -117,6 +119,9 @@ export default function MemberProfile() {
   const { member, currentPlan, recentTransactions } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const location = useLocation();
+  const isPaymentOpen = location.pathname.endsWith('/payment');
   const fetcher = useFetcher();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -138,13 +143,21 @@ export default function MemberProfile() {
     );
     setIsEditing(false);
   };
+  const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    fetcher.submit(formData, { method: 'post' });
+    setIsEditDialogOpen(false);
+  };
 
-  // Update local state if the action was successful
-  if (actionData?.success) {
-    member.height = actionData.member.height;
-    member.weight = actionData.member.weight;
+
+
+  if (fetcher.type === 'done' && fetcher.data.success) {
+    toast({
+      title: "Success",
+      description: "Member details updated successfully",
+    });
   }
-
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       {/* Header */}
@@ -205,7 +218,7 @@ export default function MemberProfile() {
               <RefreshCcw className="h-4 w-4 mr-2" />
               Change plan
             </Button>
-            <Link to="/addplans">
+            <Link to="addplans">
               <Button variant="outline" size="sm">
                 <CalendarPlus className="h-4 w-4 mr-2" />
                 Add plans
@@ -290,20 +303,33 @@ export default function MemberProfile() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg font-bold">Member details</CardTitle>
           <div className="flex space-x-2">
-            {isEditing ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSave}
-                disabled={fetcher.state === "submitting"}
-              >
-                <Save className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button variant="ghost" size="sm" onClick={handleEdit}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-            )}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Member Details</DialogTitle>
+                </DialogHeader>
+                <fetcher.Form onSubmit={handleEditSubmit} className="space-y-4">
+                  <input type="hidden" name="memberId" value={member.id} />
+                  <div>
+                    <Label htmlFor="height">Height (cm)</Label>
+                    <Input id="height" name="height" type="number" defaultValue={member.height} required />
+                  </div>
+                  <div>
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input id="weight" name="weight" type="number" defaultValue={member.weight} required />
+                  </div>
+                  <Button type="submit">Save Changes</Button>
+                </fetcher.Form>
+              </DialogContent>
+            </Dialog>
+            <Button variant="ghost" size="sm">
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -314,9 +340,7 @@ export default function MemberProfile() {
             </div>
             <div>
               <p className="text-gray-500">Date of Birth</p>
-              <p className="font-semibold">
-                {new Date(member.date_of_birth).toLocaleDateString()}
-              </p>
+              <p className="font-semibold">{new Date(member.date_of_birth).toLocaleDateString()}</p>
             </div>
             <div>
               <p className="text-gray-500">Blood Type</p>
@@ -324,35 +348,15 @@ export default function MemberProfile() {
             </div>
             <div>
               <p className="text-gray-500">Height</p>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  value={newHeight}
-                  onChange={(e) => setNewHeight(Number(e.target.value))}
-                  className="w-full"
-                />
-              ) : (
-                <p className="font-semibold">{member.height} cm</p>
-              )}
+              <p className="font-semibold">{member.height} cm</p>
             </div>
             <div>
               <p className="text-gray-500">Weight</p>
-              {isEditing ? (
-                <Input
-                  type="number"
-                  value={newWeight}
-                  onChange={(e) => setNewWeight(Number(e.target.value))}
-                  className="w-full"
-                />
-              ) : (
-                <p className="font-semibold">{member.weight} kg</p>
-              )}
+              <p className="font-semibold">{member.weight} kg</p>
             </div>
             <div>
               <p className="text-gray-500">Joined Date</p>
-              <p className="font-semibold">
-                {new Date(member.joined_date).toLocaleDateString()}
-              </p>
+              <p className="font-semibold">{new Date(member.joined_date).toLocaleDateString()}</p>
             </div>
           </div>
         </CardContent>
