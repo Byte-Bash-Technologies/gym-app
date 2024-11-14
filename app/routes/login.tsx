@@ -1,8 +1,8 @@
-import{ Link }from "@remix-run/react";
-import { Checkbox } from "~/components/ui/checkbox"
-import { Input } from "~/components/ui/input"
-import { Button } from"~/components/ui/button"
-import { Label } from "~/components/ui/label"
+import { Link } from "@remix-run/react";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Input } from "~/components/ui/input";
+import { Button } from "~/components/ui/button";
+import { Label } from "~/components/ui/label";
 
 export default function Component() {
   return (
@@ -36,8 +36,10 @@ export default function Component() {
 
         {/* Login Form */}
         <div className="space-y-6">
-          <h2 className="text-2xl font-medium text-center text-purple-600">Login</h2>
-          
+          <h2 className="text-2xl font-medium text-center text-purple-600">
+            Login
+          </h2>
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email / number</Label>
@@ -48,7 +50,7 @@ export default function Component() {
                 type="text"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -83,7 +85,9 @@ export default function Component() {
           </Button>
 
           <div className="text-center space-x-1">
-            <span className="text-sm text-gray-600">Don&#39;t have an account?</span>
+            <span className="text-sm text-gray-600">
+              Don&#39;t have an account?
+            </span>
             <Link
               to="/contact"
               className="text-sm font-medium text-purple-600 hover:text-purple-500"
@@ -94,5 +98,5 @@ export default function Component() {
         </div>
       </div>
     </div>
-  )
+  );
 }

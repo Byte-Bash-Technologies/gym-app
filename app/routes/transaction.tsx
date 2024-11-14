@@ -1,11 +1,21 @@
 import { json, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link } from "@remix-run/react";
-import { ArrowLeft, Bell, Phone, Settings, Search, Download, Home, Wallet, PieChart, Users } from "lucide-react"
-import { Button } from "~/components/ui/button"
-import { Input } from "~/components/ui/input"
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-import { Badge } from "~/components/ui/badge"
+import {
+  Bell,
+  Phone,
+  Settings,
+  Search,
+  Download,
+  Home,
+  Wallet,
+  PieChart,
+  Users,
+} from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
 
 interface Transaction {
   id: number;
@@ -18,52 +28,68 @@ interface Transaction {
 export const loader: LoaderFunction = async () => {
   // Mock data
   const transactions: Transaction[] = [
-    { id: 1, user: "Benston", amount: 1000, timestamp: "yesterday 01:07 PM", avatar: "/placeholder.svg" },
-    { id: 2, user: "Benston", amount: 1000, timestamp: "yesterday 01:07 PM", avatar: "/placeholder.svg" },
-    { id: 3, user: "Benston", amount: 1000, timestamp: "yesterday 01:07 PM", avatar: "/placeholder.svg" },
+    {
+      id: 1,
+      user: "Benston",
+      amount: 1000,
+      timestamp: "yesterday 01:07 PM",
+      avatar: "/placeholder.svg",
+    },
+    {
+      id: 2,
+      user: "Benston",
+      amount: 1000,
+      timestamp: "yesterday 01:07 PM",
+      avatar: "/placeholder.svg",
+    },
+    {
+      id: 3,
+      user: "Benston",
+      amount: 1000,
+      timestamp: "yesterday 01:07 PM",
+      avatar: "/placeholder.svg",
+    },
   ];
 
   return json({
     transactions,
-    income: 5660.00,
-    previousIncome: 5240.00,
-    weeklyIncome: 22658.00,
+    income: 5660.0,
+    previousIncome: 5240.0,
+    weeklyIncome: 22658.0,
     stats: {
       received: 54,
       paid: 20,
-      pending: 26
-    }
+      pending: 26,
+    },
   });
 };
 
 export default function Transactions() {
-  const { transactions, income, previousIncome, weeklyIncome, stats } = useLoaderData<{
-    transactions: Transaction[];
-    income: number;
-    previousIncome: number;
-    weeklyIncome: number;
-    stats: {
-      received: number;
-      paid: number;
-      pending: number;
-    };
-  }>();
+  const { transactions, income, previousIncome, weeklyIncome, stats } =
+    useLoaderData<{
+      transactions: Transaction[];
+      income: number;
+      previousIncome: number;
+      weeklyIncome: number;
+      stats: {
+        received: number;
+        paid: number;
+        pending: number;
+      };
+    }>();
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center">
-          <Link to="/transaction">
-            <ArrowLeft className="h-6 w-6 mr-2" />
-          </Link>
-          <h1 className="text-xl font-bold">Transaction</h1>
+          <h1 className="text-xl font-bold ml-6">Transaction</h1>
         </div>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
           <Phone className="h-6 w-6 text-purple-500" />
           <Link to="/settings">
-              <Settings className="h-6 w-6 text-purple-500" />
+            <Settings className="h-6 w-6 text-purple-500" />
           </Link>
         </div>
       </header>
@@ -78,10 +104,18 @@ export default function Transactions() {
           />
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <div className="absolute right-3 flex space-x-2">
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-purple-500">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-purple-500"
+            >
               <Badge className="bg-purple-100 text-purple-500">✓</Badge>
             </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-purple-500">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-purple-500"
+            >
               <Download className="h-5 w-5" />
             </Button>
           </div>
@@ -102,7 +136,10 @@ export default function Transactions() {
             </CardHeader>
             <CardContent>
               <div className="relative w-48 h-48 mx-auto">
-                <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
+                <svg
+                  viewBox="0 0 100 100"
+                  className="transform -rotate-90 w-full h-full"
+                >
                   <circle
                     cx="50"
                     cy="50"
@@ -118,7 +155,9 @@ export default function Transactions() {
                     fill="none"
                     stroke="#3b82f6"
                     strokeWidth="10"
-                    strokeDasharray={`${stats.received * 2.83} ${283 - stats.received * 2.83}`}
+                    strokeDasharray={`${stats.received * 2.83} ${
+                      283 - stats.received * 2.83
+                    }`}
                   />
                   <circle
                     cx="50"
@@ -127,7 +166,9 @@ export default function Transactions() {
                     fill="none"
                     stroke="#22c55e"
                     strokeWidth="10"
-                    strokeDasharray={`${stats.paid * 2.83} ${283 - stats.paid * 2.83}`}
+                    strokeDasharray={`${stats.paid * 2.83} ${
+                      283 - stats.paid * 2.83
+                    }`}
                     strokeDashoffset={-stats.received * 2.83}
                   />
                   <circle
@@ -137,7 +178,9 @@ export default function Transactions() {
                     fill="none"
                     stroke="#ef4444"
                     strokeWidth="10"
-                    strokeDasharray={`${stats.pending * 2.83} ${283 - stats.pending * 2.83}`}
+                    strokeDasharray={`${stats.pending * 2.83} ${
+                      283 - stats.pending * 2.83
+                    }`}
                     strokeDashoffset={-(stats.received + stats.paid) * 2.83}
                   />
                 </svg>
@@ -181,15 +224,22 @@ export default function Transactions() {
                 <div>
                   <div className="flex items-center">
                     <h3 className="text-4xl font-bold">${income.toFixed(2)}</h3>
-                    <Badge variant="secondary" className="ml-2 bg-green-100 text-green-600">
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 bg-green-100 text-green-600"
+                    >
                       ↑ 2.5%
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-500">Compared to ${previousIncome} yesterday</p>
+                  <p className="text-sm text-gray-500">
+                    Compared to ${previousIncome} yesterday
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Last week incomes</p>
-                  <p className="text-2xl font-bold">${weeklyIncome.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">
+                    ${weeklyIncome.toFixed(2)}
+                  </p>
                 </div>
                 <div className="pt-4">
                   <h4 className="text-sm font-medium mb-2">Earning Summary</h4>
@@ -205,22 +255,29 @@ export default function Transactions() {
         {/* Transactions List */}
         <Card className="bg-purple-50">
           <CardContent className="p-4">
-            {transactions.map((transaction : Transaction) => (
+            {transactions.map((transaction: Transaction) => (
               <div
                 key={transaction.id}
                 className="flex items-center justify-between bg-white p-4 rounded-lg mb-2 last:mb-0"
               >
                 <div className="flex items-center space-x-3">
                   <Avatar>
-                    <AvatarImage src={transaction.avatar} alt={transaction.user} />
+                    <AvatarImage
+                      src={transaction.avatar}
+                      alt={transaction.user}
+                    />
                     <AvatarFallback>{transaction.user[0]}</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-semibold">{transaction.user}</p>
-                    <p className="text-sm text-gray-500">{transaction.timestamp}</p>
+                    <p className="text-sm text-gray-500">
+                      {transaction.timestamp}
+                    </p>
                   </div>
                 </div>
-                <span className="text-green-500 font-medium">+{transaction.amount}</span>
+                <span className="text-green-500 font-medium">
+                  +{transaction.amount}
+                </span>
               </div>
             ))}
           </CardContent>
@@ -231,20 +288,29 @@ export default function Transactions() {
       <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
         <div className="flex justify-around items-center">
           <Link to="/home" className="flex flex-col items-center text-gray-500">
-              <Home className="h-6 w-6"/>
+            <Home className="h-6 w-6" />
             <span className="text-xs font-bold">Home</span>
           </Link>
-          <Link to="/transaction" className="flex flex-col items-center text-gray-500">
+          <Link
+            to="/transaction"
+            className="flex flex-col items-center text-gray-500"
+          >
             <div className="bg-purple-500 rounded-full p-3">
-            <Wallet className="h-6 w-6 text-white" />
+              <Wallet className="h-6 w-6 text-white" />
             </div>
             <span className="text-xs text-purple-500">Transaction</span>
           </Link>
-          <Link to="/report" className="flex flex-col items-center text-gray-500">
+          <Link
+            to="/report"
+            className="flex flex-col items-center text-gray-500"
+          >
             <PieChart className="h-6 w-6" />
             <span className="text-xs">Report</span>
           </Link>
-          <Link to="/members" className="flex flex-col items-center text-gray-500">
+          <Link
+            to="/members"
+            className="flex flex-col items-center text-gray-500"
+          >
             <Users className="h-6 w-6" />
             <span className="text-xs">Members</span>
           </Link>

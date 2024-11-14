@@ -1,9 +1,18 @@
 import { json, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link } from "@remix-run/react";
-import { Bell, Phone, Settings, ChevronDown, Home, Wallet, PieChart, Users } from "lucide-react"
-import { Button } from "~/components/ui/button"
-import { Card, CardContent } from "~/components/ui/card"
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
+import {
+  Bell,
+  Phone,
+  Settings,
+  ChevronDown,
+  Home,
+  Wallet,
+  PieChart,
+  Users,
+} from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +56,7 @@ export const loader: LoaderFunction = async () => {
     activeMembers: 120,
     expiringSoon: 130,
     expiredMembers: 120,
-    totalMembers: 120
+    totalMembers: 120,
   };
 
   const birthdays: Birthday[] = [
@@ -59,7 +68,7 @@ export const loader: LoaderFunction = async () => {
   const transactionStats: TransactionStats = {
     received: 54,
     paid: 20,
-    pending: 26
+    pending: 26,
   };
 
   return json({
@@ -68,14 +77,23 @@ export const loader: LoaderFunction = async () => {
     stats,
     birthdays,
     transactionStats,
-    income: 5660.00,
-    previousIncome: 5240.00,
-    weeklyIncome: 22658.00,
+    income: 5660.0,
+    previousIncome: 5240.0,
+    weeklyIncome: 22658.0,
   });
 };
 
 export default function Index() {
-  const { gyms, currentGym,stats, birthdays, transactionStats, income, previousIncome, weeklyIncome } = useLoaderData<typeof loader>();
+  const {
+    gyms,
+    currentGym,
+    stats,
+    birthdays,
+    transactionStats,
+    income,
+    previousIncome,
+    weeklyIncome,
+  } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -123,25 +141,33 @@ export default function Index() {
         <Card className="bg-white shadow-sm">
           <CardContent className="p-4">
             <p className="text-gray-600">Active members</p>
-            <p className="text-4xl font-bold text-green-500">{stats.activeMembers}</p>
+            <p className="text-4xl font-bold text-green-500">
+              {stats.activeMembers}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-white shadow-sm">
           <CardContent className="p-4">
             <p className="text-gray-600">Expiring soon</p>
-            <p className="text-4xl font-bold text-yellow-500">{stats.expiringSoon}</p>
+            <p className="text-4xl font-bold text-yellow-500">
+              {stats.expiringSoon}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-white shadow-sm">
           <CardContent className="p-4">
             <p className="text-gray-600">Expired members</p>
-            <p className="text-4xl font-bold text-red-500">{stats.expiredMembers}</p>
+            <p className="text-4xl font-bold text-red-500">
+              {stats.expiredMembers}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-white shadow-sm">
           <CardContent className="p-4">
             <p className="text-gray-600">Total members</p>
-            <p className="text-4xl font-bold text-blue-500">{stats.totalMembers}</p>
+            <p className="text-4xl font-bold text-blue-500">
+              {stats.totalMembers}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -150,12 +176,15 @@ export default function Index() {
       <div className="p-4">
         <h2 className="text-2xl font-bold mb-4">Birthdays Today</h2>
         <div className="flex space-x-4">
-            {birthdays.map((birthday: Birthday) => (
-            <Avatar key={birthday.id} className="h-16 w-16 ring-2 ring-purple-100">
+          {birthdays.map((birthday: Birthday) => (
+            <Avatar
+              key={birthday.id}
+              className="h-16 w-16 ring-2 ring-purple-100"
+            >
               <AvatarImage src={birthday.avatar} alt={birthday.name} />
               <AvatarFallback>{birthday.name[0]}</AvatarFallback>
             </Avatar>
-            ))}
+          ))}
         </div>
       </div>
 
@@ -166,10 +195,15 @@ export default function Index() {
           <Card className="bg-white p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Transcations</h3>
-              <Button variant="secondary" size="sm">Today</Button>
+              <Button variant="secondary" size="sm">
+                Today
+              </Button>
             </div>
             <div className="relative w-48 h-48 mx-auto">
-              <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
+              <svg
+                viewBox="0 0 100 100"
+                className="transform -rotate-90 w-full h-full"
+              >
                 <circle
                   cx="50"
                   cy="50"
@@ -185,7 +219,9 @@ export default function Index() {
                   fill="none"
                   stroke="#3b82f6"
                   strokeWidth="10"
-                  strokeDasharray={`${transactionStats.received * 2.83} ${283 - transactionStats.received * 2.83}`}
+                  strokeDasharray={`${transactionStats.received * 2.83} ${
+                    283 - transactionStats.received * 2.83
+                  }`}
                 />
                 <circle
                   cx="50"
@@ -194,7 +230,9 @@ export default function Index() {
                   fill="none"
                   stroke="#22c55e"
                   strokeWidth="10"
-                  strokeDasharray={`${transactionStats.paid * 2.83} ${283 - transactionStats.paid * 2.83}`}
+                  strokeDasharray={`${transactionStats.paid * 2.83} ${
+                    283 - transactionStats.paid * 2.83
+                  }`}
                   strokeDashoffset={-transactionStats.received * 2.83}
                 />
                 <circle
@@ -204,8 +242,12 @@ export default function Index() {
                   fill="none"
                   stroke="#ef4444"
                   strokeWidth="10"
-                  strokeDasharray={`${transactionStats.pending * 2.83} ${283 - transactionStats.pending * 2.83}`}
-                  strokeDashoffset={-(transactionStats.received + transactionStats.paid) * 2.83}
+                  strokeDasharray={`${transactionStats.pending * 2.83} ${
+                    283 - transactionStats.pending * 2.83
+                  }`}
+                  strokeDashoffset={
+                    -(transactionStats.received + transactionStats.paid) * 2.83
+                  }
                 />
               </svg>
             </div>
@@ -237,7 +279,9 @@ export default function Index() {
           <Card className="bg-white p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Income</h3>
-              <Button variant="secondary" size="sm">Today</Button>
+              <Button variant="secondary" size="sm">
+                Today
+              </Button>
             </div>
             <div className="space-y-4">
               <div>
@@ -245,7 +289,9 @@ export default function Index() {
                   <h3 className="text-4xl font-bold">${income.toFixed(2)}</h3>
                   <span className="ml-2 text-green-500">↑ 2.5%</span>
                 </div>
-                <p className="text-sm text-gray-500">Compared to ${previousIncome} yesterday</p>
+                <p className="text-sm text-gray-500">
+                  Compared to ${previousIncome} yesterday
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium">Last week incomes</p>
@@ -265,15 +311,24 @@ export default function Index() {
             </div>
             <span className="text-xs text-purple-500">Home</span>
           </Link>
-          <Link to="/transaction" className="flex flex-col items-center text-gray-500">
+          <Link
+            to="/transaction"
+            className="flex flex-col items-center text-gray-500"
+          >
             <Wallet className="h-6 w-6" />
             <span className="text-xs">Transaction</span>
           </Link>
-          <Link to="/report" className="flex flex-col items-center text-gray-500">
+          <Link
+            to="/report"
+            className="flex flex-col items-center text-gray-500"
+          >
             <PieChart className="h-6 w-6" />
             <span className="text-xs">Report</span>
           </Link>
-          <Link to="/members" className="flex flex-col items-center text-gray-500">
+          <Link
+            to="/members"
+            className="flex flex-col items-center text-gray-500"
+          >
             <Users className="h-6 w-6" />
             <span className="text-xs">Members</span>
           </Link>

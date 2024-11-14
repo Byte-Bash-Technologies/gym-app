@@ -1,8 +1,18 @@
-import { Outlet } from "@remix-run/react"
-import { ArrowLeft, Bell, Phone, Settings as SettingsIcon, RefreshCcw, MessageSquare, BarChart, User2, Clock } from "lucide-react"
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
-import { Button } from "~/components/ui/button"
-import { Card } from "~/components/ui/card"
+import { Outlet } from "@remix-run/react";
+import {
+  ArrowLeft,
+  Bell,
+  Phone,
+  Settings as SettingsIcon,
+  RefreshCcw,
+  MessageSquare,
+  BarChart,
+  User2,
+  Clock,
+} from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { Button } from "~/components/ui/button";
+import { Card } from "~/components/ui/card";
 
 export default function SettingsPage() {
   return (
@@ -10,7 +20,10 @@ export default function SettingsPage() {
       {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ArrowLeft className="h-6 w-6 cursor-pointer" onClick={() => window.history.back()} />
+          <ArrowLeft
+            className="h-6 w-6 cursor-pointer"
+            onClick={() => window.history.back()}
+          />
           <h1 className="text-xl font-bold">Settings</h1>
         </div>
         <div className="flex items-center gap-4">
@@ -46,7 +59,7 @@ export default function SettingsPage() {
                 <p className="text-gray-500">#aueueu</p>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <h4 className="font-semibold">Current plan</h4>
               <p className="text-lg">3 months plan</p>
@@ -65,11 +78,21 @@ export default function SettingsPage() {
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Manage Gym</h2>
           <Card className="divide-y">
-            <Button variant="ghost" className="w-full justify-start p-4" onClick={() => window.location.href = 'settings/message-template'}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start p-4"
+              onClick={() =>
+                (window.location.href = "settings/message-template")
+              }
+            >
               <MessageSquare className="h-5 w-5 mr-3 text-purple-500" />
               Message templates
             </Button>
-            <Button variant="ghost" className="w-full justify-start p-4" onClick={()=> window.location.href='settings/plans'}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start p-4"
+              onClick={() => (window.location.href = "settings/plans")}
+            >
               <BarChart className="h-5 w-5 mr-3 text-purple-500" />
               Plans
             </Button>
@@ -92,13 +115,11 @@ export default function SettingsPage() {
         </section>
 
         {/* Logout Button */}
-        <Button 
-          className="w-full bg-purple-500 hover:bg-purple-600 text-white py-6 rounded-full text-lg mt-8"
-        >
+        <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white py-6 rounded-full text-lg mt-8">
           Logout
         </Button>
         <Outlet />
       </main>
     </div>
-  )
+  );
 }

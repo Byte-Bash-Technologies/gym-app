@@ -1,34 +1,35 @@
 import { json, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link } from "@remix-run/react";
 import { useState } from "react";
-import { ArrowLeft, Search, Check } from "lucide-react"
-import { Button } from "~/components/ui/button"
-import { Card, CardContent } from "~/components/ui/card"
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
-import { Badge } from "~/components/ui/badge"
-import { Label } from "~/components/ui/label"
-import { Input } from "~/components/ui/input"
-import { Checkbox } from "~/components/ui/checkbox"
+import { ArrowLeft, Search, Check } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { Badge } from "~/components/ui/badge";
+import { Label } from "~/components/ui/label";
+import { Input } from "~/components/ui/input";
+import { Checkbox } from "~/components/ui/checkbox";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select"
+} from "~/components/ui/select";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "~/components/ui/popover"
+} from "~/components/ui/popover";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "~/components/ui/command"
+} from "~/components/ui/command";
 import { cn } from "~/lib/utils";
+import { supabase } from "~/utils/supabase.server";
 
 interface Member {
   id: string;
@@ -53,24 +54,40 @@ interface LoaderData {
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
-  // Mock data - replace with actual data fetching
+  const { data: memberData, error: memberError } = await supabase
+    .from("members")
+    .select("*")
+    .eq("id", params.memberId)
+    .single();
+
+  if (memberError) {
+    throw new Error(memberError.message);
+  }
+
+  const { data: plansData, error: plansError } = await supabase
+    .from("plans")
+    .select("*");
+
+  if (plansError) {
+    throw new Error(plansError.message);
+  }
+
   const member: Member = {
-    id: params.memberId || "",
-    name: "Kalendhar",
-    phone: "+919567677054",
-    admissionNo: "STRE0005",
-    joinDate: "06 Sep 2023",
-    gender: "MALE",
-    avatar: "/placeholder.svg"
+    id: memberData.id,
+    name: memberData.name,
+    phone: memberData.phone,
+    admissionNo: memberData.admission_no,
+    joinDate: memberData.joined_date,
+    gender: memberData.gender,
+    avatar: memberData.avatar || "/placeholder.svg",
   };
 
-  // Mock plans data - replace with actual data fetching from your settings/plans
-  const plans: Plan[] = [
-    { id: "plan1", name: "1 Month And Admission", duration: "30 days", price: 1500 },
-    { id: "plan2", name: "1 Month", duration: "30 days", price: 1000 },
-    { id: "plan3", name: "3 Months", duration: "90 days", price: 2700 },
-    { id: "plan4", name: "6 Months", duration: "180 days", price: 5000 },
-  ];
+  const plans: Plan[] = plansData.map((plan: any) => ({
+    id: plan.id,
+    name: plan.name,
+    duration: plan.duration,
+    price: plan.price,
+  }));
 
   return json({ member, plans });
 };
@@ -100,7 +117,7 @@ export default function RenewMembership() {
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16">
                 <AvatarImage src={member.avatar} alt={member.name} />
-                <AvatarFallback>{member.name[0]}</AvatarFallback>
+                <AvatarFallback>{member.name}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -149,7 +166,9 @@ export default function RenewMembership() {
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            selectedPlan?.id === plan.id ? "opacity-100" : "opacity-0"
+                            selectedPlan?.id === plan.id
+                              ? "opacity-100"
+                              : "opacity-0"
                           )}
                         />
                         <div className="flex justify-between w-full">
@@ -166,14 +185,19 @@ export default function RenewMembership() {
             </Popover>
             {selectedPlan && (
               <p className="text-sm text-gray-500 mt-2">
-                Selected: {selectedPlan.name} - ₹{selectedPlan.price} for {selectedPlan.duration}
+                Selected: {selectedPlan.name} - ₹{selectedPlan.price} for{" "}
+                {selectedPlan.duration}
               </p>
             )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="discount">Discount</Label>
-            <Input id="discount" type="number" placeholder="Enter discount amount" />
+            <Input
+              id="discount"
+              type="number"
+              placeholder="Enter discount amount"
+            />
           </div>
 
           <div className="space-y-2">

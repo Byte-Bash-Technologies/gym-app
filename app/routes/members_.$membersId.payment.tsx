@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { json, redirect, type ActionFunction } from "@remix-run/node";
 import { useActionData, Form, useNavigate, useParams } from "@remix-run/react";
-import { X } from "lucide-react"
-import { Button } from "~/components/ui/button"
-import { Input } from "~/components/ui/input"
-import { Label } from "~/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import { SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetClose } from "~/components/ui/sheet"
-import { toast } from "~/hooks/use-toast"
+import { X } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import {
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from "~/components/ui/sheet";
+import { toast } from "~/hooks/use-toast";
 
 export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
@@ -41,7 +48,10 @@ export default function PaymentDrawer() {
         </SheetDescription>
       </SheetHeader>
       <Form method="post" className="space-y-4 mt-4">
-        <RadioGroup defaultValue="full" onValueChange={(value) => setPaymentType(value)}>
+        <RadioGroup
+          defaultValue="full"
+          onValueChange={(value) => setPaymentType(value)}
+        >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="full" id="full" />
             <Label htmlFor="full">Full Payment</Label>
@@ -67,7 +77,9 @@ export default function PaymentDrawer() {
         <input type="hidden" name="paymentType" value={paymentType} />
 
         <SheetFooter>
-          <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
+          <Button type="button" variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
           <Button type="submit">Pay Now</Button>
         </SheetFooter>
       </Form>

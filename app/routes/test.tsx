@@ -1,20 +1,28 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { ArrowLeft, Bell, Phone, Settings, Search, CheckCircle, Pencil, Plus } from "lucide-react"
-import { Button } from "~/components/ui/button"
-import { Input } from "~/components/ui/input"
-import { Card } from "~/components/ui/card"
+import { useState } from "react";
+import {
+  ArrowLeft,
+  Bell,
+  Phone,
+  Settings,
+  Search,
+  CheckCircle,
+  Pencil,
+  Plus,
+} from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Card } from "~/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "~/components/ui/dialog"
+} from "~/components/ui/dialog";
 import { Label } from "~/components/ui/label";
 import { supabase } from "~/utils/supabase.server";
-
 
 interface Plan {
   id: number;
@@ -30,25 +38,33 @@ export default function PlansPage() {
     { id: 3, name: "Gold plan", duration: "6 months", price: 5999 },
     { id: 4, name: "Silver plan", duration: "3 months", price: 2999 },
     { id: 5, name: "Bronze plan", duration: "1 month", price: 999 },
-  ])
+  ]);
 
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 
   const handleAddOrUpdatePlan = (plan: Plan) => {
     if (editingPlan) {
-      setPlans(plans.map(p => p.id === plan.id ? plan : p))
+      setPlans(plans.map((p) => (p.id === plan.id ? plan : p)));
     } else {
-      setPlans([...plans, { ...plan, id: Math.max(...plans.map(p => p.id)) + 1 }])
+      setPlans([
+        ...plans,
+        { ...plan, id: Math.max(...plans.map((p) => p.id)) + 1 },
+      ]);
     }
-    setEditingPlan(null)
-  }
+    setEditingPlan(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hover:bg-gray-100" onClick={() => window.history.back()}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:bg-gray-100"
+            onClick={() => window.history.back()}
+          >
             <ArrowLeft className="h-6 w-6" />
           </Button>
           <h1 className="text-xl font-bold">Plans</h1>
@@ -82,14 +98,19 @@ export default function PlansPage() {
           <h2 className="text-2xl font-bold">Default plans</h2>
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="bg-purple-500 hover:bg-purple-600 text-white" onClick={() => setEditingPlan(null)}>
+              <Button
+                className="bg-purple-500 hover:bg-purple-600 text-white"
+                onClick={() => setEditingPlan(null)}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Plan
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{editingPlan ? 'Edit Plan' : 'Add New Plan'}</DialogTitle>
+                <DialogTitle>
+                  {editingPlan ? "Edit Plan" : "Add New Plan"}
+                </DialogTitle>
               </DialogHeader>
               <PlanForm plan={editingPlan} onSubmit={handleAddOrUpdatePlan} />
             </DialogContent>
@@ -106,12 +127,15 @@ export default function PlansPage() {
                 <p className="text-gray-500">{plan.duration}</p>
               </div>
               <div className="flex items-center gap-4">
-                <div className="text-xl font-semibold">
-                  $ {plan.price}
-                </div>
+                <div className="text-xl font-semibold">$ {plan.price}</div>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-purple-500 hover:bg-purple-200" onClick={() => setEditingPlan(plan)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-purple-500 hover:bg-purple-200"
+                      onClick={() => setEditingPlan(plan)}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                   </DialogTrigger>
@@ -128,7 +152,7 @@ export default function PlansPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }
 
 interface PlanFormProps {
@@ -139,15 +163,15 @@ interface PlanFormProps {
 function PlanForm({ plan, onSubmit }: PlanFormProps) {
   const [formData, setFormData] = useState<Plan>({
     id: plan?.id || 0,
-    name: plan?.name || '',
-    duration: plan?.duration || '',
-    price: plan?.price || 0
-  })
+    name: plan?.name || "",
+    duration: plan?.duration || "",
+    price: plan?.price || 0,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(formData)
-  }
+    e.preventDefault();
+    onSubmit(formData);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -165,7 +189,9 @@ function PlanForm({ plan, onSubmit }: PlanFormProps) {
         <Input
           id="duration"
           value={formData.duration}
-          onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, duration: e.target.value })
+          }
           required
         />
       </div>
@@ -175,13 +201,18 @@ function PlanForm({ plan, onSubmit }: PlanFormProps) {
           id="price"
           type="number"
           value={formData.price}
-          onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+          onChange={(e) =>
+            setFormData({ ...formData, price: Number(e.target.value) })
+          }
           required
         />
       </div>
-      <Button type="submit" className="w-full bg-purple-500 hover:bg-purple-600 text-white">
-        {plan ? 'Update Plan' : 'Add Plan'}
+      <Button
+        type="submit"
+        className="w-full bg-purple-500 hover:bg-purple-600 text-white"
+      >
+        {plan ? "Update Plan" : "Add Plan"}
       </Button>
     </form>
-  )
+  );
 }

@@ -1,16 +1,33 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { json, type LoaderFunction, ActionFunction } from "@remix-run/node"
-import { useLoaderData, useActionData, useFetcher, Link, Outlet } from "@remix-run/react"
-import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, CreditCard, CalendarPlus, Save } from "lucide-react"
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
-import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-import { Badge } from "~/components/ui/badge"
-import { Sheet, SheetTrigger } from "~/components/ui/sheet"
-import { Input } from "~/components/ui/input"
-import { supabase } from "~/utils/supabase.server"
+import { useState } from "react";
+import { json, type LoaderFunction, ActionFunction } from "@remix-run/node";
+import {
+  useLoaderData,
+  useActionData,
+  useFetcher,
+  Link,
+  Outlet,
+} from "@remix-run/react";
+import {
+  ArrowLeft,
+  Bell,
+  Phone,
+  Settings,
+  Download,
+  RefreshCcw,
+  Pencil,
+  CreditCard,
+  CalendarPlus,
+  Save,
+} from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { Sheet, SheetTrigger } from "~/components/ui/sheet";
+import { Input } from "~/components/ui/input";
+import { supabase } from "~/utils/supabase.server";
 
 // interface Member {
 //   id: string;
@@ -28,63 +45,65 @@ import { supabase } from "~/utils/supabase.server"
 //   balance: number;
 // }
 
-interface Plan {
-  name: string;
-  duration: number;
-  price: number;
-}
+// interface Plan {
+//   name: string;
+//   duration: number;
+//   price: number;
+// }
 
-interface Transaction {
-  id: string;
-  amount: number;
-  type: string;
-  payment_method: string;
-  created_at: string;
-}
+// interface Transaction {
+//   id: string;
+//   amount: number;
+//   type: string;
+//   payment_method: string;
+//   created_at: string;
+// }
 
 export const loader: LoaderFunction = async ({ params }) => {
   const { data: member, error: memberError } = await supabase
-    .from('members')
-    .select('*')
-    .eq('id', params.membersId)
+    .from("members")
+    .select("*")
+    .eq("id", params.membersId)
     .single();
-  
+
   if (memberError) throw new Response("Member not found", { status: 404 });
 
   const { data: membership, error: membershipError } = await supabase
-    .from('memberships')
-    .select('*, plans(*)')
-    .eq('member_id', params.membersId)
-    .eq('status', 'active')
+    .from("memberships")
+    .select("*, plans(*)")
+    .eq("member_id", params.membersId)
+    .eq("status", "active")
     .single();
 
   const { data: transactions, error: transactionsError } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('member_id', params.membersId)
-    .order('created_at', { ascending: false })
+    .from("transactions")
+    .select("*")
+    .eq("member_id", params.membersId)
+    .order("created_at", { ascending: false })
     .limit(5);
 
-  if (membershipError) console.error("Error fetching membership:", membershipError);
-  if (transactionsError) console.error("Error fetching transactions:", transactionsError);
+  if (membershipError)
+    console.error("Error fetching membership:", membershipError);
+  if (transactionsError)
+    console.error("Error fetching transactions:", transactionsError);
 
   return json({
     member,
     currentPlan: membership?.plans ?? null,
-    recentTransactions: transactions ?? []
+    recentTransactions: transactions ?? [],
   });
 };
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
-  const memberId = formData.get('memberId') as string;
-  const height = Number(formData.get('height'));
-  const weight = Number(formData.get('weight'));
+  const memberId = formData.get("memberId") as string;
+  const height = Number(formData.get("height"));
+  const weight = Number(formData.get("weight"));
 
   const { data, error } = await supabase
-    .from('members')
+    .from("members")
     .update({ height, weight })
-    .eq('id', memberId)
+    .eq("id", memberId)
     .single();
 
   if (error) {
@@ -95,7 +114,8 @@ export const action: ActionFunction = async ({ request }) => {
 };
 
 export default function MemberProfile() {
-  const { member, currentPlan, recentTransactions } = useLoaderData<typeof loader>();
+  const { member, currentPlan, recentTransactions } =
+    useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const fetcher = useFetcher();
 
@@ -114,7 +134,7 @@ export default function MemberProfile() {
         height: newHeight,
         weight: newWeight,
       },
-      { method: 'post' }
+      { method: "post" }
     );
     setIsEditing(false);
   };
@@ -124,7 +144,6 @@ export default function MemberProfile() {
     member.height = actionData.member.height;
     member.weight = actionData.member.weight;
   }
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -148,7 +167,10 @@ export default function MemberProfile() {
       {/* Profile Section */}
       <div className="flex flex-col items-center mb-6">
         <Avatar className="w-24 h-24 mb-2">
-          <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`} alt={member.full_name} />
+          <AvatarImage
+            src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
+            alt={member.full_name}
+          />
           <AvatarFallback>{member.full_name[0]}</AvatarFallback>
         </Avatar>
         <h2 className="text-xl font-bold">{member.full_name}</h2>
@@ -170,7 +192,9 @@ export default function MemberProfile() {
           {currentPlan ? (
             <>
               <h3 className="font-semibold mb-2">{currentPlan.name}</h3>
-              <p className="text-lg font-bold mb-1">₹{currentPlan.price} for {currentPlan.duration} days</p>
+              <p className="text-lg font-bold mb-1">
+                ₹{currentPlan.price} for {currentPlan.duration} days
+              </p>
               <p className="text-sm text-green-500 mb-2">• Active</p>
             </>
           ) : (
@@ -181,10 +205,12 @@ export default function MemberProfile() {
               <RefreshCcw className="h-4 w-4 mr-2" />
               Change plan
             </Button>
-            <Button variant="outline" size="sm">
-              <CalendarPlus className="h-4 w-4 mr-2" />
-              Add plans
-            </Button>
+            <Link to="/addplans">
+              <Button variant="outline" size="sm">
+                <CalendarPlus className="h-4 w-4 mr-2" />
+                Add plans
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
@@ -199,7 +225,9 @@ export default function MemberProfile() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-500 mb-2">
-            {member.balance > 0 ? "Outstanding balance on your account" : "Your account is up to date"}
+            {member.balance > 0
+              ? "Outstanding balance on your account"
+              : "Your account is up to date"}
           </p>
           {member.balance > 0 && (
             <Sheet open={isPaymentOpen}>
@@ -220,17 +248,33 @@ export default function MemberProfile() {
       {/* Recent Transactions */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="text-lg font-bold">Recent Transactions</CardTitle>
+          <CardTitle className="text-lg font-bold">
+            Recent Transactions
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {recentTransactions.length > 0 ? (
             <ul className="space-y-2">
               {recentTransactions.map((transaction) => (
-                <li key={transaction.id} className="flex justify-between items-center">
-                  <span className="text-sm">{new Date(transaction.created_at).toLocaleDateString()}</span>
-                  <span className="text-sm font-medium">{transaction.type}</span>
-                  <span className={`text-sm font-bold ${transaction.type === 'payment' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'payment' ? '-' : '+'} ₹{transaction.amount}
+                <li
+                  key={transaction.id}
+                  className="flex justify-between items-center"
+                >
+                  <span className="text-sm">
+                    {new Date(transaction.created_at).toLocaleDateString()}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {transaction.type}
+                  </span>
+                  <span
+                    className={`text-sm font-bold ${
+                      transaction.type === "payment"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {transaction.type === "payment" ? "-" : "+"} ₹
+                    {transaction.amount}
                   </span>
                 </li>
               ))}
@@ -247,7 +291,12 @@ export default function MemberProfile() {
           <CardTitle className="text-lg font-bold">Member details</CardTitle>
           <div className="flex space-x-2">
             {isEditing ? (
-              <Button variant="ghost" size="sm" onClick={handleSave} disabled={fetcher.state === 'submitting'}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSave}
+                disabled={fetcher.state === "submitting"}
+              >
                 <Save className="h-4 w-4" />
               </Button>
             ) : (
@@ -265,7 +314,9 @@ export default function MemberProfile() {
             </div>
             <div>
               <p className="text-gray-500">Date of Birth</p>
-              <p className="font-semibold">{new Date(member.date_of_birth).toLocaleDateString()}</p>
+              <p className="font-semibold">
+                {new Date(member.date_of_birth).toLocaleDateString()}
+              </p>
             </div>
             <div>
               <p className="text-gray-500">Blood Type</p>
@@ -299,7 +350,9 @@ export default function MemberProfile() {
             </div>
             <div>
               <p className="text-gray-500">Joined Date</p>
-              <p className="font-semibold">{new Date(member.joined_date).toLocaleDateString()}</p>
+              <p className="font-semibold">
+                {new Date(member.joined_date).toLocaleDateString()}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -311,5 +364,5 @@ export default function MemberProfile() {
         </div>
       )}
     </div>
-  )
+  );
 }
