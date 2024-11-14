@@ -5,38 +5,28 @@ import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Card } from "~/components/ui/card"
+import { supabase } from "~/utils/supabase.server";
 
 interface Member {
   id: number
-  name: string
+  full_name: string
   phone: string
   plan: string
   status: "Active" | "Expired" | "Expire soon"
 }
 
-// Mock data
-
-const mockMembers: Member[] = [
-  { id: 1, name: "Benston", phone: "+ 91 98765432", plan: "1 month plan", status: "Active" },
-  { id: 2, name: "Benny", phone: "+ 91 98765432", plan: "3 months plan", status: "Active" },
-  { id: 3, name: "Nithesh", phone: "+ 91 98765432", plan: "1 month plan", status: "Expired" },
-  { id: 4, name: "Tony", phone: "+ 91 98765432", plan: "12 months plan", status: "Expire soon" },
-  { id: 5, name: "Ragul", phone: "+ 91 98765432", plan: "6 months plan", status: "Active" },
-  { id: 6, name: "Maxwel", phone: "+ 91 98765432", plan: "3 months plan", status: "Active" },
-];
 
 export const loader: LoaderFunction = async () => {
-  // const { data: members, error } = await supabase
-  //   .from('members')
-  //   .select('id, full_name, email, phone, status')
-  //   .order('full_name', { ascending: true });
+   const { data: members, error } = await supabase
+     .from('members')
+     .select('id, full_name, email, phone, status')
+     .order('full_name', { ascending: true })
+   if (error) {
+     console.error('Error fetching members:', error);
+     throw new Response("Error fetching members", { status: 500 });
+   }
 
-  // if (error) {
-  //   console.error('Error fetching members:', error);
-  //   throw new Response("Error fetching members", { status: 500 });
-  // }
-
-  return json({ members: mockMembers });
+  return json({ members});
 };
 
 export default function MembersPage() {
@@ -83,11 +73,11 @@ export default function MembersPage() {
                 className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0"
                 >
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src="/placeholder.svg" alt={member.name} />
-                  <AvatarFallback>{member.name[0]}</AvatarFallback>
+                  <AvatarImage src="/placeholder.svg" alt={member.full_name} />
+                  <AvatarFallback>{member.full_name}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h3 className="font-semibold">{member.name}</h3>
+                  <h3 className="font-semibold">{member.full_name}</h3>
                   <p className="text-sm text-muted-foreground">{member.phone}</p>
                   <p className="text-sm text-muted-foreground">{member.plan}</p>
                 </div>

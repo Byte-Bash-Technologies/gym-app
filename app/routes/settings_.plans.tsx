@@ -1,10 +1,11 @@
-"use client"
-
-import { useState } from "react"
-import { ArrowLeft, Bell, Phone, Settings, Search, CheckCircle, Pencil, Plus } from "lucide-react"
+import { json, redirect, type LoaderFunction, type ActionFunction } from "@remix-run/node";
+import { useLoaderData, useActionData, Form} from "@remix-run/react";
+import { useState,useTransition } from "react";
+import { supabase } from "~/utils/supabase.server";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
-import { Card } from "~/components/ui/card"
+import { Label } from "~/components/ui/label"
 import {
   Dialog,
   DialogContent,
@@ -12,174 +13,185 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
-import { Label } from "~/components/ui/label"
+import { toast } from "~/hooks/use-toast"
 
 interface Plan {
-  id: number;
+  id: string;
   name: string;
-  duration: string;
+  duration: number;
   price: number;
+  description: string;
 }
 
-export default function PlansPage() {
-  const [plans, setPlans] = useState<Plan[]>([
-    { id: 1, name: "Diamond plan", duration: "12 months", price: 9999 },
-    { id: 2, name: "Platinum plan", duration: "9 months", price: 7999 },
-    { id: 3, name: "Gold plan", duration: "6 months", price: 5999 },
-    { id: 4, name: "Silver plan", duration: "3 months", price: 2999 },
-    { id: 5, name: "Bronze plan", duration: "1 month", price: 999 },
-  ])
+export const loader: LoaderFunction = async () => {
+  const { data: plans, error } = await supabase
+    .from('plans')
+    .select('*')
+    .order('name');
 
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
+  if (error) {
+    console.error("Error fetching plans:", error);
+    return json({ plans: [] });
+  }
 
-  const handleAddOrUpdatePlan = (plan: Plan) => {
-    if (editingPlan) {
-      setPlans(plans.map(p => p.id === plan.id ? plan : p))
-    } else {
-      setPlans([...plans, { ...plan, id: Math.max(...plans.map(p => p.id)) + 1 }])
+  return json({ plans });
+};
+
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const action = formData.get("_action");
+
+  switch (action) {
+    case "create":
+    case "update": {
+      const name = formData.get("name") as string;
+      const duration = parseInt(formData.get("duration") as string);
+      const price = parseFloat(formData.get("price") as string);
+      const description = formData.get("description") as string;
+
+      if (action === "create") {
+        const { error } = await supabase
+          .from('plans')
+          .insert([{ name, duration, price, description }]);
+
+        if (error) return json({ error: "Failed to create plan" }, { status: 400 });
+      } else {
+        const id = formData.get("id") as string;
+        const { error } = await supabase
+          .from('plans')
+          .update({ name, duration, price, description })
+          .eq('id', id);
+
+        if (error) return json({ error: "Failed to update plan" }, { status: 400 });
+      }
+      break;
     }
-    setEditingPlan(null)
+    case "delete": {
+      const id = formData.get("id") as string;
+      const { error } = await supabase
+        .from('plans')
+        .delete()
+        .eq('id', id);
+
+      if (error) return json({ error: "Failed to delete plan" }, { status: 400 });
+      break;
+    }
+    default:
+      return json({ error: "Invalid action" }, { status: 400 });
+  }
+
+  return redirect("/settings/plans");
+};
+
+export default function Plans() {
+  const { plans } = useLoaderData<{ plans: Plan[] }>();
+  const actionData = useActionData();
+  const transition = useTransition();
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+
+  if (actionData?.error) {
+    toast({
+      title: "Error",
+      description: actionData.error,
+      variant: "destructive",
+    });
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hover:bg-gray-100" onClick={() => window.history.back()}>
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-          <h1 className="text-xl font-bold">Plans</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
-          <Settings className="h-6 w-6 text-purple-500" />
-        </div>
-      </header>
-
-      {/* Search Section */}
-      <div className="p-4">
-        <div className="relative">
-          <Input
-            type="text"
-            placeholder="Search by plans"
-            className="pl-10 pr-10 py-2 w-full bg-white rounded-full"
-          />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-            <CheckCircle className="h-5 w-5 text-purple-500" />
-            <Pencil className="h-5 w-5 text-purple-500" />
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Plans</h2>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>Add New Plan</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Plan</DialogTitle>
+            </DialogHeader>
+            <PlanForm />
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Plans Section */}
-      <main className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Default plans</h2>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-purple-500 hover:bg-purple-600 text-white" onClick={() => setEditingPlan(null)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Plan
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingPlan ? 'Edit Plan' : 'Add New Plan'}</DialogTitle>
-              </DialogHeader>
-              <PlanForm plan={editingPlan} onSubmit={handleAddOrUpdatePlan} />
-            </DialogContent>
-          </Dialog>
-        </div>
-        <div className="space-y-3">
-          {plans.map((plan) => (
-            <Card
-              key={plan.id}
-              className="bg-purple-50 p-4 flex justify-between items-center cursor-pointer hover:bg-purple-100 transition-colors"
-            >
-              <div>
-                <h3 className="text-xl font-bold">{plan.name}</h3>
-                <p className="text-gray-500">{plan.duration}</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-xl font-semibold">
-                  $ {plan.price}
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {plans.map((plan) => (
+          <Card key={plan.id}>
+            <CardHeader>
+              <CardTitle>{plan.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600">{plan.duration} days</p>
+              <p className="text-2xl font-bold mt-2">₹{plan.price}</p>
+              <p className="text-sm text-gray-500 mt-2">{plan.description}</p>
+              <div className="mt-4 space-x-2">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-purple-500 hover:bg-purple-200" onClick={() => setEditingPlan(plan)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setEditingPlan(plan)}>Edit</Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Edit Plan</DialogTitle>
                     </DialogHeader>
-                    <PlanForm plan={plan} onSubmit={handleAddOrUpdatePlan} />
+                    <PlanForm plan={editingPlan} />
                   </DialogContent>
                 </Dialog>
+                <Form method="post" style={{ display: 'inline' }}>
+                  <input type="hidden" name="id" value={plan.id} />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    type="submit" 
+                    name="_action" 
+                    value="delete"
+                    onClick={(e) => {
+                      if (!confirm("Are you sure you want to delete this plan?")) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </Form>
               </div>
-            </Card>
-          ))}
-        </div>
-      </main>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }
 
-interface PlanFormProps {
-  plan?: Plan | null;
-  onSubmit: (plan: Plan) => void;
-}
-
-function PlanForm({ plan, onSubmit }: PlanFormProps) {
-  const [formData, setFormData] = useState<Plan>({
-    id: plan?.id || 0,
-    name: plan?.name || '',
-    duration: plan?.duration || '',
-    price: plan?.price || 0
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(formData)
-  }
+function PlanForm({ plan = null }: { plan?: Plan | null }) {
+  const transition = useTransition();
+  const isSubmitting = transition.state === "submitting";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <Form method="post" className="space-y-4">
+      <input type="hidden" name="id" value={plan?.id} />
       <div>
-        <Label htmlFor="name">Plan Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          required
-        />
+        <Label htmlFor="name">Name</Label>
+        <Input id="name" name="name" defaultValue={plan?.name} required />
       </div>
       <div>
-        <Label htmlFor="duration">Duration</Label>
-        <Input
-          id="duration"
-          value={formData.duration}
-          onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-          required
-        />
+        <Label htmlFor="duration">Duration (days)</Label>
+        <Input id="duration" name="duration" type="number" defaultValue={plan?.duration} required />
       </div>
       <div>
         <Label htmlFor="price">Price</Label>
-        <Input
-          id="price"
-          type="number"
-          value={formData.price}
-          onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-          required
-        />
+        <Input id="price" name="price" type="number" step="0.01" defaultValue={plan?.price} required />
       </div>
-      <Button type="submit" className="w-full bg-purple-500 hover:bg-purple-600 text-white">
-        {plan ? 'Update Plan' : 'Add Plan'}
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Input id="description" name="description" defaultValue={plan?.description} />
+      </div>
+      <Button 
+        type="submit" 
+        name="_action" 
+        value={plan ? "update" : "create"}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Saving..." : (plan ? "Update Plan" : "Create Plan")}
       </Button>
-    </form>
-  )
+    </Form>
+  );
 }
