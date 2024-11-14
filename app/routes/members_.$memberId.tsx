@@ -6,10 +6,11 @@ import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Badge } from "~/components/ui/badge"
-import { Sheet, SheetTrigger } from "~/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "~/components/ui/sheet"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
 import { Label } from "~/components/ui/label"
 import { Input } from "~/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
 import { supabase } from "~/utils/supabase.server"
 import { toast } from "~/hooks/use-toast"
 
@@ -84,41 +85,120 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
-  const memberId = formData.get('memberId') as string;
-  const height = parseFloat(formData.get('height') as string);
-  const weight = parseFloat(formData.get('weight') as string);
+  const action = formData.get('_action');
 
-  const { error } = await supabase
-    .from('members')
-    .update({ height, weight })
-    .eq('id', memberId);
+  if (action === 'updateMember') {
+    const memberId = formData.get('memberId') as string;
+    const height = parseFloat(formData.get('height') as string);
+    const weight = parseFloat(formData.get('weight') as string);
 
-  if (error) {
-    return json({ error: "Failed to update member details" }, { status: 400 });
+    const { error } = await supabase
+      .from('members')
+      .update({ height, weight })
+      .eq('id', memberId);
+
+    if (error) {
+      return json({ error: "Failed to update member details" }, { status: 400 });
+    }
+
+    return json({ success: true, message: "Member details updated successfully" });
+  } else if (action === 'payBalance') {
+    const memberId = formData.get('memberId') as string;
+    const amount = parseFloat(formData.get('amount') as string);
+    const paymentMethod = formData.get('paymentMethod') as string;
+
+    const { data: member, error: memberError } = await supabase
+      .from('members')
+      .select('balance')
+      .eq('id', memberId)
+      .single();
+
+    if (memberError) {
+      return json({ error: "Failed to fetch member balance" }, { status: 400 });
+    }
+
+      // Fetch or create the membership
+  const { data: membership, error: membershipError } = await supabase
+  .from('memberships')
+  .select('*')
+  .eq('member_id', memberId)
+  .single();
+
+if (membershipError) {
+  return json({ error: "Failed to fetch membership" }, { status: 500 });
+}
+
+    if (amount <= 0 || amount > member.balance) {
+      return json({ error: "Invalid payment amount" }, { status: 400 });
+    }
+
+    const newBalance = member.balance - amount;
+
+    const { error: transactionError } = await supabase
+      .from('transactions')
+      .insert({
+        membership_id:membership.id,
+        member_id: memberId,
+        amount,
+        type: 'payment',
+        payment_method: paymentMethod,
+        status: 'completed'
+      });
+
+    if (transactionError) {
+      return json({ error: "Failed to record transaction" }, { status: 500 });
+    }
+
+    const { error: updateError } = await supabase
+      .from('members')
+      .update({ balance: newBalance })
+      .eq('id', memberId);
+
+    if (updateError) {
+      return json({ error: "Failed to update member balance" }, { status: 500 });
+    }
+
+    return json({ success: true, message: "Payment processed successfully" });
   }
 
-  return json({ success: true });
+  return json({ error: "Invalid action" }, { status: 400 });
 };
 
 export default function MemberProfile() {
   const { member, currentPlan, recentTransactions } = useLoaderData<LoaderData>();
-  const location = useLocation();
-  const isPaymentOpen = location.pathname.endsWith('/payment');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
   const fetcher = useFetcher();
 
   const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    formData.append('_action', 'updateMember');
     fetcher.submit(formData, { method: 'post' });
     setIsEditDialogOpen(false);
   };
 
-  if (fetcher.type === 'done' && fetcher.data.success) {
-    toast({
-      title: "Success",
-      description: "Member details updated successfully",
-    });
+  const handlePaymentSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    formData.append('_action', 'payBalance');
+    fetcher.submit(formData, { method: 'post' });
+    setIsPaymentSheetOpen(false);
+  };
+
+  if (fetcher.type === 'done') {
+    if (fetcher.data.success) {
+      toast({
+        title: "Success",
+        description: fetcher.data.message,
+      });
+    } else if (fetcher.data.error) {
+      toast({
+        title: "Error",
+        description: fetcher.data.error,
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -189,16 +269,47 @@ export default function MemberProfile() {
             {member.balance > 0 ? "Outstanding balance on your account" : "Your account is up to date"}
           </p>
           {member.balance > 0 && (
-            <Sheet open={isPaymentOpen}>
+            <Sheet open={isPaymentSheetOpen} onOpenChange={setIsPaymentSheetOpen}>
               <SheetTrigger asChild>
-                <Link to="payment">
-                  <Button variant="outline" size="sm">
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Pay Balance
-                  </Button>
-                </Link>
+                <Button variant="outline" size="sm">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Pay Balance
+                </Button>
               </SheetTrigger>
-              <Outlet />
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Pay Balance</SheetTitle>
+                </SheetHeader>
+                <fetcher.Form onSubmit={handlePaymentSubmit} className="space-y-4 mt-4">
+                  <input type="hidden" name="memberId" value={member.id} />
+                  <div>
+                    <Label htmlFor="amount">Amount to Pay</Label>
+                    <Input
+                      id="amount"
+                      name="amount"
+                      type="number"
+                      step="0.01"
+                      max={member.balance}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="paymentMethod">Payment Method</Label>
+                    <Select name="paymentMethod" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="credit_card">Credit Card</SelectItem>
+                        <SelectItem value="debit_card">Debit Card</SelectItem>
+                        <SelectItem value="upi">UPI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="submit" className="w-full">Process Payment</Button>
+                </fetcher.Form>
+              </SheetContent>
             </Sheet>
           )}
         </CardContent>

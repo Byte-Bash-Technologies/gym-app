@@ -1,50 +1,31 @@
-import { json, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link } from "@remix-run/react";
-import { useState } from "react";
-import { ArrowLeft, Search, Check } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { Badge } from "~/components/ui/badge";
-import { Label } from "~/components/ui/label";
-import { Input } from "~/components/ui/input";
-import { Checkbox } from "~/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "~/components/ui/command";
-import { cn } from "~/lib/utils";
+import { json, redirect, type LoaderFunction, type ActionFunction } from "@remix-run/node";
+import { useLoaderData, useActionData, Form, Link } from "@remix-run/react";
+import { useState, useEffect, useTransition } from "react";
+import { ArrowLeft, CreditCard } from "lucide-react"
 import { supabase } from "~/utils/supabase.server";
+import { Button } from "~/components/ui/button"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
+import { Switch } from "~/components/ui/switch"
+import { toast } from "~/hooks/use-toast"
 
 interface Member {
   id: string;
-  name: string;
+  full_name: string;
+  email: string;
   phone: string;
-  admissionNo: string;
-  joinDate: string;
+  admission_no: string;
+  joined_date: string;
   gender: string;
-  avatar: string;
+  balance: number;
 }
 
 interface Plan {
   id: string;
   name: string;
-  duration: string;
+  duration: number;
   price: number;
 }
 
@@ -54,178 +35,238 @@ interface LoaderData {
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
-  const { data: memberData, error: memberError } = await supabase
-    .from("members")
-    .select("*")
-    .eq("id", params.memberId)
+  const { data: member, error: memberError } = await supabase
+    .from('members')
+    .select('*')
+    .eq('id', params.memberId)
     .single();
 
-  if (memberError) {
-    throw new Error(memberError.message);
-  }
+  if (memberError) throw new Response("Member not found", { status: 404 });
 
-  const { data: plansData, error: plansError } = await supabase
-    .from("plans")
-    .select("*");
+  const { data: plans, error: plansError } = await supabase
+    .from('plans')
+    .select('*')
+    .order('price');
 
-  if (plansError) {
-    throw new Error(plansError.message);
-  }
+  if (plansError) throw new Response("Error fetching plans", { status: 500 });
 
-  const member: Member = {
-    id: memberData.id,
-    name: memberData.name,
-    phone: memberData.phone,
-    admissionNo: memberData.admission_no,
-    joinDate: memberData.joined_date,
-    gender: memberData.gender,
-    avatar: memberData.avatar || "/placeholder.svg",
-  };
+  const { data: membership_id, error: membershipsError } = await supabase
+    .from('memberships')
+    .select('id')
+    .eq('member_id', params.memberId);
 
-  const plans: Plan[] = plansData.map((plan: any) => ({
-    id: plan.id,
-    name: plan.name,
-    duration: plan.duration,
-    price: plan.price,
-  }));
+  if (membershipsError) throw new Response("Error fetching memberships", { status: 500 });
 
   return json({ member, plans });
 };
 
+export const action: ActionFunction = async ({ request, params }) => {
+  const formData = await request.formData();
+  const planId = formData.get("planId") as string;
+  const paymentMethod = formData.get("paymentMethod") as string;
+  const discount = parseFloat(formData.get("discount") as string) || 0;
+  const isFullPayment = formData.get("isFullPayment") === "true";
+  const paidAmount = parseFloat(formData.get("paidAmount") as string) || 0;
+
+  const { data: plan, error: planError } = await supabase
+    .from('plans')
+    .select('*')
+    .eq('id', planId)
+    .single();
+
+  if (planError) return json({ error: "Invalid plan selected" }, { status: 400 });
+
+  const totalAmount = plan.price - discount;
+  const amount = isFullPayment ? totalAmount : paidAmount;
+  const remainingBalance = totalAmount - amount;
+
+  if (amount <= 0 || amount > totalAmount) {
+    return json({ error: "Invalid payment amount" }, { status: 400 });
+  }
+
+  const { data: membership, error: membershipError } = await supabase
+    .from('memberships')
+    .insert({
+      member_id: params.memberId,
+      plan_id: planId,
+      start_date: new Date().toISOString(),
+      end_date: new Date(Date.now() + plan.duration * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'active'
+    })
+    .select()
+    .single();
+
+  if (membershipError) return json({ error: "Failed to create membership" }, { status: 500 });
+
+  const { error: transactionError } = await supabase
+    .from('transactions')
+    .insert({
+      membership_id: membership.id,
+      member_id: params.memberId,
+      amount,
+      type: 'payment',
+      payment_method: paymentMethod,
+      status: 'completed'
+    });
+
+  if (transactionError) return json({ error: "Failed to record transaction" }, { status: 500 });
+
+  const { error: memberUpdateError } = await supabase
+    .from('members')
+    .update({ balance: remainingBalance })
+    .eq('id', params.memberId);
+
+  if (memberUpdateError) return json({ error: "Failed to update member balance" }, { status: 500 });
+
+  return redirect(`/members/${params.memberId}`);
+};
+
 export default function RenewMembership() {
   const { member, plans } = useLoaderData<LoaderData>();
+  const actionData = useActionData();
+  const transition = useTransition();
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [open, setOpen] = useState(false);
+  const [isFullPayment, setIsFullPayment] = useState(true);
+  const [discount, setDiscount] = useState(0);
+  const [paidAmount, setPaidAmount] = useState(0);
+
+  useEffect(() => {
+    if (selectedPlan) {
+      setPaidAmount(selectedPlan.price - discount);
+    }
+  }, [selectedPlan, discount]);
+
+  if (actionData?.error) {
+    toast({
+      title: "Error",
+      description: actionData.error,
+      variant: "destructive",
+    });
+  }
+
+  const calculateTotal = () => {
+    if (!selectedPlan) return 0;
+    return selectedPlan.price - discount;
+  };
+
+  const calculateRemaining = () => {
+    const total = calculateTotal();
+    return isFullPayment ? 0 : Math.max(0, total - paidAmount);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white p-4 flex items-center justify-between">
-        <div className="flex items-center">
-          <Link to={`/members/${member.id}`}>
-            <ArrowLeft className="h-6 w-6 mr-2" />
-          </Link>
-          <h1 className="text-xl font-bold">Renew Membership</h1>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto p-4 max-w-md">
-        {/* Member Info Card */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={member.avatar} alt={member.name} />
-                <AvatarFallback>{member.name}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">{member.name}</h2>
-                  <Badge variant="secondary">{member.gender}</Badge>
-                </div>
-                <p className="text-gray-600">{member.phone}</p>
-                <div className="text-sm text-gray-500">
-                  <p>Admission No: {member.admissionNo}</p>
-                  <p>Joined on {member.joinDate} (0 days)</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Renewal Form */}
-        <form className="space-y-6">
-          <div className="space-y-2">
-            <Label>Select Plan</Label>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="w-full justify-between"
-                >
-                  {selectedPlan ? selectedPlan.name : "Choose a plan"}
-                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0">
-                <Command>
-                  <CommandInput placeholder="Search plans..." className="h-9" />
-                  <CommandEmpty>No plan found.</CommandEmpty>
-                  <CommandGroup>
-                    {plans.map((plan) => (
-                      <CommandItem
-                        key={plan.id}
-                        onSelect={() => {
-                          setSelectedPlan(plan);
-                          setOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedPlan?.id === plan.id
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        <div className="flex justify-between w-full">
-                          <span>{plan.name}</span>
-                          <span className="text-sm text-gray-500">
-                            ₹{plan.price} - {plan.duration}
-                          </span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            {selectedPlan && (
-              <p className="text-sm text-gray-500 mt-2">
-                Selected: {selectedPlan.name} - ₹{selectedPlan.price} for{" "}
-                {selectedPlan.duration}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="discount">Discount</Label>
-            <Input
-              id="discount"
-              type="number"
-              placeholder="Enter discount amount"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Amount</Label>
-            <div className="flex items-center space-x-2">
-              <Checkbox id="fullPrice" defaultChecked />
-              <Label htmlFor="fullPrice">Paying full price</Label>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Payment Method</Label>
-            <Select defaultValue="cash">
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="credit">Credit card</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button type="submit" className="w-full">
+    <div className="container mx-auto p-4 max-w-md">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold flex items-center">
+            <Link to={`/members/${member.id}`}>
+              <ArrowLeft className="h-6 w-6 mr-2" />
+            </Link>
             Renew Membership
-          </Button>
-        </form>
-      </main>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold">{member.full_name}</h2>
+            <p className="text-gray-600">{member.email}</p>
+            <p className="text-gray-600">{member.phone}</p>
+            <p className="text-sm text-gray-500">Admission No: {member.admission_no}</p>
+            <p className="text-sm text-gray-500">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
+          </div>
+
+          <Form method="post" className="space-y-4">
+            <div>
+              <Label htmlFor="planId">Select Plan</Label>
+              <Select 
+                name="planId" 
+                onValueChange={(value) => setSelectedPlan(plans.find(p => p.id === value) || null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name} - ₹{plan.price} for {plan.duration} days
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="discount">Discount</Label>
+              <Input
+                id="discount"
+                name="discount"
+                type="number"
+                value={discount}
+                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="paymentType"
+                checked={isFullPayment}
+                onCheckedChange={setIsFullPayment}
+              />
+              <Label htmlFor="paymentType">Full Payment</Label>
+            </div>
+
+            <input type="hidden" name="isFullPayment" value={isFullPayment.toString()} />
+
+            {!isFullPayment && (
+              <div>
+                <Label htmlFor="paidAmount">Paid Amount</Label>
+                <Input
+                  id="paidAmount"
+                  name="paidAmount"
+                  type="number"
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+                  max={calculateTotal()}
+                />
+              </div>
+            )}
+
+            {selectedPlan && (
+              <div>
+                <p className="font-semibold">Total: ₹{calculateTotal()}</p>
+                <p className="text-sm text-gray-500">
+                  Remaining balance: ₹{calculateRemaining()}
+                </p>
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select name="paymentMethod">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="credit_card">Credit Card</SelectItem>
+                  <SelectItem value="debit_card">Debit Card</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={transition.state === "submitting"}>
+              {transition.state === "submitting" ? (
+                "Processing..."
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Renew Membership
+                </>
+              )}
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
