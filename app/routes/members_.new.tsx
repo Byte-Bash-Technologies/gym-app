@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowLeft, Bell, Phone, Settings, Calendar, ImagePlus, CreditCard } from "lucide-react"
+import { ArrowLeft, Bell, Phone, Settings, ImagePlus, CreditCard } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
+import { Form } from "@remix-run/react"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import {
   Select,
@@ -13,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { supabase } from "~/utils/supabase.server"
 
 export default function NewMemberForm() {
   const [formData, setFormData] = useState({
@@ -30,10 +32,21 @@ export default function NewMemberForm() {
     idCard: null,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log("Form submitted:", formData)
-  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("Form submitted:", formData);
+
+    const { data, error } = await supabase
+      .from("members")
+      .insert([formData]);
+
+    if (error) {
+      console.error("Error inserting data:", error);
+    } else {
+      console.log("Data inserted successfully:", data);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -51,7 +64,7 @@ export default function NewMemberForm() {
       </header>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="p-4 space-y-6">
+      <Form onSubmit={handleSubmit} className="p-4 space-y-6">
         {/* Name */}
         <div className="space-y-2">
           <Label htmlFor="name">
@@ -74,7 +87,7 @@ export default function NewMemberForm() {
           <Input
             id="email"
             type="email"
-            placeholder="example@gmail"
+            placeholder="example@gmail.com"
             required
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -93,7 +106,7 @@ export default function NewMemberForm() {
               onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
             />
             <Input
-              placeholder="+91 XX XX X X X"
+              placeholder="XX XX XX XX XX"
               value={formData.number}
               onChange={(e) => setFormData({ ...formData, number: e.target.value })}
             />
@@ -106,14 +119,7 @@ export default function NewMemberForm() {
             DOB <span className="text-red-500">*</span>
           </Label>
           <div className="relative">
-            <Input
-              id="dob"
-              placeholder="Day / Month /Year"
-              required
-              value={formData.dob}
-              onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-            />
-            <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input id="date_of_birth" name="date_of_birth" type="date" required />
           </div>
         </div>
 
@@ -217,7 +223,7 @@ export default function NewMemberForm() {
         >
           Add member
         </Button>
-      </form>
+      </Form>
     </div>
   )
 }

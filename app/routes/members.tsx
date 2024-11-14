@@ -6,6 +6,8 @@ import { Input } from "~/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Card } from "~/components/ui/card"
 import { supabase } from "~/utils/supabase.server";
+
+
 interface Member {
   id: number
   name: string
