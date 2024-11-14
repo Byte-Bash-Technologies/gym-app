@@ -1,28 +1,32 @@
-import { json, type LoaderFunction ,type LoaderData} from "@remix-run/node";
-import { useLoaderData, Link, Outlet, useLocation } from "@remix-run/react";
-import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard } from "lucide-react"
+'use client'
+
+import { useState } from 'react'
+import { json, type LoaderFunction, ActionFunction } from "@remix-run/node"
+import { useLoaderData, useActionData, useFetcher, Link, Outlet } from "@remix-run/react"
+import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, CreditCard, CalendarPlus, Save } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Badge } from "~/components/ui/badge"
 import { Sheet, SheetTrigger } from "~/components/ui/sheet"
+import { Input } from "~/components/ui/input"
 import { supabase } from "~/utils/supabase.server"
 
-interface Member {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  gender: string;
-  date_of_birth: string;
-  blood_type: string;
-  height: number;
-  weight: number;
-  admission_no: string;
-  joined_date: string;
-  status: string;
-  balance: number;
-}
+// interface Member {
+//   id: string;
+//   full_name: string;
+//   email: string;
+//   phone: string;
+//   gender: string;
+//   date_of_birth: string;
+//   blood_type: string;
+//   height: number;
+//   weight: number;
+//   admission_no: string;
+//   joined_date: string;
+//   status: string;
+//   balance: number;
+// }
 
 interface Plan {
   name: string;
@@ -38,11 +42,7 @@ interface Transaction {
   created_at: string;
 }
 
-
-
 export const loader: LoaderFunction = async ({ params }) => {
-
-
   const { data: member, error: memberError } = await supabase
     .from('members')
     .select('*')
@@ -75,10 +75,56 @@ export const loader: LoaderFunction = async ({ params }) => {
   });
 };
 
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const memberId = formData.get('memberId') as string;
+  const height = Number(formData.get('height'));
+  const weight = Number(formData.get('weight'));
+
+  const { data, error } = await supabase
+    .from('members')
+    .update({ height, weight })
+    .eq('id', memberId)
+    .single();
+
+  if (error) {
+    return json({ error: error.message }, { status: 400 });
+  }
+
+  return json({ success: true, member: data });
+};
+
 export default function MemberProfile() {
-  const { member, currentPlan, recentTransactions } = useLoaderData<LoaderData>();
-  const location = useLocation();
-  const isPaymentOpen = location.pathname.endsWith('/payment');
+  const { member, currentPlan, recentTransactions } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+  const fetcher = useFetcher();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [newHeight, setNewHeight] = useState(member.height);
+  const [newWeight, setNewWeight] = useState(member.weight);
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    fetcher.submit(
+      {
+        memberId: member.id,
+        height: newHeight,
+        weight: newWeight,
+      },
+      { method: 'post' }
+    );
+    setIsEditing(false);
+  };
+
+  // Update local state if the action was successful
+  if (actionData?.success) {
+    member.height = actionData.member.height;
+    member.weight = actionData.member.weight;
+  }
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -93,7 +139,9 @@ export default function MemberProfile() {
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
           <Phone className="h-6 w-6 text-purple-500" />
-          <Settings className="h-6 w-6 text-purple-500" />
+          <Link to="/settings">
+            <Settings className="h-6 w-6 text-purple-500" />
+          </Link>
         </div>
       </header>
 
@@ -128,10 +176,16 @@ export default function MemberProfile() {
           ) : (
             <p className="text-sm text-yellow-500">No active plan</p>
           )}
-          <Button variant="outline" size="sm">
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Change plan
-          </Button>
+          <div className="flex space-x-4">
+            <Button variant="outline" size="sm">
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Change plan
+            </Button>
+            <Button variant="outline" size="sm">
+              <CalendarPlus className="h-4 w-4 mr-2" />
+              Add plans
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -192,9 +246,15 @@ export default function MemberProfile() {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg font-bold">Member details</CardTitle>
           <div className="flex space-x-2">
-            <Button variant="ghost" size="sm">
-              <Pencil className="h-4 w-4" />
-            </Button>
+            {isEditing ? (
+              <Button variant="ghost" size="sm" onClick={handleSave} disabled={fetcher.state === 'submitting'}>
+                <Save className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={handleEdit}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -213,11 +273,29 @@ export default function MemberProfile() {
             </div>
             <div>
               <p className="text-gray-500">Height</p>
-              <p className="font-semibold">{member.height} cm</p>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={newHeight}
+                  onChange={(e) => setNewHeight(Number(e.target.value))}
+                  className="w-full"
+                />
+              ) : (
+                <p className="font-semibold">{member.height} cm</p>
+              )}
             </div>
             <div>
               <p className="text-gray-500">Weight</p>
-              <p className="font-semibold">{member.weight} kg</p>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={newWeight}
+                  onChange={(e) => setNewWeight(Number(e.target.value))}
+                  className="w-full"
+                />
+              ) : (
+                <p className="font-semibold">{member.weight} kg</p>
+              )}
             </div>
             <div>
               <p className="text-gray-500">Joined Date</p>
@@ -226,6 +304,12 @@ export default function MemberProfile() {
           </div>
         </CardContent>
       </Card>
+
+      {actionData?.error && (
+        <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">
+          Error: {actionData.error}
+        </div>
+      )}
     </div>
   )
 }

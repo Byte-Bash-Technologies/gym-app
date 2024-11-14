@@ -4,7 +4,7 @@ import { useState,useTransition } from "react"
 import{json,useActionData,redirect} from "@remix-run/react";
 import { type ActionFunction } from "@remix-run/node";
 import { supabase } from "~/utils/supabase.server";
-import { ArrowLeft, Bell, Phone, Settings, Calendar, ImagePlus, CreditCard } from "lucide-react"
+import { ArrowLeft, Bell, Phone, Settings } from "lucide-react"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
@@ -28,7 +28,7 @@ export const action: ActionFunction = async ({ request }) => {
   const height = formData.get("height") as string;
   const weight = formData.get("weight") as string;
   const admission_no = formData.get("admission_no") as string;
-console.log("Form data:", formData);
+
   const { data, error } = await supabase
     .from('members')
     .insert([
