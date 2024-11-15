@@ -1,7 +1,7 @@
 import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
-import { useLoaderData, Link, Outlet, useLocation, useFetcher } from "@remix-run/react";
+import { useLoaderData, Link, useFetcher } from "@remix-run/react";
 import { useState } from "react";
-import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard } from "lucide-react"
+import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard, Plus } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -30,10 +30,16 @@ interface Member {
   balance: number;
 }
 
-interface Plan {
-  name: string;
-  duration: number;
-  price: number;
+interface Membership {
+  id: string;
+  plans: {
+    name: string;
+    duration: number;
+    price: number;
+  } | null;
+  start_date: string;
+  end_date: string;
+  status: string;
 }
 
 interface Transaction {
@@ -46,7 +52,7 @@ interface Transaction {
 
 interface LoaderData {
   member: Member;
-  currentPlan: Plan | null;
+  memberships: Membership[];
   recentTransactions: Transaction[];
 }
 
@@ -59,12 +65,21 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   if (memberError) throw new Response("Member not found", { status: 404 });
 
-  const { data: membership, error: membershipError } = await supabase
+  const { data: memberships, error: membershipsError } = await supabase
     .from('memberships')
-    .select('*, plans(*)')
+    .select(`
+      id,
+      start_date,
+      end_date,
+      status,
+      plans (
+        name,
+        duration,
+        price
+      )
+    `)
     .eq('member_id', params.memberId)
-    .eq('status', 'active')
-    .single();
+    .order('start_date', { ascending: false });
 
   const { data: transactions, error: transactionsError } = await supabase
     .from('transactions')
@@ -73,12 +88,12 @@ export const loader: LoaderFunction = async ({ params }) => {
     .order('created_at', { ascending: false })
     .limit(5);
 
-  if (membershipError) console.error("Error fetching membership:", membershipError);
+  if (membershipsError) console.error("Error fetching memberships:", membershipsError);
   if (transactionsError) console.error("Error fetching transactions:", transactionsError);
 
   return json({
     member,
-    currentPlan: membership?.plans ?? null,
+    memberships: memberships ?? [],
     recentTransactions: transactions ?? []
   });
 };
@@ -117,17 +132,6 @@ export const action: ActionFunction = async ({ request }) => {
       return json({ error: "Failed to fetch member balance" }, { status: 400 });
     }
 
-      // Fetch or create the membership
-  const { data: membership, error: membershipError } = await supabase
-  .from('memberships')
-  .select('*')
-  .eq('member_id', memberId)
-  .single();
-
-if (membershipError) {
-  return json({ error: "Failed to fetch membership" }, { status: 500 });
-}
-
     if (amount <= 0 || amount > member.balance) {
       return json({ error: "Invalid payment amount" }, { status: 400 });
     }
@@ -137,7 +141,6 @@ if (membershipError) {
     const { error: transactionError } = await supabase
       .from('transactions')
       .insert({
-        membership_id:membership.id,
         member_id: memberId,
         amount,
         type: 'payment',
@@ -165,7 +168,8 @@ if (membershipError) {
 };
 
 export default function MemberProfile() {
-  const { member, currentPlan, recentTransactions } = useLoaderData<LoaderData>();
+  const { member, memberships, recentTransactions } = useLoaderData<LoaderData>();
+  console.log(memberships);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
   const fetcher = useFetcher();
@@ -233,25 +237,39 @@ export default function MemberProfile() {
         </Button>
       </div>
 
-      {/* Current Plan */}
+      {/* Memberships */}
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-bold">Current Plan</CardTitle>
+          <CardTitle className="text-lg font-bold">Memberships</CardTitle>
           <span className="text-sm text-gray-500">#{member.admission_no}</span>
         </CardHeader>
         <CardContent>
-          {currentPlan ? (
-            <>
-              <h3 className="font-semibold mb-2">{currentPlan.name}</h3>
-              <p className="text-lg font-bold mb-1">₹{currentPlan.price} for {currentPlan.duration} days</p>
-              <p className="text-sm text-green-500 mb-2">• Active</p>
-            </>
+          {memberships.length > 0 ? (
+            <div className="space-y-4">
+              {memberships.map((membership) => (
+                <div key={membership.id} className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold">{membership.plans?.name || 'Unknown Plan'}</h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(membership.start_date).toLocaleDateString()} - {new Date(membership.end_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold">₹{membership.plans?.price || 'N/A'}</p>
+                    <p className="text-sm text-gray-500">{membership.plans?.duration || 'N/A'} days</p>
+                  </div>
+                  <Badge variant={membership.status === 'active' ? "success" : "secondary"}>
+                    {membership.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="text-sm text-yellow-500">No active plan</p>
+            <p className="text-sm text-yellow-500">No memberships found</p>
           )}
-          <Button variant="outline" size="sm">
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Change plan
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => window.location.href = "/addplans"}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Membership
           </Button>
         </CardContent>
       </Card>

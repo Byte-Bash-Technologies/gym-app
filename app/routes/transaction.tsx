@@ -16,6 +16,7 @@ import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
+import { supabase } from "~/utils/supabase.server";
 
 interface Transaction {
   id: number;
@@ -26,51 +27,107 @@ interface Transaction {
 }
 
 export const loader: LoaderFunction = async () => {
-  // Mock data
-  const transactions: Transaction[] = [
-    {
-      id: 1,
-      user: "Benston",
-      amount: 1000,
-      timestamp: "yesterday 01:07 PM",
-      avatar: "/placeholder.svg",
-    },
-    {
-      id: 2,
-      user: "Benston",
-      amount: 1000,
-      timestamp: "yesterday 01:07 PM",
-      avatar: "/placeholder.svg",
-    },
-    {
-      id: 3,
-      user: "Benston",
-      amount: 1000,
-      timestamp: "yesterday 01:07 PM",
-      avatar: "/placeholder.svg",
-    },
-  ];
+  const today = new Date().toISOString().split('T')[0];
+
+  // Fetch transactions for today
+  const { data: transactions, error: transactionError } = await supabase
+    .from('transactions')
+    .select(`
+      id,
+      amount,
+      created_at,
+      members (id, full_name, email)
+    `)
+    .eq('type', 'payment')
+    .gte('created_at', today)
+    .order('created_at', { ascending: false });
+
+  if (transactionError) {
+    console.error("Error fetching transactions:", transactionError);
+    throw new Response("Error fetching transactions", { status: 500 });
+  }
+
+  // Calculate income
+  const income = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+  // Fetch previous day's income
+  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
+  const { data: previousTransactions, error: previousError } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('type', 'payment')
+    .gte('created_at', yesterday)
+    .lt('created_at', today);
+
+  if (previousError) {
+    console.error("Error fetching previous transactions:", previousError);
+    throw new Response("Error fetching previous transactions", { status: 500 });
+  }
+
+  const previousIncome = previousTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  // Fetch weekly income
+  const weekStart = new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0];
+  const { data: weeklyTransactions, error: weeklyError } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('type', 'payment')
+    .gte('created_at', weekStart);
+
+  if (weeklyError) {
+    console.error("Error fetching weekly transactions:", weeklyError);
+    throw new Response("Error fetching weekly transactions", { status: 500 });
+  }
+
+  const weeklyIncome = weeklyTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  // Fetch total pending balance from members table
+  const { data: membersBalance, error: membersBalanceError } = await supabase
+    .from('members')
+    .select('balance')
+    .gt('balance', 0);
+
+  if (membersBalanceError) {
+    console.error("Error fetching members balance:", membersBalanceError);
+    throw new Response("Error fetching members balance", { status: 500 });
+  }
+
+  const totalPendingBalance = membersBalance.reduce((sum, member) => sum + member.balance, 0);
+
+  // Calculate stats
+  const totalTransactions = transactions.length;
+  const received = Math.round((transactions.filter(t => t.amount > 0).length / totalTransactions) * 100) || 0;
+  const paid = Math.round((transactions.filter(t => t.amount < 0).length / totalTransactions) * 100) || 0;
+  const pending = 100 - received - paid;
 
   return json({
-    transactions,
-    income: 5660.0,
-    previousIncome: 5240.0,
-    weeklyIncome: 22658.0,
+    transactions: transactions.map(t => ({
+      id: t.id,
+      user: t.members.full_name,
+      amount: t.amount,
+      timestamp: new Date(t.created_at).toLocaleString(),
+      avatar: `https://api.dicebear.com/6.x/initials/svg?seed=₹{t.members.full_name}`,
+    })),
+    income,
+    previousIncome,
+    weeklyIncome,
+    totalPendingBalance,
     stats: {
-      received: 54,
-      paid: 20,
-      pending: 26,
+      received,
+      paid,
+      pending,
     },
   });
 };
 
 export default function Transactions() {
-  const { transactions, income, previousIncome, weeklyIncome, stats } =
+  const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, stats } =
     useLoaderData<{
       transactions: Transaction[];
       income: number;
       previousIncome: number;
       weeklyIncome: number;
+      totalPendingBalance: number;
       stats: {
         received: number;
         paid: number;
@@ -79,7 +136,7 @@ export default function Transactions() {
     }>();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center">
@@ -130,7 +187,7 @@ export default function Transactions() {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Transcations</CardTitle>
+                <CardTitle>Transactions</CardTitle>
                 <Badge variant="secondary">Today</Badge>
               </div>
             </CardHeader>
@@ -155,7 +212,7 @@ export default function Transactions() {
                     fill="none"
                     stroke="#3b82f6"
                     strokeWidth="10"
-                    strokeDasharray={`${stats.received * 2.83} ${
+                    strokeDasharray={`₹{stats.received * 2.83} ₹{
                       283 - stats.received * 2.83
                     }`}
                   />
@@ -166,7 +223,7 @@ export default function Transactions() {
                     fill="none"
                     stroke="#22c55e"
                     strokeWidth="10"
-                    strokeDasharray={`${stats.paid * 2.83} ${
+                    strokeDasharray={`₹{stats.paid * 2.83} ₹{
                       283 - stats.paid * 2.83
                     }`}
                     strokeDashoffset={-stats.received * 2.83}
@@ -178,7 +235,7 @@ export default function Transactions() {
                     fill="none"
                     stroke="#ef4444"
                     strokeWidth="10"
-                    strokeDasharray={`${stats.pending * 2.83} ${
+                    strokeDasharray={`₹{stats.pending * 2.83} ₹{
                       283 - stats.pending * 2.83
                     }`}
                     strokeDashoffset={-(stats.received + stats.paid) * 2.83}
@@ -191,21 +248,21 @@ export default function Transactions() {
                     <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
                     <span>Total received</span>
                   </div>
-                  <span>{stats.received}% ↑</span>
+                  <span>{stats.received}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
                     <span>Total Paid</span>
                   </div>
-                  <span>{stats.paid}% ↑</span>
+                  <span>{stats.paid}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
                     <span>Total Pending</span>
                   </div>
-                  <span>{stats.pending}% ↓</span>
+                  <span>{totalPendingBalance.toFixed(2)}%</span>
                 </div>
               </div>
             </CardContent>
@@ -223,22 +280,28 @@ export default function Transactions() {
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center">
-                    <h3 className="text-4xl font-bold">${income.toFixed(2)}</h3>
+                    <h3 className="text-4xl font-bold">₹{income.toFixed(2)}</h3>
                     <Badge
                       variant="secondary"
                       className="ml-2 bg-green-100 text-green-600"
                     >
-                      ↑ 2.5%
+                      ↑ {((income - previousIncome) / previousIncome * 100).toFixed(1)}%
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-500">
-                    Compared to ${previousIncome} yesterday
+                    Compared to ₹{previousIncome.toFixed(2)} yesterday
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Last week incomes</p>
                   <p className="text-2xl font-bold">
-                    ${weeklyIncome.toFixed(2)}
+                    ₹{weeklyIncome.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Total Pending Balance</p>
+                  <p className="text-2xl font-bold text-red-500">
+                    ₹{totalPendingBalance.toFixed(2)}
                   </p>
                 </div>
                 <div className="pt-4">
@@ -276,7 +339,7 @@ export default function Transactions() {
                   </div>
                 </div>
                 <span className="text-green-500 font-medium">
-                  +{transaction.amount}
+                  +{transaction.amount.toFixed(2)}
                 </span>
               </div>
             ))}

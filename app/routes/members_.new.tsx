@@ -25,8 +25,8 @@ export const action: ActionFunction = async ({ request }) => {
   const gender = formData.get("gender") as string;
   const date_of_birth = formData.get("date_of_birth") as string;
   const blood_type = formData.get("blood_type") as string;
-  const height = formData.get("height") as string;
-  const weight = formData.get("weight") as string;
+  const height = formData.get("height") ? parseInt(formData.get("height") as string, 10) : null;
+  const weight = formData.get("weight") ? parseInt(formData.get("weight") as string, 10) : null;
   const admission_no = formData.get("admission_no") as string;
 
   const { data, error } = await supabase
