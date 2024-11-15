@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { json, useActionData, redirect } from "@remix-run/react";
+import { json, useActionData, redirect,useParams } from "@remix-run/react";
 import { type ActionFunction } from "@remix-run/node";
 import { supabase } from "~/utils/supabase.server";
 import { ArrowLeft, Bell, Phone, Settings } from "lucide-react";
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 
-export const action: ActionFunction = async ({ request }) => {
+export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
   const full_name = formData.get("full_name") as string;
   const email = formData.get("email") as string;
@@ -41,6 +41,7 @@ export const action: ActionFunction = async ({ request }) => {
         blood_type,
         height,
         weight,
+        facility_id:params.facilityId,
         admission_no,
         status: "active",
       },
@@ -51,7 +52,7 @@ export const action: ActionFunction = async ({ request }) => {
     return json({ error: error.message }, { status: 400 });
   }
 
-  return redirect("/members");
+  return redirect(`/${params.facilityId}/members`);
 };
 
 export default function NewMemberForm() {

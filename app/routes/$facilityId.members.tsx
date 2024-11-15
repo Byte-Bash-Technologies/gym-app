@@ -1,5 +1,5 @@
 import { json, type LoaderFunction } from "@remix-run/node";
-import { Outlet, useLoaderData, Link } from "@remix-run/react";
+import { Outlet, useLoaderData, Link,useParams } from "@remix-run/react";
 import {
   Bell,
   Phone,
@@ -26,26 +26,39 @@ interface Member {
   status: "active" | "expired" | "expire soon";
 }
 
-export const loader: LoaderFunction = async () => {
+export const loader: LoaderFunction = async ({params}) => {
+  
+  const facilityId = params.facilityId;
+
+  const { data: facility, error: facilityError } = await supabase
+    .from('facilities')
+    .select('name')
+    .eq('id', facilityId)
+    .single();
+
+  if (facilityError) {
+    throw new Response("Facility not found", { status: 404 });
+  }
   const { data: members, error } = await supabase
     .from("members")
     .select("id, full_name, email, phone, status")
+    .eq("facility_id", facilityId)
     .order("full_name", { ascending: true });
   if (error) {
     console.error("Error fetching members:", error);
     throw new Response("Error fetching members", { status: 500 });
   }
 
-  return json({ members });
+  return json({ members,facility });
 };
 
 export default function MembersPage() {
   const { members } = useLoaderData<{ members: Member[] }>();
-
-const capitalizeFirstLetter = (string: string) => {
-  return string.charAt(0).toUpperCase() + string.slice(1);
+  const capitalizeFirstLetter = (string: string) => {
+  
+    return string.charAt(0).toUpperCase() + string.slice(1);
 };
-
+const params= useParams();
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
       {/* Header */}
@@ -82,7 +95,7 @@ const capitalizeFirstLetter = (string: string) => {
             {members.map((member, index) => (
               <Link
                 key={index}
-                to={`/members/${member.id}`}
+                to={`${member.id}`}
                 className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0"
               >
                 <Avatar className="h-12 w-12">
@@ -121,7 +134,7 @@ const capitalizeFirstLetter = (string: string) => {
       </main>
 
       {/* Floating Action Button */}
-      <Link to="/members/new" className="fixed right-6 bottom-[7rem]">
+      <Link to={`/${params.facilityId}/members/new`} className="fixed right-6 bottom-[7rem]">
         <Button className="w-14 h-14 rounded-full bg-purple-500 hover:bg-purple-600 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
@@ -130,27 +143,27 @@ const capitalizeFirstLetter = (string: string) => {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
         <div className="flex justify-around items-center">
-          <Link to="/home" className="flex flex-col items-center text-gray-500">
+          <Link to={`${params.facilityId}/home`} className="flex flex-col items-center text-gray-500">
             <Home className="h-6 w-6 text-grey " />
 
             <span className="text-xs font-bold ">Home</span>
           </Link>
           <Link
-            to="/transaction"
+            to={`/${params.facilityId}/transactions`}
             className="flex flex-col items-center text-gray-500"
           >
             <Wallet className="h-6 w-6" />
             <span className="text-xs">Transaction</span>
           </Link>
           <Link
-            to="/report"
+            to={`/${params.facilityId}/report`}
             className="flex flex-col items-center text-gray-500"
           >
             <PieChart className="h-6 w-6" />
             <span className="text-xs">Report</span>
           </Link>
           <Link
-            to="/members"
+            to={`/${params.facilityId}/members`}
             className="flex flex-col items-center text-gray-500"
           >
             <div className="bg-purple-500 rounded-full p-3">

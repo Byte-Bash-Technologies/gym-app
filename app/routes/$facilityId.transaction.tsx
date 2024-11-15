@@ -1,5 +1,5 @@
 import { json, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link } from "@remix-run/react";
+import { useLoaderData, Link,useParams } from "@remix-run/react";
 import {
   Bell,
   Phone,
@@ -19,7 +19,6 @@ import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
-
 interface Transaction {
   id: number;
   user: string;
@@ -139,6 +138,7 @@ export const loader: LoaderFunction = async () => {
 };
 
 export default function Transactions() {
+  const params = useParams();
   const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, dailyEarnings } =
     useLoaderData<{
       transactions: Transaction[];
@@ -261,7 +261,7 @@ export default function Transactions() {
                     <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
                     <span>Total received</span>
                   </div>
-                  <span>₹{income.toFixed(2)} ({receivedPercentage.toFixed(1)}%)</span>
+                  <span>₹{income.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -382,12 +382,12 @@ export default function Transactions() {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
         <div className="flex justify-around items-center">
-          <Link to="/home" className="flex flex-col items-center text-gray-500">
+          <Link to={`/${params.facilityId}/home`} className="flex flex-col items-center text-gray-500">
             <Home className="h-6 w-6" />
             <span className="text-xs font-bold">Home</span>
           </Link>
           <Link
-            to="/transaction"
+            to={`/${params.facilityId}/transaction`}
             className="flex flex-col items-center text-gray-500"
           >
             <div className="bg-purple-500 rounded-full p-3">
@@ -396,14 +396,14 @@ export default function Transactions() {
             <span className="text-xs text-purple-500">Transaction</span>
           </Link>
           <Link
-            to="/report"
+            to={`/${params.facilityId}/report`}
             className="flex flex-col items-center text-gray-500"
           >
             <PieChart className="h-6 w-6" />
             <span className="text-xs">Report</span>
           </Link>
           <Link
-            to="/members"
+            to={`/${params.facilityId}/members`}
             className="flex flex-col items-center text-gray-500"
           >
             <Users className="h-6 w-6" />

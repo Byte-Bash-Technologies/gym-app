@@ -104,6 +104,7 @@ export const action: ActionFunction = async ({ request, params }) => {
       membership_id: membership.id,
       member_id: params.memberId,
       amount,
+      facility_id:params.facilityId,
       type: 'payment',
       payment_method: paymentMethod,
       status: 'completed'
@@ -118,7 +119,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   if (memberUpdateError) return json({ error: "Failed to update member balance" }, { status: 500 });
 
-  return redirect(`/members/${params.memberId}`);
+  return redirect(`/${params.facilityId}/members/${params.memberId}`);
 };
 
 export default function RenewMembership() {

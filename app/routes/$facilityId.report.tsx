@@ -15,9 +15,11 @@ import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Avatar } from "~/components/ui/avatar";
-import { Link } from "@remix-run/react";
+import { Link, useParams } from "@remix-run/react";
 
 export default function ReportPage() {
+  const params = useParams();
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -184,28 +186,28 @@ export default function ReportPage() {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
         <div className="flex justify-around items-center">
-          <Link to="/home" className="flex flex-col items-center text-gray-500">
+          <Link to={`/${params.facilityId}/home`} className="flex flex-col items-center text-gray-500">
             <Home className="h-6 w-6 " />
             <span className="text-xs">Home</span>
           </Link>
           <Link
-            to="/transaction"
+            to={`/${params.facilityId}/transaction`}
             className="flex flex-col items-center text-gray-500"
           >
             <Wallet className="h-6 w-6" />
             <span className="text-xs">Transaction</span>
           </Link>
-          <Link
-            to="/report"
+            <Link
+            to={`/${params.facilityId}/report`}
             className="flex flex-col items-center text-gray-500"
-          >
+            >
             <div className="bg-purple-500 rounded-full p-3">
               <PieChart className="h-6 w-6 text-white" />
             </div>
             <span className="text-xs text-purple-500">Report</span>
-          </Link>
+            </Link>
           <Link
-            to="/members"
+            to={`/${params.facilityId}/members`}
             className="flex flex-col items-center text-gray-500"
           >
             <Users className="h-6 w-6" />

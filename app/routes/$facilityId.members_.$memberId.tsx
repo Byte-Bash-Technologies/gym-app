@@ -63,9 +63,21 @@ interface LoaderData {
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
+  const facilityId = params.facilityId;
+  const { data: facility, error: facilityError } = await supabase
+  .from('facilities')
+  .select('name')
+  .eq('id', facilityId)
+  .single();
+
+if (facilityError) {
+  throw new Response("Facility not found", { status: 404 });
+}
+
   const { data: member, error: memberError } = await supabase
     .from('members')
     .select('*')
+    .eq('facility_id', facilityId)
     .eq('id', params.memberId)
     .single();
 
@@ -112,7 +124,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 };
 
-export const action: ActionFunction = async ({ request }) => {
+export const action: ActionFunction = async ({ request,params }) => {
   const formData = await request.formData();
   const action = formData.get('_action');
 
@@ -157,6 +169,7 @@ export const action: ActionFunction = async ({ request }) => {
       .insert({
         member_id: memberId,
         amount,
+        facility_id:params.facilityId,
         type: 'payment',
         payment_method: paymentMethod,
         status: 'completed'
