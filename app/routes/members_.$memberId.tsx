@@ -1,13 +1,14 @@
 import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
 import { useLoaderData, Link, useFetcher } from "@remix-run/react";
 import { useState } from "react";
-import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard, Plus } from "lucide-react"
+import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard, Plus,MessageCircle} from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Badge } from "~/components/ui/badge"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "~/components/ui/sheet"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "~/components/ui/drawer"
 import { Label } from "~/components/ui/label"
 import { Input } from "~/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
@@ -49,11 +50,16 @@ interface Transaction {
   payment_method: string;
   created_at: string;
 }
-
+interface MessageTemplate {
+  id: string;
+  title: string;
+  content: string;
+}
 interface LoaderData {
   member: Member;
   memberships: Membership[];
   recentTransactions: Transaction[];
+  messageTemplates: MessageTemplate[];
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
@@ -87,15 +93,23 @@ export const loader: LoaderFunction = async ({ params }) => {
     .eq('member_id', params.memberId)
     .order('created_at', { ascending: false })
     .limit(5);
+  
+    const { data: messageTemplates, error: messageTemplatesError } = await supabase
+    .from('message_templates')
+    .select('*')
+    .order('title');
 
   if (membershipsError) console.error("Error fetching memberships:", membershipsError);
   if (transactionsError) console.error("Error fetching transactions:", transactionsError);
+  if (messageTemplatesError) console.error("Error fetching message templates:", messageTemplatesError);
 
   return json({
     member,
     memberships: memberships ?? [],
-    recentTransactions: transactions ?? []
+    recentTransactions: transactions ?? [],
+    messageTemplates: messageTemplates ?? []
   });
+
 };
 
 export const action: ActionFunction = async ({ request }) => {
@@ -167,10 +181,11 @@ export const action: ActionFunction = async ({ request }) => {
   return json({ error: "Invalid action" }, { status: 400 });
 };
 
-export default function MemberProfile(Params) {
-  const { member, memberships, recentTransactions } = useLoaderData<LoaderData>();
+export default function MemberProfile() {
+  const { member, memberships, recentTransactions,messageTemplates } = useLoaderData<LoaderData>();
   console.log(memberships);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isWhatsAppDrawerOpen, setIsWhatsAppDrawerOpen] = useState(false);
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
   const fetcher = useFetcher();
 const navigate = useNavigate();
@@ -204,10 +219,17 @@ const navigate = useNavigate();
       });
     }
   }
-    const handleAddPlanClick = () => {
-    navigate(`/members/${Params.memberId}/addplans`);
+  
+
+  const handlePhoneClick = () => {
+    window.location.href = `tel:${member.phone}`;
   };
 
+  const handleWhatsAppSend = (messageContent: string) => {
+    const encodedMessage = encodeURIComponent(messageContent);
+    window.open(`https://wa.me/${member.phone}?text=${encodedMessage}`, '_blank');
+    setIsWhatsAppDrawerOpen(false);
+  };
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       {/* Header */}
@@ -221,7 +243,9 @@ const navigate = useNavigate();
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
           <Phone className="h-6 w-6 text-purple-500" />
+          <Link to="/settings">
           <Settings className="h-6 w-6 text-purple-500" />
+          </Link>
         </div>
       </header>
 
@@ -239,6 +263,37 @@ const navigate = useNavigate();
           Download Profile
         </Button>
       </div>
+      {/* Contact Section */}
+      <CardContent className="flex justify-center space-x-4">
+          <Button onClick={handlePhoneClick}>
+            <Phone className="h-4 w-4 mr-2" />
+            Call
+          </Button>
+          <Drawer open={isWhatsAppDrawerOpen} onOpenChange={setIsWhatsAppDrawerOpen}>
+            <DrawerTrigger asChild>
+              <Button>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                WhatsApp
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Send WhatsApp Message</DrawerTitle>
+              </DrawerHeader>
+              <div className="p-4 space-y-4">
+                {messageTemplates.map((template) => (
+                  <Button
+                    key={template.id}
+                    onClick={() => handleWhatsAppSend(template.content)}
+                    className="w-full justify-start"
+                  >
+                    {template.title}
+                  </Button>
+                ))}
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </CardContent>
 
       {/* Memberships */}
       <Card className="mb-6">
@@ -270,10 +325,12 @@ const navigate = useNavigate();
           ) : (
             <p className="text-sm text-yellow-500">No memberships found</p>
           )}
-          <Button onClick={handleAddPlanClick()} variant="outline" size="sm" className="mt-4" onClick={() => window.location.href = `/members/${params.MemberId}/addplans`}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Membership
-          </Button>
+          <Link to="addplans">
+            <Button  variant="outline" size="sm" className="mt-4" >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Membership
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 
@@ -389,9 +446,6 @@ const navigate = useNavigate();
                 </fetcher.Form>
               </DialogContent>
             </Dialog>
-            <Button variant="ghost" size="sm">
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </div>
         </CardHeader>
         <CardContent>

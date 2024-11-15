@@ -1,7 +1,7 @@
 import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
 import { useLoaderData, Link, useFetcher } from "@remix-run/react";
 import { useState } from "react";
-import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard, Plus } from "lucide-react"
+import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard, Plus, MessageCircle } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "~/components/ui/label"
 import { Input } from "~/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "~/components/ui/drawer"
 import { supabase } from "~/utils/supabase.server"
 import { toast } from "~/hooks/use-toast"
 
@@ -32,7 +33,7 @@ interface Member {
 
 interface Membership {
   id: string;
-  plans: {
+  plan: {
     name: string;
     duration: number;
     price: number;
@@ -50,10 +51,17 @@ interface Transaction {
   created_at: string;
 }
 
+interface MessageTemplate {
+  id: string;
+  title: string;
+  content: string;
+}
+
 interface LoaderData {
   member: Member;
   memberships: Membership[];
   recentTransactions: Transaction[];
+  messageTemplates: MessageTemplate[];
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
@@ -88,13 +96,20 @@ export const loader: LoaderFunction = async ({ params }) => {
     .order('created_at', { ascending: false })
     .limit(5);
 
+  const { data: messageTemplates, error: messageTemplatesError } = await supabase
+    .from('message_templates')
+    .select('*')
+    .order('title');
+
   if (membershipsError) console.error("Error fetching memberships:", membershipsError);
   if (transactionsError) console.error("Error fetching transactions:", transactionsError);
+  if (messageTemplatesError) console.error("Error fetching message templates:", messageTemplatesError);
 
   return json({
     member,
     memberships: memberships ?? [],
-    recentTransactions: transactions ?? []
+    recentTransactions: transactions ?? [],
+    messageTemplates: messageTemplates ?? []
   });
 };
 
@@ -168,10 +183,10 @@ export const action: ActionFunction = async ({ request }) => {
 };
 
 export default function MemberProfile() {
-  const { member, memberships, recentTransactions } = useLoaderData<LoaderData>();
-  console.log(memberships);
+  const { member, memberships, recentTransactions, messageTemplates } = useLoaderData<LoaderData>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
+  const [isWhatsAppDrawerOpen, setIsWhatsAppDrawerOpen] = useState(false);
   const fetcher = useFetcher();
 
   const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -181,13 +196,23 @@ export default function MemberProfile() {
     fetcher.submit(formData, { method: 'post' });
     setIsEditDialogOpen(false);
   };
-
+  
   const handlePaymentSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     formData.append('_action', 'payBalance');
     fetcher.submit(formData, { method: 'post' });
     setIsPaymentSheetOpen(false);
+  };
+
+  const handlePhoneClick = () => {
+    window.location.href = `tel:${member.phone}`;
+  };
+
+  const handleWhatsAppSend = (messageContent: string) => {
+    const encodedMessage = encodeURIComponent(messageContent);
+    window.open(`https://wa.me/${member.phone}?text=${encodedMessage}`, '_blank');
+    setIsWhatsAppDrawerOpen(false);
   };
 
   if (fetcher.type === 'done') {
@@ -237,6 +262,39 @@ export default function MemberProfile() {
         </Button>
       </div>
 
+      {/* Contact Section */}
+        <CardContent className="flex justify-center space-x-4">
+          <Button onClick={handlePhoneClick}>
+            <Phone className="h-4 w-4 mr-2" />
+            Call
+          </Button>
+          <Drawer open={isWhatsAppDrawerOpen} onOpenChange={setIsWhatsAppDrawerOpen}>
+            <DrawerTrigger asChild>
+              <Button>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                WhatsApp
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>Send WhatsApp Message</DrawerTitle>
+              </DrawerHeader>
+              <div className="p-4 space-y-4">
+                {messageTemplates.map((template) => (
+                  <Button
+                    key={template.id}
+                    onClick={() => handleWhatsAppSend(template.content)}
+                    className="w-full justify-start"
+                  >
+                    {template.title}
+                  </Button>
+                ))}
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </CardContent>
+      
+
       {/* Memberships */}
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -249,14 +307,14 @@ export default function MemberProfile() {
               {memberships.map((membership) => (
                 <div key={membership.id} className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-semibold">{membership.plans?.name || 'Unknown Plan'}</h3>
+                    <h3 className="font-semibold">{membership.plan?.name || 'Unknown Plan'}</h3>
                     <p className="text-sm text-gray-500">
                       {new Date(membership.start_date).toLocaleDateString()} - {new Date(membership.end_date).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">₹{membership.plans?.price || 'N/A'}</p>
-                    <p className="text-sm text-gray-500">{membership.plans?.duration || 'N/A'} days</p>
+                    <p className="font-bold">₹{membership.plan?.price || 'N/A'}</p>
+                    <p className="text-sm text-gray-500">{membership.plan?.duration || 'N/A'} days</p>
                   </div>
                   <Badge variant={membership.status === 'active' ? "success" : "secondary"}>
                     {membership.status}
@@ -267,7 +325,7 @@ export default function MemberProfile() {
           ) : (
             <p className="text-sm text-yellow-500">No memberships found</p>
           )}
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => window.location.href = "/addplans"}>
+          <Button variant="outline" size="sm" className="mt-4">
             <Plus className="h-4 w-4 mr-2" />
             Add Membership
           </Button>
@@ -315,7 +373,7 @@ export default function MemberProfile() {
                     <Label htmlFor="paymentMethod">Payment Method</Label>
                     <Select name="paymentMethod" required>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
+                <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="cash">Cash</SelectItem>

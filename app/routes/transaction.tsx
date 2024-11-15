@@ -17,6 +17,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
+import { Line, LineChart, XAxis, YAxis } from "recharts";
 
 interface Transaction {
   id: number;
@@ -26,8 +28,14 @@ interface Transaction {
   avatar: string;
 }
 
+interface DailyEarning {
+  date: string;
+  amount: number;
+}
+
 export const loader: LoaderFunction = async () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   // Fetch transactions for today
   const { data: transactions, error: transactionError } = await supabase
@@ -39,7 +47,7 @@ export const loader: LoaderFunction = async () => {
       members (id, full_name, email)
     `)
     .eq('type', 'payment')
-    .gte('created_at', today)
+    .gte('created_at', today.toISOString().split('T')[0])
     .order('created_at', { ascending: false });
 
   if (transactionError) {
@@ -51,13 +59,13 @@ export const loader: LoaderFunction = async () => {
   const income = transactions.reduce((sum, t) => sum + t.amount, 0);
 
   // Fetch previous day's income
-  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
+  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
   const { data: previousTransactions, error: previousError } = await supabase
     .from('transactions')
     .select('amount')
     .eq('type', 'payment')
-    .gte('created_at', yesterday)
-    .lt('created_at', today);
+    .gte('created_at', yesterday.toISOString().split('T')[0])
+    .lt('created_at', today.toISOString().split('T')[0]);
 
   if (previousError) {
     console.error("Error fetching previous transactions:", previousError);
@@ -66,13 +74,12 @@ export const loader: LoaderFunction = async () => {
 
   const previousIncome = previousTransactions.reduce((sum, t) => sum + t.amount, 0);
 
-  // Fetch weekly income
-  const weekStart = new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0];
+  // Fetch weekly income and daily earnings
   const { data: weeklyTransactions, error: weeklyError } = await supabase
     .from('transactions')
-    .select('amount')
+    .select('amount, created_at')
     .eq('type', 'payment')
-    .gte('created_at', weekStart);
+    .gte('created_at', sevenDaysAgo.toISOString());
 
   if (weeklyError) {
     console.error("Error fetching weekly transactions:", weeklyError);
@@ -80,6 +87,16 @@ export const loader: LoaderFunction = async () => {
   }
 
   const weeklyIncome = weeklyTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  // Calculate daily earnings for the past week
+  const dailyEarnings: DailyEarning[] = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateString = date.toISOString().split('T')[0];
+    const amount = weeklyTransactions
+      .filter(t => t.created_at.startsWith(dateString))
+      .reduce((sum, t) => sum + t.amount, 0);
+    return { date: dateString, amount };
+  }).reverse();
 
   // Fetch total pending balance from members table
   const { data: membersBalance, error: membersBalanceError } = await supabase
@@ -106,7 +123,7 @@ export const loader: LoaderFunction = async () => {
       user: t.members.full_name,
       amount: t.amount,
       timestamp: new Date(t.created_at).toLocaleString(),
-      avatar: `https://api.dicebear.com/6.x/initials/svg?seed=₹{t.members.full_name}`,
+      avatar: `https://api.dicebear.com/6.x/initials/svg?seed=${t.members.full_name}`,
     })),
     income,
     previousIncome,
@@ -117,11 +134,12 @@ export const loader: LoaderFunction = async () => {
       paid,
       pending,
     },
+    dailyEarnings,
   });
 };
 
 export default function Transactions() {
-  const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, stats } =
+  const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, dailyEarnings } =
     useLoaderData<{
       transactions: Transaction[];
       income: number;
@@ -133,7 +151,18 @@ export default function Transactions() {
         paid: number;
         pending: number;
       };
+      dailyEarnings: DailyEarning[];
     }>();
+
+  // Calculate total amount and percentages
+  const totalAmount = income + totalPendingBalance;
+  const receivedPercentage = (income / totalAmount) * 100;
+  const pendingPercentage = (totalPendingBalance / totalAmount) * 100;
+
+  // Calculate stroke-dasharray and stroke-dashoffset for each segment
+  const circumference = 2 * Math.PI * 45;
+  const receivedDash = (receivedPercentage / 100) * circumference;
+  const pendingDash = (pendingPercentage / 100) * circumference;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
@@ -212,21 +241,7 @@ export default function Transactions() {
                     fill="none"
                     stroke="#3b82f6"
                     strokeWidth="10"
-                    strokeDasharray={`₹{stats.received * 2.83} ₹{
-                      283 - stats.received * 2.83
-                    }`}
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#22c55e"
-                    strokeWidth="10"
-                    strokeDasharray={`₹{stats.paid * 2.83} ₹{
-                      283 - stats.paid * 2.83
-                    }`}
-                    strokeDashoffset={-stats.received * 2.83}
+                    strokeDasharray={`${receivedDash} ${circumference}`}
                   />
                   <circle
                     cx="50"
@@ -235,10 +250,8 @@ export default function Transactions() {
                     fill="none"
                     stroke="#ef4444"
                     strokeWidth="10"
-                    strokeDasharray={`₹{stats.pending * 2.83} ₹{
-                      283 - stats.pending * 2.83
-                    }`}
-                    strokeDashoffset={-(stats.received + stats.paid) * 2.83}
+                    strokeDasharray={`${pendingDash} ${circumference}`}
+                    strokeDashoffset={-receivedDash}
                   />
                 </svg>
               </div>
@@ -248,21 +261,14 @@ export default function Transactions() {
                     <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
                     <span>Total received</span>
                   </div>
-                  <span>{stats.received}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
-                    <span>Total Paid</span>
-                  </div>
-                  <span>{stats.paid}%</span>
+                  <span>₹{income.toFixed(2)} ({receivedPercentage.toFixed(1)}%)</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
                     <span>Total Pending</span>
                   </div>
-                  <span>{totalPendingBalance.toFixed(2)}%</span>
+                  <span>₹{totalPendingBalance.toFixed(2)}</span>
                 </div>
               </div>
             </CardContent>
@@ -306,9 +312,35 @@ export default function Transactions() {
                 </div>
                 <div className="pt-4">
                   <h4 className="text-sm font-medium mb-2">Earning Summary</h4>
-                  <div className="h-32 bg-gradient-to-b from-purple-100/50">
-                    {/* Placeholder for chart - would need a proper charting library for real implementation */}
-                  </div>
+                    <ChartContainer
+                    config={{
+                      amount: {
+                      label: "Amount",
+                      color: "hsl(216, 20%, 80%)", // Change color to green
+                      },
+                    }}
+                    className="h-[300px] w-full" // Increase height and width
+                    >
+                    <LineChart data={dailyEarnings}>
+                      <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}
+                      />
+                      <YAxis
+                      tickFormatter={(value) => `₹${value / 1000}k`}
+                      domain={[0, 50000]}
+                      ticks={[0, 10000, 20000, 30000, 40000, 50000]}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="var(--color-amount)"
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "var(--color-amount)" }}
+                      />
+                    </LineChart>
+                    </ChartContainer>
                 </div>
               </div>
             </CardContent>

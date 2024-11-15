@@ -1,247 +1,208 @@
-import { useState } from "react";
-import {
-  ArrowLeft,
-  Bell,
-  Phone,
-  Settings,
-  MessageSquarePlus,
-  AlarmClock,
-  Cake,
-  UserPlus,
-  RefreshCcw,
-  BellRing,
-  UserCog,
-  Search,
-  Pencil,
-  Plus,
-} from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "~/components/ui/dialog";
-import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
+import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
+import { useLoaderData, useActionData, useSubmit } from "@remix-run/react";
+import { useState, useTransition } from "react";
+import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Button } from "~/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import { Textarea } from "~/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
+import { toast } from "~/hooks/use-toast"
+import { supabase } from "~/utils/supabase.server"
 
-interface Template {
-  id: number;
-  icon: React.ReactNode;
+interface MessageTemplate {
+  id: string;
   title: string;
   content: string;
 }
 
-export default function MessageTemplatePage() {
-  const [templates, setTemplates] = useState<Template[]>([
-    {
-      id: 1,
-      icon: <MessageSquarePlus className="h-6 w-6" />,
-      title: "Custom message",
-      content: "",
-    },
-    {
-      id: 2,
-      icon: <AlarmClock className="h-6 w-6" />,
-      title: "Membership expiring reminder",
-      content: "",
-    },
-    {
-      id: 3,
-      icon: <Cake className="h-6 w-6" />,
-      title: "Membership Birthday message",
-      content: "",
-    },
-    {
-      id: 4,
-      icon: <UserPlus className="h-6 w-6" />,
-      title: "Member onboarding",
-      content: "",
-    },
-    {
-      id: 5,
-      icon: <RefreshCcw className="h-6 w-6" />,
-      title: "Member settlement success",
-      content: "",
-    },
-    {
-      id: 6,
-      icon: <BellRing className="h-6 w-6" />,
-      title: "Member balance reminder",
-      content: "",
-    },
-    {
-      id: 7,
-      icon: <UserCog className="h-6 w-6" />,
-      title: "Membership renewal",
-      content: "",
-    },
-  ]);
+interface LoaderData {
+  messageTemplates: MessageTemplate[];
+}
 
-  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+export const loader: LoaderFunction = async () => {
+  const { data: messageTemplates, error } = await supabase
+    .from('message_templates')
+    .select('*')
+    .order('title');
 
-  const handleAddOrUpdateTemplate = (template: Template) => {
-    if (editingTemplate) {
-      setTemplates(templates.map((t) => (t.id === template.id ? template : t)));
-    } else {
-      setTemplates([
-        ...templates,
-        { ...template, id: Math.max(...templates.map((t) => t.id)) + 1 },
-      ]);
+  if (error) {
+    console.error("Error fetching message templates:", error);
+    return json({ messageTemplates: [] });
+  }
+
+  return json({ messageTemplates });
+};
+
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const action = formData.get('_action');
+
+  switch (action) {
+    case 'create':
+    case 'update': {
+      const title = formData.get('title') as string;
+      const content = formData.get('content') as string;
+      const id = formData.get('id') as string | null;
+
+      if (!title || !content) {
+        return json({ error: "Title and content are required" }, { status: 400 });
+      }
+
+      const { error } = action === 'create'
+        ? await supabase.from('message_templates').insert({ title, content })
+        : await supabase.from('message_templates').update({ title, content }).eq('id', id);
+
+      if (error) {
+        return json({ error: `Failed to ${action} message template` }, { status: 500 });
+      }
+
+      return json({ success: true, message: `Message template ${action === 'create' ? 'created' : 'updated'} successfully` });
     }
+    case 'delete': {
+      const id = formData.get('id') as string;
+
+      const { error } = await supabase.from('message_templates').delete().eq('id', id);
+
+      if (error) {
+        return json({ error: "Failed to delete message template" }, { status: 500 });
+      }
+
+      return json({ success: true, message: "Message template deleted successfully" });
+    }
+    default:
+      return json({ error: "Invalid action" }, { status: 400 });
+  }
+};
+
+export default function MessageTemplates() {
+  const { messageTemplates } = useLoaderData<LoaderData>();
+  const actionData = useActionData();
+  const submit = useSubmit();
+  const transition = useTransition();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<MessageTemplate | null>(null);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    formData.append('_action', editingTemplate ? 'update' : 'create');
+    if (editingTemplate) {
+      formData.append('id', editingTemplate.id);
+    }
+    submit(formData, { method: 'post' });
+    setIsDialogOpen(false);
     setEditingTemplate(null);
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover:bg-gray-100"
-            onClick={() => window.history.back()}
-          >
-            <ArrowLeft className="h-6 w-6" />
-            <span className="sr-only">Go back</span>
-          </Button>
-          <h1 className="text-xl font-bold">Message Template</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
-          <Settings className="h-6 w-6 text-purple-500" />
-        </div>
-      </header>
-
-      {/* Search and Add Template */}
-      <div className="p-4 flex items-center justify-between">
-        <div className="relative flex-grow mr-4">
-          <Input
-            type="text"
-            placeholder="Search templates"
-            className="pl-10 pr-4 py-2 w-full bg-white rounded-full"
-          />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button
-              className="bg-purple-500 hover:bg-purple-600 text-white"
-              onClick={() => setEditingTemplate(null)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Template
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingTemplate ? "Edit Template" : "Add New Template"}
-              </DialogTitle>
-            </DialogHeader>
-            <TemplateForm
-              template={editingTemplate}
-              onSubmit={handleAddOrUpdateTemplate}
-            />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Template List */}
-      <main className="p-4 space-y-3">
-        {templates.map((template) => (
-          <Button
-            key={template.id}
-            variant="ghost"
-            className="w-full bg-purple-50 hover:bg-purple-100 h-auto py-6 flex items-center justify-between"
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700">{template.icon}</span>
-              <span className="text-lg font-medium text-gray-900">
-                {template.title}
-              </span>
-            </div>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-purple-500 hover:bg-purple-200"
-                  onClick={() => setEditingTemplate(template)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Edit Template</DialogTitle>
-                </DialogHeader>
-                <TemplateForm
-                  template={template}
-                  onSubmit={handleAddOrUpdateTemplate}
-                />
-              </DialogContent>
-            </Dialog>
-          </Button>
-        ))}
-      </main>
-    </div>
-  );
-}
-
-interface TemplateFormProps {
-  template?: Template | null;
-  onSubmit: (template: Template) => void;
-}
-
-function TemplateForm({ template, onSubmit }: TemplateFormProps) {
-  const [formData, setFormData] = useState<Omit<Template, "icon">>({
-    id: template?.id || 0,
-    title: template?.title || "",
-    content: template?.content || "",
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      ...formData,
-      icon: template?.icon || <MessageSquarePlus className="h-6 w-6" />,
-    });
+  const handleDelete = (id: string) => {
+    if (window.confirm("Are you sure you want to delete this template?")) {
+      const formData = new FormData();
+      formData.append('_action', 'delete');
+      formData.append('id', id);
+      submit(formData, { method: 'post' });
+    }
   };
 
+  if (actionData?.success) {
+    toast({
+      title: "Success",
+      description: actionData.message,
+    });
+  } else if (actionData?.error) {
+    toast({
+      title: "Error",
+      description: actionData.error,
+      variant: "destructive",
+    });
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="title">Template Title</Label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="content">Template Content</Label>
-        <Textarea
-          id="content"
-          value={formData.content}
-          onChange={(e) =>
-            setFormData({ ...formData, content: e.target.value })
-          }
-          required
-          rows={5}
-        />
-      </div>
-      <Button
-        type="submit"
-        className="w-full bg-purple-500 hover:bg-purple-600 text-white"
-      >
-        {template ? "Update Template" : "Add Template"}
-      </Button>
-    </form>
+    <div className="container mx-auto p-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-2xl font-bold">Message Templates</CardTitle>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setEditingTemplate(null)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Template
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingTemplate ? 'Edit' : 'Add'} Message Template</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    name="title"
+                    defaultValue={editingTemplate?.title}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="content">Content</Label>
+                  <Textarea
+                    id="content"
+                    name="content"
+                    rows={5}
+                    defaultValue={editingTemplate?.content}
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={transition.state === 'submitting'}>
+                  {transition.state === 'submitting'
+                    ? 'Saving...'
+                    : editingTemplate
+                    ? 'Update Template'
+                    : 'Add Template'}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {messageTemplates.length > 0 ? (
+            <div className="space-y-4">
+              {messageTemplates.map((template) => (
+                <Card key={template.id}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-lg font-semibold">{template.title}</CardTitle>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingTemplate(template);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(template.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600">{template.content}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500">No message templates found. Add one to get started!</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

@@ -11,14 +11,16 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { Badge } from "~/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { supabase } from "~/utils/supabase.server";
 
 interface Gym {
   id: string;
@@ -44,42 +46,123 @@ interface TransactionStats {
   pending: number;
 }
 
+interface DailyEarning {
+  date: string;
+  amount: number;
+}
+
 export const loader: LoaderFunction = async () => {
-  // Mock data
+  // Fetch gyms
   const gyms: Gym[] = [
     { id: "1", name: "Jain workout zone" },
     { id: "2", name: "Fitness First" },
     { id: "3", name: "Gold's Gym" },
   ];
 
-  const stats: Stats = {
-    activeMembers: 120,
-    expiringSoon: 130,
-    expiredMembers: 120,
-    totalMembers: 120,
+  // Fetch stats
+  const { data: stats, error: statsError } = await supabase
+    .from('memberships')
+    .select('status, end_date');
+
+  if (statsError) throw new Error('Failed to fetch member stats');
+
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const statsData: Stats = {
+    activeMembers: stats.filter(m => m.status === 'active').length,
+    expiringSoon: stats.filter(m => new Date(m.end_date) <= thirtyDaysFromNow && new Date(m.end_date) > now).length,
+    expiredMembers: stats.filter(m => new Date(m.end_date) < now).length,
+    totalMembers: stats.length,
   };
 
-  const birthdays: Birthday[] = [
-    { id: 1, name: "Member 1", avatar: "/placeholder.svg" },
-    { id: 2, name: "Member 2", avatar: "/placeholder.svg" },
-    { id: 3, name: "Member 3", avatar: "/placeholder.svg" },
-  ];
+  // Fetch birthdays
+  const today = now.toISOString().split('T')[0];
+  const { data: birthdays, error: birthdaysError } = await supabase
+    .from('members')
+    .select('id, full_name')
+    .eq('date_of_birth', today);
 
+  if (birthdaysError) throw new Error('Failed to fetch birthdays');
+
+  // Fetch transactions
+  const { data: transactions, error: transactionsError } = await supabase
+    .from('transactions')
+    .select('amount, created_at')
+    .eq('type', 'payment')
+    .gte('created_at', now.toISOString().split('T')[0]);
+
+  if (transactionsError) throw new Error('Failed to fetch transactions');
+
+  const income = transactions.reduce((sum, t) => sum + t.amount, 0);
+
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const { data: previousTransactions, error: previousError } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('type', 'payment')
+    .gte('created_at', yesterday.toISOString().split('T')[0])
+    .lt('created_at', now.toISOString().split('T')[0]);
+
+  if (previousError) throw new Error('Failed to fetch previous transactions');
+
+  const previousIncome = previousTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const { data: weeklyTransactions, error: weeklyError } = await supabase
+    .from('transactions')
+    .select('amount, created_at')
+    .eq('type', 'payment')
+    .gte('created_at', sevenDaysAgo.toISOString());
+
+  if (weeklyError) throw new Error('Failed to fetch weekly transactions');
+
+  const weeklyIncome = weeklyTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+  // Calculate daily earnings for the past week
+  const dailyEarnings: DailyEarning[] = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateString = date.toISOString().split('T')[0];
+    const amount = weeklyTransactions
+      .filter(t => t.created_at.startsWith(dateString))
+      .reduce((sum, t) => sum + t.amount, 0);
+    return { date: dateString, amount };
+  }).reverse();
+
+  // Calculate transaction stats
+  const totalTransactions = transactions.length;
   const transactionStats: TransactionStats = {
-    received: 54,
-    paid: 20,
-    pending: 26,
+    received: Math.round((transactions.filter(t => t.amount > 0).length / totalTransactions) * 100) || 0,
+    paid: Math.round((transactions.filter(t => t.amount < 0).length / totalTransactions) * 100) || 0,
+    pending: 0,
   };
+  transactionStats.pending = 100 - transactionStats.received - transactionStats.paid;
+
+  // Fetch total pending balance from members table
+  const { data: membersBalance, error: membersBalanceError } = await supabase
+    .from('members')
+    .select('balance')
+    .gt('balance', 0);
+
+  if (membersBalanceError) throw new Error('Failed to fetch members balance');
+
+  const totalPendingBalance = membersBalance.reduce((sum, member) => sum + member.balance, 0);
 
   return json({
     gyms,
     currentGym: gyms[0],
-    stats,
-    birthdays,
+    stats: statsData,
+    birthdays: birthdays.map(b => ({
+      id: b.id,
+      name: b.full_name,
+      avatar: `https://api.dicebear.com/6.x/initials/svg?seed=${b.full_name}`,
+    })),
     transactionStats,
-    income: 5660.0,
-    previousIncome: 5240.0,
-    weeklyIncome: 22658.0,
+    income,
+    previousIncome,
+    weeklyIncome,
+    dailyEarnings,
+    totalPendingBalance,
   });
 };
 
@@ -89,11 +172,21 @@ export default function Index() {
     currentGym,
     stats,
     birthdays,
-    transactionStats,
     income,
     previousIncome,
     weeklyIncome,
+    totalPendingBalance,
   } = useLoaderData<typeof loader>();
+
+  // Calculate total amount and percentages for the pie chart
+  const totalAmount = income + totalPendingBalance;
+  const receivedPercentage = (income / totalAmount) * 100;
+  const pendingPercentage = (totalPendingBalance / totalAmount) * 100;
+
+  // Calculate stroke-dasharray and stroke-dashoffset for each segment
+  const circumference = 2 * Math.PI * 45;
+  const receivedDash = (receivedPercentage / 100) * circumference;
+  const pendingDash = (pendingPercentage / 100) * circumference;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -192,112 +285,106 @@ export default function Index() {
       <div className="p-4">
         <h2 className="text-2xl font-bold mb-4">Transactions</h2>
         <div className="grid md:grid-cols-2 gap-4">
-          <Card className="bg-white p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Transcations</h3>
-              <Button variant="secondary" size="sm">
-                Today
-              </Button>
-            </div>
-            <div className="relative w-48 h-48 mx-auto">
-              <svg
-                viewBox="0 0 100 100"
-                className="transform -rotate-90 w-full h-full"
-              >
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke="#e2e8f0"
-                  strokeWidth="10"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="10"
-                  strokeDasharray={`${transactionStats.received * 2.83} ${
-                    283 - transactionStats.received * 2.83
-                  }`}
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke="#22c55e"
-                  strokeWidth="10"
-                  strokeDasharray={`${transactionStats.paid * 2.83} ${
-                    283 - transactionStats.paid * 2.83
-                  }`}
-                  strokeDashoffset={-transactionStats.received * 2.83}
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke="#ef4444"
-                  strokeWidth="10"
-                  strokeDasharray={`${transactionStats.pending * 2.83} ${
-                    283 - transactionStats.pending * 2.83
-                  }`}
-                  strokeDashoffset={
-                    -(transactionStats.received + transactionStats.paid) * 2.83
-                  }
-                />
-              </svg>
-            </div>
-            <div className="space-y-2 mt-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
-                  <span>Total received</span>
-                </div>
-                <span>{transactionStats.received}% ↑</span>
+          {/* Transactions Chart */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Transactions</CardTitle>
+                <Badge variant="secondary">Today</Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
-                  <span>Total Paid</span>
-                </div>
-                <span>{transactionStats.paid}% ↑</span>
+            </CardHeader>
+            <CardContent>
+              <div className="relative w-48 h-48 mx-auto">
+                <svg
+                  viewBox="0 0 100 100"
+                  className="transform -rotate-90 w-full h-full"
+                >
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="#e2e8f0"
+                    strokeWidth="10"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="10"
+                    strokeDasharray={`${receivedDash} ${circumference}`}
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth="10"
+                    strokeDasharray={`${pendingDash} ${circumference}`}
+                    strokeDashoffset={-receivedDash}
+                  />
+                </svg>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
-                  <span>Total Pending</span>
+              <div className="space-y-2 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
+                    <span>Total received</span>
+                  </div>
+                  <span>₹{income.toFixed(2)}</span>
                 </div>
-                <span>{transactionStats.pending}% ↓</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
+                    <span>Total Pending</span>
+                  </div>
+                  <span>₹{totalPendingBalance.toFixed(2)}</span>
+                </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="bg-white p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Income</h3>
-              <Button variant="secondary" size="sm">
-                Today
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center">
-                  <h3 className="text-4xl font-bold">${income.toFixed(2)}</h3>
-                  <span className="ml-2 text-green-500">↑ 2.5%</span>
+          {/* Income Stats */}
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Income</CardTitle>
+                <Badge variant="secondary">Today</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center">
+                    <h3 className="text-4xl font-bold">₹{income.toFixed(2)}</h3>
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 bg-green-100 text-green-600"
+                    >
+                      ↑ {((income - previousIncome) / previousIncome * 100).toFixed(1)}%
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Compared to ₹{previousIncome.toFixed(2)} yesterday
+                  </p>
                 </div>
-                <p className="text-sm text-gray-500">
-                  Compared to ${previousIncome} yesterday
-                </p>
+                <div>
+                  <p className="text-sm font-medium">Last week incomes</p>
+                  <p className="text-2xl font-bold">
+                    ₹{weeklyIncome.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Total Pending Balance</p>
+                  <p className="text-2xl font-bold text-red-500">
+                    ₹{totalPendingBalance.toFixed(2)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Last week incomes</p>
-                <p className="text-2xl font-bold">${weeklyIncome.toFixed(2)}</p>
-              </div>
-            </div>
+            </CardContent>
           </Card>
         </div>
       </div>
