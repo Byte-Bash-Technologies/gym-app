@@ -14,7 +14,7 @@ import { Input } from "~/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
 import { supabase } from "~/utils/supabase.server"
 import { toast } from "~/hooks/use-toast"
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 interface Member {
   id: string;
   full_name: string;
@@ -195,7 +195,8 @@ export const action: ActionFunction = async ({ request,params }) => {
 };
 
 export default function MemberProfile() {
-  const { member, memberships, recentTransactions,messageTemplates } = useLoaderData<LoaderData>();
+  const { member, memberships, recentTransactions, messageTemplates } = useLoaderData<LoaderData>();
+  const params = useParams();
   console.log(memberships);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isWhatsAppDrawerOpen, setIsWhatsAppDrawerOpen] = useState(false);
@@ -248,7 +249,7 @@ const navigate = useNavigate();
       {/* Header */}
       <header className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <Link to="/members">
+          <Link to={`/${params.facilityId}/members`}>
             <ArrowLeft className="h-6 w-6 mr-2" />
           </Link>
           <h1 className="text-xl font-bold">Member Profile</h1>

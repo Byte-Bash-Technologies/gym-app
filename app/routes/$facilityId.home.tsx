@@ -1,5 +1,5 @@
 import { json, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link,useParams } from "@remix-run/react";
+import { useLoaderData, Link, useParams } from "@remix-run/react";
 import {
   Bell,
   Phone,
@@ -51,37 +51,72 @@ interface DailyEarning {
   amount: number;
 }
 
-export const loader: LoaderFunction = async () => {
+export const loader: LoaderFunction = async ({ params }) => {
+  const facilityId = params.facilityId;
+
   // Fetch gyms
-  const gyms: Gym[] = [
-    { id: "1", name: "Jain workout zone" },
-    { id: "2", name: "Fitness First" },
-    { id: "3", name: "Gold's Gym" },
-  ];
+  const { data: gyms, error: gymsError } = await supabase
+    .from('facilities')
+    .select('id, name');
 
-  // Fetch stats
-  const { data: stats, error: statsError } = await supabase
-    .from('memberships')
-    .select('status, end_date');
+  if (gymsError) throw new Error('Failed to fetch gyms');
 
-  if (statsError) throw new Error('Failed to fetch member stats');
+  // Fetch current gym
+  const { data: currentGym, error: currentGymError } = await supabase
+    .from('facilities')
+    .select('id, name')
+    .eq('id', facilityId)
+    .single();
+
+  if (currentGymError) throw new Error('Failed to fetch current gym');
+
+  // Fetch members and their memberships for the specific facility
+  const { data: members, error: membersError } = await supabase
+    .from('members')
+    .select(`
+      id,
+      full_name,
+      memberships (
+        status,
+        end_date
+      )
+    `)
+    .eq('facility_id', facilityId);
+
+  if (membersError) throw new Error('Failed to fetch members and memberships');
 
   const now = new Date();
   const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const statsData: Stats = {
-    activeMembers: stats.filter(m => m.status === 'active').length,
-    expiringSoon: stats.filter(m => new Date(m.end_date) <= thirtyDaysFromNow && new Date(m.end_date) > now).length,
-    expiredMembers: stats.filter(m => new Date(m.end_date) < now).length,
-    totalMembers: stats.length,
+    activeMembers: 0,
+    expiringSoon: 0,
+    expiredMembers: 0,
+    totalMembers: members.length,
   };
+
+  members.forEach(member => {
+    if (member.memberships && member.memberships.length > 0) {
+      const latestMembership = member.memberships[member.memberships.length - 1];
+      if (latestMembership.status === 'active') {
+        statsData.activeMembers++;
+        const endDate = new Date(latestMembership.end_date);
+        if (endDate <= thirtyDaysFromNow && endDate > now) {
+          statsData.expiringSoon++;
+        }
+      } else if (new Date(latestMembership.end_date) < now) {
+        statsData.expiredMembers++;
+      }
+    }
+  });
 
   // Fetch birthdays
   const today = now.toISOString().split('T')[0];
   const { data: birthdays, error: birthdaysError } = await supabase
     .from('members')
     .select('id, full_name')
-    .eq('date_of_birth', today);
+    .eq('date_of_birth', today)
+    .eq('facility_id', facilityId);
 
   if (birthdaysError) throw new Error('Failed to fetch birthdays');
 
@@ -90,6 +125,7 @@ export const loader: LoaderFunction = async () => {
     .from('transactions')
     .select('amount, created_at')
     .eq('type', 'payment')
+    .eq('facility_id', facilityId)
     .gte('created_at', now.toISOString().split('T')[0]);
 
   if (transactionsError) throw new Error('Failed to fetch transactions');
@@ -101,6 +137,7 @@ export const loader: LoaderFunction = async () => {
     .from('transactions')
     .select('amount')
     .eq('type', 'payment')
+    .eq('facility_id', facilityId)
     .gte('created_at', yesterday.toISOString().split('T')[0])
     .lt('created_at', now.toISOString().split('T')[0]);
 
@@ -113,6 +150,7 @@ export const loader: LoaderFunction = async () => {
     .from('transactions')
     .select('amount, created_at')
     .eq('type', 'payment')
+    .eq('facility_id', facilityId)
     .gte('created_at', sevenDaysAgo.toISOString());
 
   if (weeklyError) throw new Error('Failed to fetch weekly transactions');
@@ -142,6 +180,7 @@ export const loader: LoaderFunction = async () => {
   const { data: membersBalance, error: membersBalanceError } = await supabase
     .from('members')
     .select('balance')
+    .eq('facility_id', facilityId)
     .gt('balance', 0);
 
   if (membersBalanceError) throw new Error('Failed to fetch members balance');
@@ -150,7 +189,7 @@ export const loader: LoaderFunction = async () => {
 
   return json({
     gyms,
-    currentGym: gyms[0],
+    currentGym,
     stats: statsData,
     birthdays: birthdays.map(b => ({
       id: b.id,
@@ -167,7 +206,7 @@ export const loader: LoaderFunction = async () => {
 };
 
 export default function Index() {
-  const params=useParams()
+  const params = useParams();
   const {
     gyms,
     currentGym,
@@ -208,7 +247,7 @@ export default function Index() {
             <DropdownMenuContent align="start">
               {gyms.map((gym: Gym) => (
                 <DropdownMenuItem key={gym.id}>
-                  <Link to={`/?gymId=${gym.id}`} className="w-full">
+                  <Link to={`/${gym.id}`} className="w-full">
                     {gym.name}
                   </Link>
                 </DropdownMenuItem>
@@ -401,7 +440,6 @@ export default function Index() {
           </Link>
           <Link
             to={`/${params.facilityId}/transaction`}
-            
             className="flex flex-col items-center text-gray-500"
           >
             <Wallet className="h-6 w-6" />

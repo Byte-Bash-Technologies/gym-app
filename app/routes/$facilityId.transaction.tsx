@@ -1,5 +1,5 @@
 import { json, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link,useParams } from "@remix-run/react";
+import { useLoaderData, Link, useParams } from "@remix-run/react";
 import {
   Bell,
   Phone,
@@ -19,6 +19,7 @@ import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
+
 interface Transaction {
   id: number;
   user: string;
@@ -32,7 +33,8 @@ interface DailyEarning {
   amount: number;
 }
 
-export const loader: LoaderFunction = async () => {
+export const loader: LoaderFunction = async ({ params }) => {
+  const facilityId = params.facilityId;
   const today = new Date();
   const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -46,6 +48,7 @@ export const loader: LoaderFunction = async () => {
       members (id, full_name, email)
     `)
     .eq('type', 'payment')
+    .eq('facility_id', facilityId)
     .gte('created_at', today.toISOString().split('T')[0])
     .order('created_at', { ascending: false });
 
@@ -63,6 +66,7 @@ export const loader: LoaderFunction = async () => {
     .from('transactions')
     .select('amount')
     .eq('type', 'payment')
+    .eq('facility_id', facilityId)
     .gte('created_at', yesterday.toISOString().split('T')[0])
     .lt('created_at', today.toISOString().split('T')[0]);
 
@@ -78,6 +82,7 @@ export const loader: LoaderFunction = async () => {
     .from('transactions')
     .select('amount, created_at')
     .eq('type', 'payment')
+    .eq('facility_id', facilityId)
     .gte('created_at', sevenDaysAgo.toISOString());
 
   if (weeklyError) {
@@ -101,6 +106,7 @@ export const loader: LoaderFunction = async () => {
   const { data: membersBalance, error: membersBalanceError } = await supabase
     .from('members')
     .select('balance')
+    .eq('facility_id', facilityId)
     .gt('balance', 0);
 
   if (membersBalanceError) {
@@ -312,35 +318,35 @@ export default function Transactions() {
                 </div>
                 <div className="pt-4">
                   <h4 className="text-sm font-medium mb-2">Earning Summary</h4>
-                    <ChartContainer
+                  <ChartContainer
                     config={{
                       amount: {
-                      label: "Amount",
-                      color: "hsl(216, 20%, 80%)", // Change color to green
+                        label: "Amount",
+                        color: "hsl(216, 20%, 80%)",
                       },
                     }}
-                    className="h-[300px] w-full" // Increase height and width
-                    >
+                    className="h-[300px] w-full"
+                  >
                     <LineChart data={dailyEarnings}>
                       <XAxis
-                      dataKey="date"
-                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}
+                        dataKey="date"
+                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}
                       />
                       <YAxis
-                      tickFormatter={(value) => `₹${value / 1000}k`}
-                      domain={[0, 50000]}
-                      ticks={[0, 10000, 20000, 30000, 40000, 50000]}
+                        tickFormatter={(value) => `₹${value / 1000}k`}
+                        domain={[0, 50000]}
+                        ticks={[0, 10000, 20000, 30000, 40000, 50000]}
                       />
                       <ChartTooltip content={<ChartTooltipContent />} />
                       <Line
-                      type="monotone"
-                      dataKey="amount"
-                      stroke="var(--color-amount)"
-                      strokeWidth={2}
-                      dot={{ r: 4, fill: "var(--color-amount)" }}
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="var(--color-amount)"
+                        strokeWidth={2}
+                        dot={{ r: 4, fill: "var(--color-amount)" }}
                       />
                     </LineChart>
-                    </ChartContainer>
+                  </ChartContainer>
                 </div>
               </div>
             </CardContent>

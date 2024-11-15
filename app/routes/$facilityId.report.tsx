@@ -1,3 +1,5 @@
+import { json, type LoaderFunction } from "@remix-run/node";
+import { useLoaderData, Link, useParams } from "@remix-run/react";
 import {
   PieChart,
   Wallet,
@@ -7,21 +9,178 @@ import {
   Search,
   Download,
   CheckCircle,
-  ChevronDown,
   Home,
   Users,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Card } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import { Avatar } from "~/components/ui/avatar";
-import { Link, useParams } from "@remix-run/react";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import { Badge } from "~/components/ui/badge";
+import { supabase } from "~/utils/supabase.server";
+import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
+
+interface FinancialMetrics {
+  totalReceived: number;
+  pendingPayment: number;
+}
+
+interface Transaction {
+  id: number;
+  user: string;
+  amount: number;
+  timestamp: string;
+}
+
+interface TransactionStats {
+  received: number;
+  pending: number;
+}
+
+interface Income {
+  today: number;
+  yesterday: number;
+  percentageChange: number;
+}
+
+interface EarningSummary {
+  date: string;
+  amount: number;
+}
+
+export const loader: LoaderFunction = async ({ params }) => {
+  const facilityId = params.facilityId;
+
+  // Fetch total received amount from transactions
+  const { data: totalReceivedData, error: totalReceivedError } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('facility_id', facilityId)
+    .eq('type', 'payment')
+    .gt('amount', 0);
+
+  if (totalReceivedError) throw new Error('Failed to fetch total received amount');
+
+  const totalReceived = totalReceivedData.reduce((sum, transaction) => sum + transaction.amount, 0);
+
+  // Fetch pending payments from members
+  const { data: pendingPaymentData, error: pendingPaymentError } = await supabase
+    .from('members')
+    .select('balance')
+    .eq('facility_id', facilityId)
+    .gt('balance', 0);
+
+  if (pendingPaymentError) throw new Error('Failed to fetch pending payments');
+
+  const pendingPayment = pendingPaymentData.reduce((sum, member) => sum + member.balance, 0);
+
+  // Calculate transaction stats
+  const totalAmount = totalReceived + pendingPayment;
+  const transactionStats: TransactionStats = {
+    received: (totalReceived / totalAmount) * 100,
+    pending: (pendingPayment / totalAmount) * 100,
+  };
+
+  // Fetch recent transactions
+  const { data: recentTransactions, error: recentTransactionsError } = await supabase
+    .from('transactions')
+    .select('id, amount, created_at, members (full_name)')
+    .eq('facility_id', facilityId)
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  if (recentTransactionsError) throw new Error('Failed to fetch recent transactions');
+
+  // Fetch income data
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const { data: todayIncome, error: todayIncomeError } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('facility_id', facilityId)
+    .eq('type', 'payment')
+    .gte('created_at', now.toISOString().split('T')[0]);
+
+  if (todayIncomeError) throw new Error('Failed to fetch today\'s income');
+
+  const { data: yesterdayIncome, error: yesterdayIncomeError } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('facility_id', facilityId)
+    .eq('type', 'payment')
+    .gte('created_at', yesterday.toISOString().split('T')[0])
+    .lt('created_at', now.toISOString().split('T')[0]);
+
+  if (yesterdayIncomeError) throw new Error('Failed to fetch yesterday\'s income');
+
+  const todayTotal = todayIncome.reduce((sum, t) => sum + t.amount, 0);
+  const yesterdayTotal = yesterdayIncome.reduce((sum, t) => sum + t.amount, 0);
+  const percentageChange = ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
+
+  // Fetch earning summary for the last 7 days
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const { data: earningSummaryData, error: earningSummaryError } = await supabase
+    .from('transactions')
+    .select('amount, created_at')
+    .eq('facility_id', facilityId)
+    .eq('type', 'payment')
+    .gte('created_at', sevenDaysAgo.toISOString())
+    .order('created_at', { ascending: true });
+
+  if (earningSummaryError) throw new Error('Failed to fetch earning summary');
+
+  const earningSummary: EarningSummary[] = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateString = date.toISOString().split('T')[0];
+    const amount = earningSummaryData
+      .filter(t => t.created_at.startsWith(dateString))
+      .reduce((sum, t) => sum + t.amount, 0);
+    return { date: dateString, amount };
+  }).reverse();
+
+  const metrics: FinancialMetrics = {
+    totalReceived,
+    pendingPayment,
+  };
+
+  const income: Income = {
+    today: todayTotal,
+    yesterday: yesterdayTotal,
+    percentageChange,
+  };
+
+  return json({
+    metrics,
+    transactions: recentTransactions.map(t => ({
+      id: t.id,
+      user: t.members.full_name,
+      amount: t.amount,
+      timestamp: new Date(t.created_at).toLocaleString(),
+    })),
+    transactionStats,
+    income,
+    earningSummary,
+  });
+};
 
 export default function ReportPage() {
   const params = useParams();
+  const { metrics, transactions, transactionStats, income, earningSummary } = useLoaderData<typeof loader>();
+
+  // Calculate total amount and percentages for the pie chart
+  const totalAmount = metrics.totalReceived + metrics.pendingPayment;
+  const receivedPercentage = (metrics.totalReceived / totalAmount) * 100;
+  const pendingPercentage = (metrics.pendingPayment / totalAmount) * 100;
+
+  // Calculate stroke-dasharray and stroke-dashoffset for each segment
+  const circumference = 2 * Math.PI * 45;
+  const receivedDash = (receivedPercentage / 100) * circumference;
+  const pendingDash = (pendingPercentage / 100) * circumference;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 pb-16">
       {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center">
@@ -53,133 +212,194 @@ export default function ReportPage() {
         </div>
 
         {/* Financial Metrics */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <Card className="p-4">
-            <p className="text-green-500 text-xl font-bold">₹120000</p>
-            <p className="text-sm text-gray-500">Total received</p>
+            <CardContent>
+              <p className="text-blue-500 text-xl font-bold">₹{metrics.totalReceived.toFixed(2)}</p>
+              <p className="text-sm text-gray-500">Total received</p>
+            </CardContent>
           </Card>
           <Card className="p-4">
-            <p className="text-yellow-500 text-xl font-bold">₹2574</p>
-            <p className="text-sm text-gray-500">Pending payment</p>
-          </Card>
-          <Card className="p-4">
-            <p className="text-blue-500 text-xl font-bold">₹2574</p>
-            <p className="text-sm text-gray-500">All time balance</p>
+            <CardContent>
+              <p className="text-red-500 text-xl font-bold">₹{metrics.pendingPayment.toFixed(2)}</p>
+              <p className="text-sm text-gray-500">Pending payment</p>
+            </CardContent>
           </Card>
         </div>
 
         {/* Transactions and Income */}
         <div className="grid md:grid-cols-2 gap-4">
           {/* Transactions Chart */}
-          <Card className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Transcations</h3>
-              <Button variant="secondary" size="sm">
-                Today
-              </Button>
-            </div>
-            <div className="relative w-48 h-48 mx-auto mb-4">
-              <div
-                className="absolute inset-0 rounded-full border-8 border-blue-500"
-                style={{ clipPath: "polygon(0 0, 54% 0, 54% 100%, 0% 100%)" }}
-              />
-              <div
-                className="absolute inset-0 rounded-full border-8 border-green-500"
-                style={{
-                  clipPath: "polygon(54% 0, 74% 0, 74% 100%, 54% 100%)",
-                }}
-              />
-              <div
-                className="absolute inset-0 rounded-full border-8 border-red-500"
-                style={{
-                  clipPath: "polygon(74% 0, 100% 0, 100% 100%, 74% 100%)",
-                }}
-              />
-            </div>
-            <div className="space-y-2">
+          <Card>
+            <CardHeader>
               <div className="flex justify-between items-center">
-                <span className="flex items-center">
-                  <span className="w-3 h-3 bg-blue-500 rounded-full mr-2" />{" "}
-                  Total received
-                </span>
-                <span className="text-green-500">54% ↑</span>
+                <CardTitle>Transactions</CardTitle>
+                <Badge variant="secondary">Today</Badge>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="flex items-center">
-                  <span className="w-3 h-3 bg-green-500 rounded-full mr-2" />{" "}
-                  Total Paid
-                </span>
-                <span className="text-green-500">20% ↑</span>
+            </CardHeader>
+            <CardContent>
+              <div className="relative w-48 h-48 mx-auto mb-4">
+                <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="10"
+                    strokeDasharray={`${receivedDash} ${circumference}`}
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="#F44336"
+                    strokeWidth="10"
+                    strokeDasharray={`${pendingDash} ${circumference}`}
+                    strokeDashoffset={-receivedDash}
+                  />
+                </svg>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="flex items-center">
-                  <span className="w-3 h-3 bg-red-500 rounded-full mr-2" />{" "}
-                  Total Pending
-                </span>
-                <span className="text-red-500">26% ↓</span>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center">
+                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-2" />
+                    Total received
+                  </span>
+                  <span className={transactionStats.received > 50 ? "text-green-500" : "text-red-500"}>
+                    {transactionStats.received.toFixed(1)}% {transactionStats.received > 50 ? <ArrowUp className="inline h-4 w-4" /> : <ArrowDown className="inline h-4 w-4" />}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="flex items-center">
+                    <span className="w-3 h-3 bg-red-500 rounded-full mr-2" />
+                    Total Pending
+                  </span>
+                  <span className={transactionStats.pending > 50 ? "text-green-500" : "text-red-500"}>
+                    {transactionStats.pending.toFixed(1)}% {transactionStats.pending > 50 ? <ArrowUp className="inline h-4 w-4" /> : <ArrowDown className="inline h-4 w-4" />}
+                  </span>
+                </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
 
           {/* Income Summary */}
-          <Card className="p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">Income</h3>
-              <span className="text-sm text-gray-500">Today</span>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-baseline justify-between">
-                <span className="text-3xl font-bold">$ 5660.00</span>
-                <span className="text-green-500">↑ 2.5%</span>
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Income</CardTitle>
+                <Badge variant="secondary">Today</Badge>
               </div>
-              <p className="text-sm text-gray-500">
-                Compared to $5240 yesterday
-              </p>
-              <div className="flex justify-between text-sm">
-                <span>Last week incomes</span>
-                <span className="font-semibold">$22658.00</span>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-3xl font-bold">₹{income.today.toFixed(2)}</span>
+                  <span className={income.percentageChange >= 0 ? "text-green-500" : "text-red-500"}>
+                    {income.percentageChange >= 0 ? <ArrowUp className="inline h-4 w-4" /> : <ArrowDown className="inline h-4 w-4" />}
+                    {" "}
+                    {Math.abs(income.percentageChange).toFixed(1)}%
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Compared to ₹{income.yesterday.toFixed(2)} yesterday
+                </p>
+                <div className="flex justify-between text-sm">
+                  <span>Last week incomes</span>
+                  <span className="font-semibold">₹{earningSummary.reduce((sum: number, day: EarningSummary) => sum + day.amount, 0).toFixed(2)}</span>
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold">Earning Summary</h4>
-                <Button variant="outline" size="sm">
-                  Mar 2022 - Oct 2022 <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
+              <div className="mt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-semibold">Earning Summary</h4>
+                </div>
+                <Card className="p-4">
+                  <CardContent className="p-0">
+                    <ChartContainer
+                      config={{
+                        amount: {
+                          label: "Amount",
+                          color: "black",
+                        },
+                      }}
+                      className="h-40 w-full"
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={earningSummary}>
+                          <XAxis
+                            dataKey="date"
+                            tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}
+                            tickLine={false}
+                            axisLine={{ stroke: 'black' }}
+                            tick={{ fill: 'black' }}
+                          />
+                          <YAxis
+                            tickFormatter={(value) => `₹${value}`}
+                            tickLine={false}
+                            axisLine={{ stroke: 'black' }}
+                            tick={{ fill: 'black' }}
+                            tickCount={6}
+                            domain={[0, 50000]}
+                            ticks={[0, 10000, 30000, 50000 ]}
+                          />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Area
+                            type="monotone"
+                            dataKey="amount"
+                            stroke="hsl(var(--purple-500))"
+                            fill="rgba(168, 85, 247, 0.4)"
+                            strokeWidth={2}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="amount"
+                            stroke="lightblue"
+                            strokeWidth={2}
+                            dot={true}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="h-40 bg-blue-100 rounded-lg"></div>
-            </div>
+            </CardContent>
           </Card>
         </div>
 
         {/* Recent Transactions */}
         <Card className="p-4">
-          <h3 className="font-semibold mb-4">Recent Transactions</h3>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between bg-purple-100 p-3 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <Avatar>
-                    <img
-                      src="/placeholder.svg"
-                      alt="Img"
-                      className="rounded-full"
-                    />
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold">Benston</p>
-                    <p className="text-sm text-gray-500">
-                      sent yesterday 01:07 PM
-                    </p>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between bg-purple-100 p-3 rounded-lg"
+                >
+                  <div className="flex items-center space-x-3">
+                    <Avatar>
+                      <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${transaction.user}`} alt={transaction.user} />
+                      <AvatarFallback>{transaction.user[0]}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-semibold">{transaction.user}</p>
+                      <p className="text-sm text-gray-500">
+                        {transaction.timestamp}
+                      </p>
+                    </div>
                   </div>
+                  <span className={`font-semibold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {transaction.amount > 0 ? '+' : '-'}₹{Math.abs(transaction.amount).toFixed(2)}
+                  </span>
                 </div>
-                <span className="text-green-500 font-semibold">+1000</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
       </main>
 
@@ -187,7 +407,7 @@ export default function ReportPage() {
       <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
         <div className="flex justify-around items-center">
           <Link to={`/${params.facilityId}/home`} className="flex flex-col items-center text-gray-500">
-            <Home className="h-6 w-6 " />
+            <Home className="h-6 w-6" />
             <span className="text-xs">Home</span>
           </Link>
           <Link
@@ -197,15 +417,15 @@ export default function ReportPage() {
             <Wallet className="h-6 w-6" />
             <span className="text-xs">Transaction</span>
           </Link>
-            <Link
+          <Link
             to={`/${params.facilityId}/report`}
             className="flex flex-col items-center text-gray-500"
-            >
+          >
             <div className="bg-purple-500 rounded-full p-3">
               <PieChart className="h-6 w-6 text-white" />
             </div>
             <span className="text-xs text-purple-500">Report</span>
-            </Link>
+          </Link>
           <Link
             to={`/${params.facilityId}/members`}
             className="flex flex-col items-center text-gray-500"

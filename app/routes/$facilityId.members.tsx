@@ -143,13 +143,13 @@ const params= useParams();
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
         <div className="flex justify-around items-center">
-          <Link to={`${params.facilityId}/home`} className="flex flex-col items-center text-gray-500">
+          <Link to={`/${params.facilityId}/home`} className="flex flex-col items-center text-gray-500">
             <Home className="h-6 w-6 text-grey " />
 
             <span className="text-xs font-bold ">Home</span>
           </Link>
           <Link
-            to={`/${params.facilityId}/transactions`}
+            to={`/${params.facilityId}/transaction`}
             className="flex flex-col items-center text-gray-500"
           >
             <Wallet className="h-6 w-6" />
