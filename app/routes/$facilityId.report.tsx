@@ -8,18 +8,19 @@ import {
   Settings,
   Search,
   Download,
-  CheckCircle,
   Home,
   Users,
   ArrowUp,
   ArrowDown,
+  Filter,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
-import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
 
 interface FinancialMetrics {
@@ -197,19 +198,33 @@ export default function ReportPage() {
 
       {/* Main Content */}
       <main className="p-4 space-y-4">
-        {/* Search Bar */}
-        <div className="relative">
+      {/* Search */}
+      <div className="p-4">
+        <div className="relative flex items-center">
           <Input
             type="text"
             placeholder="Search by name or number"
-            className="pl-10 pr-10 py-2 w-full bg-white rounded-full"
+            className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
           />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-            <CheckCircle className="h-5 w-5 text-purple-500" />
-            <Download className="h-5 w-5 text-purple-500" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <div className="absolute right-3 flex space-x-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-purple-500"
+            >
+              <Filter className="text-purple-500">✓</Filter>
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-purple-500"
+            >
+              <Download className="h-5 w-5 text-purple-500" />
+            </Button>
           </div>
         </div>
+      </div>
 
         {/* Financial Metrics */}
         <div className="grid grid-cols-2 gap-4">
@@ -327,7 +342,7 @@ export default function ReportPage() {
                       className="h-40 w-full"
                     >
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={earningSummary}>
+                        <LineChart data={earningSummary} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                           <XAxis
                             dataKey="date"
                             tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}
@@ -344,13 +359,15 @@ export default function ReportPage() {
                             domain={[0, 50000]}
                             ticks={[0, 10000, 30000, 50000 ]}
                           />
+                          <CartesianGrid strokeDasharray="3 3" />
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Area
                             type="monotone"
                             dataKey="amount"
                             stroke="hsl(var(--purple-500))"
-                            fill="rgba(168, 85, 247, 0.4)"
+                            fill="rgba(142, 216, 255, 0.4)"
                             strokeWidth={2}
+                            fillOpacity={1}
                           />
                           <Line
                             type="monotone"
@@ -376,7 +393,7 @@ export default function ReportPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {transactions.map((transaction) => (
+              {transactions.map((transaction: { id: number; user: string; amount: number; timestamp: string }) => (
                 <div
                   key={transaction.id}
                   className="flex items-center justify-between bg-purple-100 p-3 rounded-lg"

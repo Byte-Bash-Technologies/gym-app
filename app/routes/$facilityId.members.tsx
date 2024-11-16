@@ -5,12 +5,13 @@ import {
   Phone,
   Settings,
   Search,
-  CheckCircle,
   UserPlus,
   Home,
   Wallet,
   PieChart,
   Users,
+  Download,
+  Filter,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -75,20 +76,37 @@ const params= useParams();
 
       {/* Main Content */}
       <main className="p-4 space-y-4">
-        {/* Search Bar */}
-        <div className="relative">
+      
+      {/* Search */}
+      <div className="p-4">
+        <div className="relative flex items-center">
           <Input
             type="text"
             placeholder="Search by name or number"
-            className="pl-10 pr-10 py-2 w-full bg-white rounded-full"
+            className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
           />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-            <CheckCircle className="h-5 w-5 text-purple-500" />
-            <UserPlus className="h-5 w-5 text-purple-500" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <div className="absolute right-3 flex space-x-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-purple-500"
+            >
+              <Filter className="text-purple-500">✓</Filter>
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 text-purple-500"
+            >
+              <Download className="h-5 w-5 text-purple-500" />
+            </Button>
           </div>
         </div>
+      </div>
+        
         <h2 className="text-lg font-semibold mb-4">All members</h2>
+        
         {/* Members List */}
         <Card className="bg-purple-100 p-4">
           <div className="bg-purple-100 rounded-3xl p-4 space-y-4">

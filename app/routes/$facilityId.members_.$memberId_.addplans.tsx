@@ -1,7 +1,7 @@
 import { json, redirect, type LoaderFunction, type ActionFunction } from "@remix-run/node";
-import { useLoaderData, useActionData, Form, Link } from "@remix-run/react";
-import { useState, useEffect, useTransition } from "react";
-import { ArrowLeft, CreditCard } from "lucide-react"
+import { useLoaderData, useActionData, Form, Link, useParams } from "@remix-run/react";
+import { useState, useEffect } from "react";
+import { ArrowLeft, CreditCard } from 'lucide-react'
 import { supabase } from "~/utils/supabase.server";
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
@@ -50,13 +50,6 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   if (plansError) throw new Response("Error fetching plans", { status: 500 });
 
-  const { data: membership_id, error: membershipsError } = await supabase
-    .from('memberships')
-    .select('id')
-    .eq('member_id', params.memberId);
-
-  if (membershipsError) throw new Response("Error fetching memberships", { status: 500 });
-
   return json({ member, plans });
 };
 
@@ -78,11 +71,23 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   const totalAmount = plan.price - discount;
   const amount = isFullPayment ? totalAmount : paidAmount;
-  const remainingBalance = totalAmount - amount;
+  const newBalance = totalAmount - amount;
 
   if (amount <= 0 || amount > totalAmount) {
     return json({ error: "Invalid payment amount" }, { status: 400 });
   }
+
+  // Fetch current member balance
+  const { data: memberData, error: memberError } = await supabase
+    .from('members')
+    .select('balance')
+    .eq('id', params.memberId)
+    .single();
+
+  if (memberError) return json({ error: "Failed to fetch member data" }, { status: 500 });
+
+  const currentBalance = memberData.balance || 0;
+  const updatedBalance = currentBalance + newBalance;
 
   const { data: membership, error: membershipError } = await supabase
     .from('memberships')
@@ -104,7 +109,7 @@ export const action: ActionFunction = async ({ request, params }) => {
       membership_id: membership.id,
       member_id: params.memberId,
       amount,
-      facility_id:params.facilityId,
+      facility_id: params.facilityId,
       type: 'payment',
       payment_method: paymentMethod,
       status: 'completed'
@@ -114,7 +119,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   const { error: memberUpdateError } = await supabase
     .from('members')
-    .update({ balance: remainingBalance })
+    .update({ balance: updatedBalance })
     .eq('id', params.memberId);
 
   if (memberUpdateError) return json({ error: "Failed to update member balance" }, { status: 500 });
@@ -124,8 +129,8 @@ export const action: ActionFunction = async ({ request, params }) => {
 
 export default function RenewMembership() {
   const { member, plans } = useLoaderData<LoaderData>();
+  const params = useParams();
   const actionData = useActionData();
-  const transition = useTransition();
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isFullPayment, setIsFullPayment] = useState(true);
   const [discount, setDiscount] = useState(0);
@@ -137,13 +142,15 @@ export default function RenewMembership() {
     }
   }, [selectedPlan, discount]);
 
-  if (actionData?.error) {
-    toast({
-      title: "Error",
-      description: actionData.error,
-      variant: "destructive",
-    });
-  }
+  useEffect(() => {
+    if (actionData?.error) {
+      toast({
+        title: "Error",
+        description: actionData.error,
+        variant: "destructive",
+      });
+    }
+  }, [actionData]);
 
   const calculateTotal = () => {
     if (!selectedPlan) return 0;
@@ -160,7 +167,7 @@ export default function RenewMembership() {
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl font-bold flex items-center">
-            <Link to={`/members/${member.id}`}>
+            <Link to={`/${params.facilityId}/members/${member.id}`}>
               <ArrowLeft className="h-6 w-6 mr-2" />
             </Link>
             Renew Membership
@@ -173,6 +180,7 @@ export default function RenewMembership() {
             <p className="text-gray-600">{member.phone}</p>
             <p className="text-sm text-gray-500">Admission No: {member.admission_no}</p>
             <p className="text-sm text-gray-500">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
+            <p className="text-sm text-gray-500">Current Balance: ₹{member.balance.toFixed(2)}</p>
           </div>
 
           <Form method="post" className="space-y-4">
@@ -255,15 +263,9 @@ export default function RenewMembership() {
               </Select>
             </div>
 
-            <Button type="submit" className="w-full" disabled={transition.state === "submitting"}>
-              {transition.state === "submitting" ? (
-                "Processing..."
-              ) : (
-                <>
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Renew Membership
-                </>
-              )}
+            <Button type="submit" className="w-full">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Renew Membership
             </Button>
           </Form>
         </CardContent>

@@ -1,8 +1,9 @@
 import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
 import { useLoaderData, Link, useFetcher } from "@remix-run/react";
 import { useState } from "react";
-import { ArrowLeft, Bell, Phone, Settings, Download, RefreshCcw, Pencil, Trash2, CreditCard, Plus,MessageCircle} from "lucide-react"
+import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus,MessageCircle} from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
+import { jsPDF } from "jspdf";
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Badge } from "~/components/ui/badge"
@@ -14,7 +15,6 @@ import { Input } from "~/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
 import { supabase } from "~/utils/supabase.server"
 import { toast } from "~/hooks/use-toast"
-import { useNavigate, useParams } from 'react-router-dom';
 interface Member {
   id: string;
   full_name: string;
@@ -197,12 +197,10 @@ export const action: ActionFunction = async ({ request,params }) => {
 export default function MemberProfile() {
   const { member, memberships, recentTransactions, messageTemplates } = useLoaderData<LoaderData>();
   const params = useParams();
-  console.log(memberships);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isWhatsAppDrawerOpen, setIsWhatsAppDrawerOpen] = useState(false);
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
   const fetcher = useFetcher();
-const navigate = useNavigate();
   const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -244,6 +242,30 @@ const navigate = useNavigate();
     window.open(`https://wa.me/${member.phone}?text=${encodedMessage}`, '_blank');
     setIsWhatsAppDrawerOpen(false);
   };
+
+  const handleDownloadProfile = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text("Member Profile", 105, 15, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.text(`Name: ${member.full_name}`, 20, 30);
+    doc.text(`Email: ${member.email}`, 20, 40);
+    doc.text(`Phone: ${member.phone}`, 20, 50);
+    doc.text(`Gender: ${member.gender}`, 20, 60);
+    doc.text(`Date of Birth: ${new Date(member.date_of_birth).toLocaleDateString()}`, 20, 70);
+    doc.text(`Blood Type: ${member.blood_type}`, 20, 80);
+    doc.text(`Height: ${member.height} cm`, 20, 90);
+    doc.text(`Weight: ${member.weight} kg`, 20, 100);
+    doc.text(`Admission No: ${member.admission_no}`, 20, 110);
+    doc.text(`Joined Date: ${new Date(member.joined_date).toLocaleDateString()}`, 20, 120);
+    doc.text(`Status: ${member.status}`, 20, 130);
+    doc.text(`Balance: ₹${member.balance}`, 20, 140);
+
+    doc.save(`${member.full_name}_profile.pdf`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       {/* Header */}
@@ -272,11 +294,12 @@ const navigate = useNavigate();
         <h2 className="text-xl font-bold">{member.full_name}</h2>
         <p className="text-gray-500">{member.email}</p>
          <p className="text-gray-500">{member.phone}</p>
-        <Button variant="ghost" className="mt-2">
+         <Button variant="ghost" className="mt-2" onClick={handleDownloadProfile}>
           <Download className="h-4 w-4 mr-2" />
           Download Profile
         </Button>
       </div>
+      
       {/* Contact Section */}
       <CardContent className="flex justify-center space-x-4">
           <Button onClick={handlePhoneClick}>

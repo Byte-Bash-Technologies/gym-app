@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { json, useActionData, redirect,useParams } from "@remix-run/react";
+import { json, useActionData, redirect } from "@remix-run/react";
 import { type ActionFunction } from "@remix-run/node";
 import { supabase } from "~/utils/supabase.server";
 import { ArrowLeft, Bell, Phone, Settings } from "lucide-react";

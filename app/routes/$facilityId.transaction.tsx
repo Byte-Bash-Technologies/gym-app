@@ -10,6 +10,7 @@ import {
   Wallet,
   PieChart,
   Users,
+  Filter,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -201,14 +202,14 @@ export default function Transactions() {
               variant="ghost"
               className="h-8 w-8 text-purple-500"
             >
-              <Badge className="bg-purple-100 text-purple-500">✓</Badge>
+              <Filter className="text-purple-500">✓</Filter>
             </Button>
             <Button
               size="icon"
               variant="ghost"
               className="h-8 w-8 text-purple-500"
             >
-              <Download className="h-5 w-5" />
+              <Download className="h-5 w-5 text-purple-500" />
             </Button>
           </div>
         </div>
