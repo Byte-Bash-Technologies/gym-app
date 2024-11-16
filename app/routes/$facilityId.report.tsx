@@ -242,8 +242,9 @@ export default function ReportPage() {
           </Card>
         </div>
 
+        <div className="p-0 space-y-4">
         {/* Transactions and Income */}
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Transactions Chart */}
           <Card>
             <CardHeader>
@@ -384,6 +385,7 @@ export default function ReportPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
         </div>
 
         {/* Recent Transactions */}
