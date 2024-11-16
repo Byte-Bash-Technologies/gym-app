@@ -1,6 +1,6 @@
 import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
-import { useLoaderData, Link, useFetcher } from "@remix-run/react";
-import { useState,useParams } from "react";
+import { useLoaderData, Link, useFetcher,useParams } from "@remix-run/react";
+import { useState } from "react";
 import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus,MessageCircle} from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { jsPDF } from "jspdf";
