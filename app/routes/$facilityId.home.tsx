@@ -1,4 +1,4 @@
-import { json, type LoaderFunction } from "@remix-run/node";
+import { json, redirect, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useParams } from "@remix-run/react";
 import {
   Bell,
@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { supabase } from "~/utils/supabase.server";
+import { createServerClient, parse } from '@supabase/ssr';
 
 interface Gym {
   id: string;
@@ -51,13 +52,33 @@ interface DailyEarning {
   amount: number;
 }
 
-export const loader: LoaderFunction = async ({ params }) => {
+export const loader: LoaderFunction = async ({ params,request }) => {
+  const supabaseAuth = createServerClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (key) => parse(request.headers.get("Cookie") || "")[key],
+        set: () => {},
+        remove: () => {},
+      },
+    }
+  );
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  console.log(user);
+
+  if (!user) {
+    return redirect('/login');
+  }
+
+  
   const facilityId = params.facilityId;
 
   // Fetch gyms
   const { data: gyms, error: gymsError } = await supabase
     .from('facilities')
-    .select('id, name');
+    .select('id, name')
+    .eq('user_id', user.id);
 
   if (gymsError) throw new Error('Failed to fetch gyms');
 

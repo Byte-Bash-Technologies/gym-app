@@ -1,4 +1,4 @@
-import { json, type LoaderFunction } from "@remix-run/node";
+import { json, type LoaderFunction ,redirect} from "@remix-run/node";
 import { useLoaderData, Link, useNavigate } from "@remix-run/react";
 import {
   Dumbbell,
@@ -12,15 +12,16 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
-import {supabase} from "~/utils/supabase.server";
+import { createServerClient, parse } from '@supabase/ssr';
 
 interface Facility {
   id: string;
   name: string;
-  type: "gym" | "badminton";
+  address: string;
+  type: string;
   members: number;
-  revenue: number;
-  lastBilling: string;
+  revenue?: number;
+  lastBilling?: string; // Add this line
 }
 
 interface LoaderData {
@@ -28,17 +29,36 @@ interface LoaderData {
   userName: string;
 }
 
-export const loader: LoaderFunction = async () => {
-  const { data: facilities, error: facilitiesError } = await supabase
-    .from('facilities')
-    .select('id, name, type');
+export const loader: LoaderFunction = async ({ request }) => {
+  const supabase = createServerClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (key) => parse(request.headers.get("Cookie") || "")[key],
+        set: () => {},
+        remove: () => {},
+      },
+    }
+  );
 
-  if (facilitiesError) {
-    throw new Response("Failed to fetch facilities", { status: 500 });
+  const { data: { user } } = await supabase.auth.getUser();
+  console.log(user);
+
+  if (!user) {
+    return redirect('/login');
   }
-  const userName = "John Doe"; // Replace with actual user name fetching logic
 
-  return json({ facilities, userName });
+  const { data: facilities, error } = await supabase
+    .from('facilities')
+    .select('*')
+    .eq('user_id', user.id);
+
+  if (error) {
+    return json({ error: error.message });
+  }
+
+  return json({ facilities });
 };
 
 export default function Dashboard() {
