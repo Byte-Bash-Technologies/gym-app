@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
 import { createServerClient, parse } from '@supabase/ssr';
+import { supabase } from "~/utils/supabase.server";
 
 interface Facility {
   id: string;
@@ -30,7 +31,7 @@ interface LoaderData {
 }
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const supabase = createServerClient(
+  const supabaseAuth = createServerClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_ANON_KEY!,
     {
@@ -42,8 +43,8 @@ export const loader: LoaderFunction = async ({ request }) => {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
-  console.log(user);
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  
 
   if (!user) {
     return redirect('/login');
@@ -53,12 +54,16 @@ export const loader: LoaderFunction = async ({ request }) => {
     .from('facilities')
     .select('*')
     .eq('user_id', user.id);
+  const {data:userName} = await supabase
+  .from('users')
+  .select('full_name')
+  .eq('id', user.id)
 
   if (error) {
     return json({ error: error.message });
   }
 
-  return json({ facilities });
+  return json({ facilities, userName: userName[0].full_name });
 };
 
 export default function Dashboard() {

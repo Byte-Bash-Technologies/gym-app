@@ -40,7 +40,7 @@ export const action = async ({ request }) => {
   }
 
   if (data?.user) {
-    return redirect('/dashboard', {
+    return redirect('/', {
       headers: response.headers,
     });
   }
@@ -77,7 +77,7 @@ export default function Login() {
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Logging in...' : 'Log in'}
+              {isLoading ? (actionData?.error ? 'Log in' : 'Logging in...') : 'Log in'}
             </Button>
           </CardFooter>
         </Form>

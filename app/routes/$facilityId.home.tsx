@@ -65,7 +65,7 @@ export const loader: LoaderFunction = async ({ params,request }) => {
     }
   );
   const { data: { user } } = await supabaseAuth.auth.getUser();
-  console.log(user);
+  
 
   if (!user) {
     return redirect('/login');
@@ -274,7 +274,7 @@ export default function Index() {
                 </DropdownMenuItem>
               ))}
               <DropdownMenuItem>
-                <Link to="/dashboard" className="w-full">
+                <Link to="/" className="w-full">
                   Manage Gyms
                 </Link>
               </DropdownMenuItem>

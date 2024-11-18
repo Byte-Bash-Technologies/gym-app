@@ -8,6 +8,7 @@ import { Label } from '~/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '~/components/ui/card';
 import { Alert, AlertDescription } from '~/components/ui/alert';
 import { Checkbox } from '~/components/ui/checkbox';
+import { supabase } from "~/utils/supabase.server";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const response = new Response();
@@ -26,11 +27,10 @@ export const loader: LoaderFunction = async ({ request }) => {
       },
     }
   );
-
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return json({ isCurrentUserAdmin: false });
+    return redirect('/');
   }
 
   const { data: userData, error } = await supabase
@@ -39,31 +39,17 @@ export const loader: LoaderFunction = async ({ request }) => {
     .eq('id', user.id)
     .single();
 
-  if (error) {
-    console.error('Error fetching user data:', error);
-    return json({ isCurrentUserAdmin: false });
+  if (error || !userData?.is_admin) {
+    console.error('Error fetching user data or user is not an admin:', error);
+    return redirect('/');
   }
 
-  return json({ isCurrentUserAdmin: userData?.is_admin || false });
+  return json({ isCurrentUserAdmin: userData.is_admin });
 };
 
 export const action: ActionFunction = async ({ request }) => {
   const response = new Response();
-  const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (key) => parse(request.headers.get("Cookie") || "")[key],
-        set: (key, value, options) => {
-          response.headers.append("Set-Cookie", serialize(key, value, options));
-        },
-        remove: (key, options) => {
-          response.headers.append("Set-Cookie", serialize(key, "", options));
-        },
-      },
-    }
-  );
+  
 
   const formData = await request.formData();
   const email = formData.get('email') as string;
@@ -112,7 +98,7 @@ export const action: ActionFunction = async ({ request }) => {
       return json({ error: 'Failed to create user profile' });
     }
 
-    return redirect('/dashboard', {
+    return redirect('/', {
       headers: response.headers,
     });
   }
