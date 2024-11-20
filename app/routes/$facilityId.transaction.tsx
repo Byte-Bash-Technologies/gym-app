@@ -20,7 +20,7 @@ import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
-
+import BottomNav from "~/components/BottomNav";
 interface Transaction {
   id: number;
   user: string;
@@ -387,37 +387,7 @@ export default function Transactions() {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
-        <div className="flex justify-around items-center">
-          <Link to={`/${params.facilityId}/home`} className="flex flex-col items-center text-gray-500">
-            <Home className="h-6 w-6" />
-            <span className="text-xs font-bold">Home</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/transaction`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <div className="bg-purple-500 rounded-full p-3">
-              <Wallet className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xs text-purple-500">Transaction</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/report`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <PieChart className="h-6 w-6" />
-            <span className="text-xs">Report</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/members`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <Users className="h-6 w-6" />
-            <span className="text-xs">Members</span>
-          </Link>
-        </div>
-      </nav>
+     <BottomNav />
     </div>
   );
 }

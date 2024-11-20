@@ -22,6 +22,7 @@ import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
 import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
+import BottomNav from "~/components/BottomNav";
 
 interface FinancialMetrics {
   totalReceived: number;
@@ -423,37 +424,7 @@ export default function ReportPage() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
-        <div className="flex justify-around items-center">
-          <Link to={`/${params.facilityId}/home`} className="flex flex-col items-center text-gray-500">
-            <Home className="h-6 w-6" />
-            <span className="text-xs">Home</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/transaction`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <Wallet className="h-6 w-6" />
-            <span className="text-xs">Transaction</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/report`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <div className="bg-purple-500 rounded-full p-3">
-              <PieChart className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xs text-purple-500">Report</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/members`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <Users className="h-6 w-6" />
-            <span className="text-xs">Members</span>
-          </Link>
-        </div>
-      </nav>
+      <BottomNav />
     </div>
   );
 }

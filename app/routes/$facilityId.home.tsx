@@ -1,14 +1,11 @@
 import { json, redirect, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link, useParams } from "@remix-run/react";
+import { useLoaderData, Link, useParams, useNavigate } from "@remix-run/react";
 import {
   Bell,
   Phone,
   Settings,
   ChevronDown,
-  Home,
-  Wallet,
-  PieChart,
-  Users,
+  Cake,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -22,6 +19,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { supabase } from "~/utils/supabase.server";
 import { createServerClient, parse } from '@supabase/ssr';
+import BottomNav from "~/components/BottomNav";
 
 interface Gym {
   id: string;
@@ -50,6 +48,12 @@ interface TransactionStats {
 interface DailyEarning {
   date: string;
   amount: number;
+}
+
+interface Member {
+  id: number;
+  full_name: string;
+  memberships: { status: string; end_date: string }[];
 }
 
 export const loader: LoaderFunction = async ({ params,request }) => {
@@ -135,12 +139,15 @@ export const loader: LoaderFunction = async ({ params,request }) => {
   const today = now.toISOString().split('T')[0];
   const { data: birthdays, error: birthdaysError } = await supabase
     .from('members')
-    .select('id, full_name')
-    .eq('date_of_birth', today)
+    .select('id, full_name, date_of_birth')
     .eq('facility_id', facilityId);
 
   if (birthdaysError) throw new Error('Failed to fetch birthdays');
 
+  const todayBirthdays = birthdays.filter(member => {
+    const dob = new Date(member.date_of_birth);
+    return dob.getMonth() === now.getMonth() && dob.getDate() === now.getDate();
+  });
   // Fetch transactions
   const { data: transactions, error: transactionsError } = await supabase
     .from('transactions')
@@ -212,7 +219,7 @@ export const loader: LoaderFunction = async ({ params,request }) => {
     gyms,
     currentGym,
     stats: statsData,
-    birthdays: birthdays.map(b => ({
+    birthdays: todayBirthdays.map(b => ({
       id: b.id,
       name: b.full_name,
       avatar: `https://api.dicebear.com/6.x/initials/svg?seed=${b.full_name}`,
@@ -225,9 +232,9 @@ export const loader: LoaderFunction = async ({ params,request }) => {
     totalPendingBalance,
   });
 };
-
 export default function Index() {
   const params = useParams();
+  const navigate = useNavigate();
   const {
     gyms,
     currentGym,
@@ -248,6 +255,10 @@ export default function Index() {
   const circumference = 2 * Math.PI * 45;
   const receivedDash = (receivedPercentage / 100) * circumference;
   const pendingDash = (pendingPercentage / 100) * circumference;
+
+  const handleStatClick = (filter: string) => {
+    navigate(`/${params.facilityId}/members?filter=${filter}`);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -275,7 +286,7 @@ export default function Index() {
               ))}
               <DropdownMenuItem>
                 <Link to="/" className="w-full">
-                  Manage Gyms
+                  Manage Facilities
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -292,54 +303,109 @@ export default function Index() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 p-4">
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-gray-600">Active members</p>
-            <p className="text-4xl font-bold text-green-500">
-              {stats.activeMembers}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-gray-600">Expiring soon</p>
-            <p className="text-4xl font-bold text-yellow-500">
-              {stats.expiringSoon}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-gray-600">Expired members</p>
-            <p className="text-4xl font-bold text-red-500">
-              {stats.expiredMembers}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white shadow-sm">
-          <CardContent className="p-4">
-            <p className="text-gray-600">Total members</p>
-            <p className="text-4xl font-bold text-blue-500">
-              {stats.totalMembers}
-            </p>
+        <Link to={`/${params.facilityId}/members?filter=active`}>
+          <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('active')}>
+            <CardContent className="p-4">
+              <p className="text-gray-600">Active members</p>
+              <p className="text-4xl font-bold text-green-500">
+                {stats.activeMembers}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to={`/${params.facilityId}/members?filter=expired`}>
+          <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('expiring')}>
+            <CardContent className="p-4">
+              <p className="text-gray-600">Expiring soon</p>
+              <p className="text-4xl font-bold text-yellow-500">
+                {stats.expiringSoon}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to={`/${params.facilityId}/members?filter=expired`}>
+          <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('expired')}>
+            <CardContent className="p-4">
+              <p className="text-gray-600">Expired members</p>
+              <p className="text-4xl font-bold text-red-500">
+                {stats.expiredMembers}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to={`/${params.facilityId}/members`}>
+          <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('all')}>
+            <CardContent className="p-4">
+              <p className="text-gray-600">Total members</p>
+              <p className="text-4xl font-bold text-blue-500">
+                {stats.totalMembers}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
+      {/* Birthdays Section */}
+      {birthdays.length > 0 && (
+        <div className="p-4">
+          <h2 className="text-2xl font-bold mb-4 flex items-center">
+            <Cake className="mr-2 h-6 w-6 text-purple-500" />
+            Birthdays Today
+          </h2>
+          <div className="flex space-x-4">
+            {birthdays.map((birthday: Birthday) => (
+              <div key={birthday.id} className="flex flex-col items-center">
+                <Avatar className="h-16 w-16 ring-2 ring-purple-100">
+                  <AvatarImage src={birthday.avatar} alt={birthday.name} />
+                  <AvatarFallback>{birthday.name[0]}</AvatarFallback>
+                </Avatar>
+                <span className="mt-2 text-sm font-medium text-gray-700">{birthday.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expired Members Section */}
+      <div className="p-4">
+        <h2 className="text-2xl font-bold mb-4">Expired Memberships</h2>
+        <Card>
+          <CardContent>
+            <ul className="divide-y divide-gray-200">
+              {stats.expiredMembers > 0 ? (
+                // This is a placeholder. You'll need to fetch and map over actual expired members data.
+                <li className="py-4">
+                  <Link to={`/${params.facilityId}/members?filter=expired`} className="text-blue-500 hover:underline">
+                    View {stats.expiredMembers} expired members
+                  </Link>
+                </li>
+              ) : (
+                <li className="py-4 text-gray-500">No expired memberships</li>
+              )}
+            </ul>
           </CardContent>
         </Card>
       </div>
 
-      {/* Birthdays Section */}
+      {/* Expiring Soon Section */}
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Birthdays Today</h2>
-        <div className="flex space-x-4">
-          {birthdays.map((birthday: Birthday) => (
-            <Avatar
-              key={birthday.id}
-              className="h-16 w-16 ring-2 ring-purple-100"
-            >
-              <AvatarImage src={birthday.avatar} alt={birthday.name} />
-              <AvatarFallback>{birthday.name[0]}</AvatarFallback>
-            </Avatar>
-          ))}
-        </div>
+        <h2 className="text-2xl font-bold mb-4">Memberships Expiring Soon</h2>
+        <Card>
+          <CardContent>
+            <ul className="divide-y divide-gray-200">
+              {stats.expiringSoon > 0 ? (
+                // This is a placeholder. You'll need to fetch and map over actual expiring soon members data.
+                <li className="py-4">
+                  <Link to={`/${params.facilityId}/members?filter=expiring`} className="text-blue-500 hover:underline">
+                    View {stats.expiringSoon} members with expiring memberships
+                  </Link>
+                </li>
+              ) : (
+                <li className="py-4 text-gray-500">No memberships expiring soon</li>
+              )}
+            </ul>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Transactions Section */}
@@ -451,37 +517,7 @@ export default function Index() {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
-        <div className="flex justify-around items-center text-gray-500">
-          <Link to={`/${params.facilityId}/home`} className="flex flex-col items-center">
-            <div className="bg-purple-500 rounded-full p-3">
-              <Home className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xs text-purple-500">Home</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/transaction`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <Wallet className="h-6 w-6" />
-            <span className="text-xs">Transaction</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/report`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <PieChart className="h-6 w-6" />
-            <span className="text-xs">Report</span>
-          </Link>
-          <Link
-            to={`/${params.facilityId}/members`}
-            className="flex flex-col items-center text-gray-500"
-          >
-            <Users className="h-6 w-6" />
-            <span className="text-xs">Members</span>
-          </Link>
-        </div>
-      </nav>
+      <BottomNav />
     </div>
   );
 }
