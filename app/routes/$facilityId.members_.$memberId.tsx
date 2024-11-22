@@ -1,7 +1,7 @@
 import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
 import { useLoaderData, Link, useFetcher,useParams } from "@remix-run/react";
 import { useState } from "react";
-import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus,MessageCircle} from "lucide-react"
+import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus,MessageCircle, Clock} from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
 import { jsPDF } from "jspdf";
 import { Button } from "~/components/ui/button"
@@ -57,7 +57,8 @@ interface MessageTemplate {
 }
 interface LoaderData {
   member: Member;
-  memberships: Membership[];
+  activeMemberships: Membership[];
+  expiredMemberships: Membership[];
   recentTransactions: Transaction[];
   messageTemplates: MessageTemplate[];
 }
@@ -98,7 +99,30 @@ if (facilityError) {
     `)
     .eq('member_id', params.memberId)
     .order('start_date', { ascending: false });
-
+    const now = new Date();
+    const activeMemberships = memberships?.filter(m => new Date(m.end_date) >= now) || [];
+    const expiredMemberships = memberships?.filter(m => new Date(m.end_date) < now) || [];
+  
+    // Update membership statuses
+    for (const membership of activeMemberships) {
+      if (membership.status !== 'active') {
+        await supabase
+          .from('memberships')
+          .update({ status: 'active' })
+          .eq('id', membership.id);
+        membership.status = 'active';
+      }
+    }
+  
+    for (const membership of expiredMemberships) {
+      if (membership.status !== 'expired') {
+        await supabase
+          .from('memberships')
+          .update({ status: 'expired' })
+          .eq('id', membership.id);
+        membership.status = 'expired';
+      }
+    }
   const { data: transactions, error: transactionsError } = await supabase
     .from('transactions')
     .select('*')
@@ -117,7 +141,8 @@ if (facilityError) {
 
   return json({
     member,
-    memberships: memberships ?? [],
+    activeMemberships,
+    expiredMemberships,
     recentTransactions: transactions ?? [],
     messageTemplates: messageTemplates ?? []
   });
@@ -195,7 +220,7 @@ export const action: ActionFunction = async ({ request,params }) => {
 };
 
 export default function MemberProfile() {
-  const { member, memberships, recentTransactions, messageTemplates } = useLoaderData<LoaderData>();
+  const { member, activeMemberships,expiredMemberships, recentTransactions, messageTemplates } = useLoaderData<LoaderData>();
   const params = useParams();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isWhatsAppDrawerOpen, setIsWhatsAppDrawerOpen] = useState(false);
@@ -332,16 +357,16 @@ export default function MemberProfile() {
           </Drawer>
         </CardContent>
 
-      {/* Memberships */}
+      {/* Active Memberships */}
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-bold">Memberships</CardTitle>
+          <CardTitle className="text-lg font-bold">Active Memberships</CardTitle>
           <span className="text-sm text-gray-500">#{member.admission_no}</span>
         </CardHeader>
         <CardContent>
-          {memberships.length > 0 ? (
+          {activeMemberships.length > 0 ? (
             <div className="space-y-4">
-              {memberships.map((membership) => (
+              {activeMemberships.map((membership) => (
                 <div key={membership.id} className="flex justify-between items-center">
                   <div>
                     <h3 className="font-semibold">{membership.plans?.name || 'Unknown Plan'}</h3>
@@ -353,21 +378,54 @@ export default function MemberProfile() {
                     <p className="font-bold">₹{membership.plans?.price || 'N/A'}</p>
                     <p className="text-sm text-gray-500">{membership.plans?.duration || 'N/A'} days</p>
                   </div>
-                  <Badge variant={membership.status === 'active' ? "success" : "secondary"}>
+                  <Badge variant="success">
                     {membership.status}
                   </Badge>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-yellow-500">No memberships found</p>
+            <p className="text-sm text-yellow-500">No active memberships found</p>
           )}
           <Link to="addplans">
-            <Button  variant="outline" size="sm" className="mt-4" >
+            <Button variant="outline" size="sm" className="mt-4">
               <Plus className="h-4 w-4 mr-2" />
               Add Membership
             </Button>
           </Link>
+        </CardContent>
+      </Card>
+
+      {/* Membership History */}
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-lg font-bold">Membership History</CardTitle>
+          <Clock className="h-5 w-5 text-gray-400" />
+        </CardHeader>
+        <CardContent>
+          {expiredMemberships.length > 0 ? (
+            <div className="space-y-4">
+              {expiredMemberships.map((membership) => (
+                <div key={membership.id} className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-semibold">{membership.plans?.name || 'Unknown Plan'}</h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(membership.start_date).toLocaleDateString()} - {new Date(membership.end_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold">₹{membership.plans?.price || 'N/A'}</p>
+                    <p className="text-sm text-gray-500">{membership.plans?.duration || 'N/A'} days</p>
+                  </div>
+                  <Badge variant="secondary">
+                    {membership.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">No expired memberships found</p>
+          )}
         </CardContent>
       </Card>
 

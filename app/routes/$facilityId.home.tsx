@@ -266,7 +266,7 @@ export default function Index() {
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder.svg" alt={currentGym.name} />
+            <AvatarImage  alt={currentGym.name} />
             <AvatarFallback>{currentGym.name[0]}</AvatarFallback>
           </Avatar>
           <DropdownMenu>
@@ -279,7 +279,7 @@ export default function Index() {
             <DropdownMenuContent align="start">
               {gyms.map((gym: Gym) => (
                 <DropdownMenuItem key={gym.id}>
-                  <Link to={`/${gym.id}`} className="w-full">
+                  <Link to={`/${gym.id}/home`} className="w-full">
                     {gym.name}
                   </Link>
                 </DropdownMenuItem>
@@ -313,7 +313,7 @@ export default function Index() {
             </CardContent>
           </Card>
         </Link>
-        <Link to={`/${params.facilityId}/members?filter=expired`}>
+        <Link to={`/${params.facilityId}/members?filter=expiring`}>
           <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('expiring')}>
             <CardContent className="p-4">
               <p className="text-gray-600">Expiring soon</p>

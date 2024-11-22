@@ -1,23 +1,23 @@
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, Suspense } from 'react';
 import { json, type LoaderFunction, defer } from "@remix-run/node";
-import { Outlet, useLoaderData, Link, useParams, useFetcher, useNavigate, useSearchParams } from "@remix-run/react";
+import { Outlet, useLoaderData, Link, useParams, useFetcher, useNavigate, useSearchParams, Await } from "@remix-run/react";
 import {
   Bell,
   Phone,
   Settings,
   Search,
   UserPlus,
-  Download,
   Filter,
   ChevronDown,
   X,
   SortAsc,
   SortDesc,
+  Check,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { Card } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -29,35 +29,12 @@ import {
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 
 import { supabase } from "~/utils/supabase.server";
 import BottomNav from "~/components/BottomNav";
 
-interface Member {
-  id: number;
-  full_name: string;
-  phone: string;
-  email: string;
-  status: "active" | "expired" | "expiring";
-  balance: number;
-  joined_date: string;
-  memberships: {
-    status: string;
-    end_date: string;
-    plans: {
-      name: string;
-    };
-  }[];
-}
-
-interface Facility {
-  name: string;
-}
-
-interface Plan {
-  id: number;
-  name: string;
-}
+// ... (keep existing interfaces)
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const facilityId = params.facilityId;
@@ -82,7 +59,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     throw new Response("Facility not found", { status: 404 });
   }
 
-  let query = supabase
+  const membersPromise = supabase
     .from("members")
     .select(`
       id, 
@@ -93,77 +70,33 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       joined_date,
       memberships(status, end_date, plans(name))
     `)
-    .eq("facility_id", facilityId);
+    .eq("facility_id", facilityId)
+    .then(({ data: members, error }) => {
+      if (error) throw error;
+      return members;
+    });
 
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-  if (filters.status.length > 0) {
-    query = query.filter('memberships.status', 'in', `(${filters.status.join(',')})`);
-  }
-
-  if (filters.plans.length > 0) {
-    query = query.filter('memberships.plans.name', 'in', `(${filters.plans.join(',')})`);
-  }
-
-  if (filters.newMembers) {
-    query = query.gte('joined_date', thirtyDaysAgo.toISOString());
-  }
-
-  if (filters.expired30Days) {
-    query = query.lte('memberships.end_date', now.toISOString()).gte('memberships.end_date', thirtyDaysAgo.toISOString());
-  }
-
-  if (filters.expiringIn1Week) {
-    query = query.lte('memberships.end_date', sevenDaysFromNow.toISOString()).gte('memberships.end_date', now.toISOString());
-  }
-
-  // Apply sorting
-  switch (sortBy) {
-    case 'joined':
-      query = query.order('joined_date', { ascending: sortOrder === 'asc' });
-      break;
-    case 'name':
-      query = query.order('full_name', { ascending: sortOrder === 'asc' });
-      break;
-    case 'balance':
-      query = query.order('balance', { ascending: sortOrder === 'asc' });
-      break;
-    default:
-      query = query.order('full_name', { ascending: true });
-  }
-
-  const { data: members, error } = await query;
-
-  if (error) {
-    console.error("Error fetching members:", error);
-    throw new Response("Error fetching members", { status: 500 });
-  }
-
-  const { data: plans, error: plansError } = await supabase
+  const plansPromise = supabase
     .from('plans')
     .select('id, name')
-    .eq('facility_id', facilityId);
+    .eq('facility_id', facilityId)
+    .then(({ data: plans, error }) => {
+      if (error) throw error;
+      return plans;
+    });
 
-  if (plansError) {
-    console.error("Error fetching plans:", plansError);
-    throw new Response("Error fetching plans", { status: 500 });
-  }
-
-  const processedMembers = members.map(member => ({
-    ...member,
-    status: member.memberships[0]?.status === 'active'
-      ? (new Date(member.memberships[0].end_date) <= sevenDaysFromNow ? 'expiring' : 'active')
-      : 'expired'
-  }));
-
-  return json({ members: processedMembers, facility, plans, currentFilters: filters, currentSort: { by: sortBy, order: sortOrder } });
+  return defer({
+    facility,
+    membersPromise,
+    plansPromise,
+    currentFilters: filters,
+    currentSort: { by: sortBy, order: sortOrder },
+  });
 };
 
 export default function MembersPage() {
-  const { members, facility, plans, currentFilters, currentSort } = useLoaderData<typeof loader>();
-  const [cachedMembers, setCachedMembers] = useState<Member[]>(members);
+  const { facility, membersPromise, plansPromise, currentFilters, currentSort } = useLoaderData<typeof loader>();
+  const [cachedMembers, setCachedMembers] = useState<Member[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>(currentFilters.status);
   const [planFilter, setPlanFilter] = useState<string[]>(currentFilters.plans);
@@ -176,27 +109,24 @@ export default function MembersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    if (members.length > 0) {
-      setCachedMembers(members);
+    if (cachedMembers.length > 0) {
+      startTransition(() => {
+        setStatusFilter(currentFilters.status);
+        setPlanFilter(currentFilters.plans);
+        setSortOption(currentSort);
+      });
     }
-  }, [members]);
-
-  useEffect(() => {
-    fetcher.load(`/${params.facilityId}/members?index`);
-  }, [params.facilityId, fetcher]);
-
-  useEffect(() => {
-    if (fetcher.data && fetcher.data.members) {
-      setCachedMembers(fetcher.data.members);
-    }
-  }, [fetcher.data]);
+  }, [currentFilters, currentSort]);
 
   const filteredAndSortedMembers = cachedMembers
     .filter(member => 
       (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.phone.includes(searchTerm)) &&
       (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
-      (planFilter.length === 0 || member.memberships.some(m => planFilter.includes(m.plans.name)))
+      (planFilter.length === 0 || member.memberships.some(m => planFilter.includes(m.plans.name))) &&
+      (!currentFilters.newMembers || new Date(member.joined_date) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) &&
+      (!currentFilters.expired30Days || (member.memberships[0]?.status === 'expired' && new Date(member.memberships[0].end_date) >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))) &&
+      (!currentFilters.expiringIn1Week || (member.memberships[0]?.status === 'active' && new Date(member.memberships[0].end_date) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)))
     )
     .sort((a, b) => {
       if (sortOption.by === 'name') {
@@ -213,9 +143,10 @@ export default function MembersPage() {
       return 0;
     });
 
-  const capitalizeFirstLetter = (string: string) => {
+    function capitalizeFirstLetter(string: string) {
+    if (!string) return '';
     return string.charAt(0).toUpperCase() + string.slice(1);
-  };
+  }
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     startTransition(() => {
@@ -275,6 +206,10 @@ export default function MembersPage() {
     navigate(`${memberId}`, { state: { member: cachedMembers.find(m => m.id === memberId) } });
   };
 
+  const isAnyFilterActive = () => {
+    return statusFilter.length > 0 || planFilter.length > 0 || Object.values(currentFilters).some(Boolean);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
       <header className="bg-white p-4 flex items-center justify-between">
@@ -300,14 +235,96 @@ export default function MembersPage() {
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <div className="absolute right-3 flex space-x-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-purple-500"
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-              >
-                <Filter className="text-purple-500" />
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-purple-500"
+                  >
+                    <Filter className="text-purple-500" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium mb-1">Status</h4>
+                      <div className="space-y-2">
+                        {['active', 'expired', 'expiring'].map((status) => (
+                          <div key={status} className="flex items-center">
+                            <Checkbox
+                              id={status}
+                              checked={statusFilter.includes(status)}
+                              onCheckedChange={() => handleStatusFilter(status)}
+                            />
+                            <Label htmlFor={status} className="ml-2">
+                              {capitalizeFirstLetter(status)}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <Suspense fallback={<div>Loading plans...</div>}>
+                      <Await resolve={plansPromise}>
+                        {(plans) => (
+                          <div>
+                            <h4 className="font-medium mb-1">Plans</h4>
+                            <div className="space-y-2">
+                              {plans.map((plan: { id: number; name: string }) => (
+                                <div key={plan.id} className="flex items-center">
+                                  <Checkbox
+                                    id={`plan-${plan.id}`}
+                                    checked={planFilter.includes(plan.name)}
+                                    onCheckedChange={() => handlePlanFilter(plan.name)}
+                                  />
+                                  <Label htmlFor={`plan-${plan.id}`} className="ml-2">
+                                    {plan.name}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </Await>
+                    </Suspense>
+                    <div>
+                      <h4 className="font-medium mb-1">Special Filters</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-center">
+                          <Checkbox
+                            id="newMembers"
+                            checked={currentFilters.newMembers}
+                            onCheckedChange={() => updateSearchParams('newMembers', (!currentFilters.newMembers).toString())}
+                          />
+                          <Label htmlFor="newMembers" className="ml-2">
+                            New Members (Last 30 days)
+                          </Label>
+                        </div>
+                        <div className="flex items-center">
+                          <Checkbox
+                            id="expired30Days"
+                            checked={currentFilters.expired30Days}
+                            onCheckedChange={() => updateSearchParams('expired30Days', (!currentFilters.expired30Days).toString())}
+                          />
+                          <Label htmlFor="expired30Days" className="ml-2">
+                            Expired in Last 30 Days
+                          </Label>
+                        </div>
+                        <div className="flex items-center">
+                          <Checkbox
+                            id="expiringIn1Week"
+                            checked={currentFilters.expiringIn1Week}
+                            onCheckedChange={() => updateSearchParams('expiringIn1Week', (!currentFilters.expiringIn1Week).toString())}
+                          />
+                          <Label htmlFor="expiringIn1Week" className="ml-2">
+                            Expiring in 1 Week
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -334,84 +351,7 @@ export default function MembersPage() {
           </div>
         </div>
         
-        {isFilterOpen && (
-          <Card className="p-4 bg-white">
-            <h3 className="font-semibold mb-2">Filters</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-1">Status</h4>
-                <div className="space-y-2">
-                  {['active', 'expired', 'expiring'].map((status) => (
-                    <div key={status} className="flex items-center">
-                      <Checkbox
-                        id={status}
-                        checked={statusFilter.includes(status)}
-                        onCheckedChange={() => handleStatusFilter(status)}
-                      />
-                      <Label htmlFor={status} className="ml-2">
-                        {capitalizeFirstLetter(status)}
-                      </Label>
-                </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-medium mb-1">Plans</h4>
-                <div className="space-y-2">
-                  {plans.map((plan) => (
-                    <div key={plan.id} className="flex items-center">
-                      <Checkbox
-                        id={`plan-${plan.id}`}
-                        checked={planFilter.includes(plan.name)}
-                        onCheckedChange={() => handlePlanFilter(plan.name)}
-                      />
-                      <Label htmlFor={`plan-${plan.id}`} className="ml-2">
-                        {plan.name}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-medium mb-1">Special Filters</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="newMembers"
-                      checked={currentFilters.newMembers}
-                      onCheckedChange={() => updateSearchParams('newMembers', (!currentFilters.newMembers).toString())}
-                    />
-                    <Label htmlFor="newMembers" className="ml-2">
-                      New Members (Last 30 days)
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="expired30Days"
-                      checked={currentFilters.expired30Days}
-                      onCheckedChange={() => updateSearchParams('expired30Days', (!currentFilters.expired30Days).toString())}
-                    />
-                    <Label htmlFor="expired30Days" className="ml-2">
-                      Expired in Last 30 Days
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="expiringIn1Week"
-                      checked={currentFilters.expiringIn1Week}
-                      onCheckedChange={() => updateSearchParams('expiringIn1Week', (!currentFilters.expiringIn1Week).toString())}
-                    />
-                    <Label htmlFor="expiringIn1Week" className="ml-2">
-                      Expiring in 1 Week
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {(statusFilter.length > 0 || planFilter.length > 0 || Object.values(currentFilters).some(Boolean)) && (
+        {isAnyFilterActive() && (
           <div className="flex items-center space-x-2 flex-wrap">
             <span className="text-sm text-gray-500">Filtered by:</span>
             {statusFilter.map(filter => (
@@ -461,8 +401,8 @@ export default function MembersPage() {
         <h2 className="text-lg font-semibold mb-4">All members</h2>
         
         <Card className="bg-purple-100 p-4">
-          <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
-            {isPending ? (
+          <CardContent className="bg-purple-100 rounded-3xl p-4 space-y-4">
+            <Suspense fallback={
               Array.from({ length: 5 }).map((_, index) => (
                 <div key={index} className="flex items-center gap-3 pb-4">
                   <Skeleton className="h-12 w-12 rounded-full" />
@@ -473,48 +413,53 @@ export default function MembersPage() {
                   <Skeleton className="h-2 w-2 rounded-full" />
                 </div>
               ))
-            ) : (
-              filteredAndSortedMembers.map((member) => (
-                <div
-                  key={member.id}
-                  onClick={() => handleMemberClick(member.id)}
-                  className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
-                >
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage
-                      src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
-                      alt={member.full_name}
-                    />
-                    <AvatarFallback>{member.full_name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{member.full_name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {member.phone}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
-                    <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
-                  </div>
-                  <div
-                    className={`
-                    h-2 w-2 rounded-full
-                    ${
-                      member.status === "active"
-                        ? "bg-green-500"
-                        : member.status === "expired"
-                        ? "bg-red-500"
-                        : "bg-yellow-500"
-                    }
-                  `}
-                  />
-                  {capitalizeFirstLetter(member.status)}
-                </div>
-              ))
-            )}
-          </div>
+            }>
+              <Await resolve={membersPromise}>
+                {(members) => {
+                  setCachedMembers(members);
+                  return filteredAndSortedMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      onClick={() => handleMemberClick(member.id)}
+                      className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
+                    >
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage
+                          src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
+                          alt={member.full_name}
+                        />
+                        <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{member.full_name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {member.phone}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{member.email}</p>
+                      </div>
+                      <div className="text-right hidden md:block">
+                        <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
+                        <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
+                      </div>
+                      <div
+                        className={`
+                        h-2 w-2 rounded-full
+                        ${
+                          member.status === "active"
+                            ? "bg-green-500"
+                            : member.status === "expired"
+                            ? "bg-red-500"
+                            : "bg-yellow-500"
+                        }
+                      `}
+                      />
+                      <span className="text-xs">{capitalizeFirstLetter(member.status)}</span>
+                    </div>
+                  ));
+                }}
+              </Await>
+            </Suspense>
+          </CardContent>
         </Card>
 
         <Outlet />
