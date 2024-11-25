@@ -155,7 +155,7 @@ export const loader: LoaderFunction = async ({ params }) => {
       id: t.id,
       user: t.members.full_name,
       amount: t.amount,
-      timestamp: new Date(t.created_at).toLocaleString(),
+      timestamp: new Date(t.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
     })),
     transactionStats,
     income,
@@ -418,9 +418,6 @@ export default function ReportPage() {
           </CardContent>
         </Card>
       </main>
-
-      {/* Bottom Navigation */}
-      <BottomNav />
     </div>
   );
 }

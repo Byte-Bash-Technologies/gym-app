@@ -17,6 +17,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
 } from "recharts";
 import { Users, DollarSign, TrendingUp, Activity, UserPlus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
@@ -264,17 +266,21 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid />
-                <XAxis dataKey="date" name="Date" />
-                <YAxis dataKey="revenue" name="Revenue" unit="$" />
-                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name="Revenue" data={data.revenueData} fill="#8884d8">
-                  {data.revenueData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={`rgb(${Math.floor(255 - index * 5)}, 0, ${Math.floor(index * 5)})`} />
-                  ))}
-                </Scatter>
-              </ScatterChart>
+              <LineChart data={data.revenueData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                
+                <Line type="monotone" dataKey="revenue" stroke="#8884d8" fillOpacity={1} fill="url(#colorRevenue)" />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>

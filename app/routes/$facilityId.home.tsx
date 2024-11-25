@@ -123,16 +123,32 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       membersWithBalance.push(member);
     }
 
+
     if (member.memberships && member.memberships.length > 0) {
-      const latestMembership = member.memberships[member.memberships.length - 1];
-      if (latestMembership.status === 'active') {
+      let hasActiveMembership = false;
+      let isExpiringSoon = false;
+      let allMembershipsExpired = true;
+
+      member.memberships.forEach(membership => {
+        const endDate = new Date(membership.end_date);
+        if (membership.status === 'active') {
+          hasActiveMembership = true;
+          allMembershipsExpired = false;
+          if (endDate <= thirtyDaysFromNow && endDate > now) {
+            isExpiringSoon = true;
+          }
+        } else if (endDate >= now) {
+          allMembershipsExpired = false;
+        }
+      });
+
+      if (hasActiveMembership) {
         statsData.activeMembers++;
-        const endDate = new Date(latestMembership.end_date);
-        if (endDate <= thirtyDaysFromNow && endDate > now) {
+        if (isExpiringSoon) {
           statsData.expiringSoon++;
           expiringSoonMembers.push(member);
         }
-      } else if (new Date(latestMembership.end_date) < now) {
+      } else if (allMembershipsExpired) {
         statsData.expiredMembers++;
         expiredMembers.push(member);
       }
@@ -457,8 +473,7 @@ export default function Index() {
         </Card>
       </div>
 
-      {/* Bottom Navigation */}
-      <BottomNav />
+
     </div>
   );
 }

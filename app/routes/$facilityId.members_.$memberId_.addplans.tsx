@@ -250,16 +250,16 @@ export default function RenewMembership() {
 
             <div>
               <Label htmlFor="paymentMethod">Payment Method</Label>
-              <Select name="paymentMethod">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="credit_card">Credit Card</SelectItem>
-                  <SelectItem value="debit_card">Debit Card</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                </SelectContent>
+              <Select name="paymentMethod" required defaultValue="cash">
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="credit_card">Credit Card</SelectItem>
+                <SelectItem value="debit_card">Debit Card</SelectItem>
+                <SelectItem value="upi">UPI</SelectItem>
+              </SelectContent>
               </Select>
             </div>
 

@@ -20,7 +20,7 @@ import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
-import BottomNav from "~/components/BottomNav";
+
 interface Transaction {
   id: number;
   user: string;
@@ -117,6 +117,13 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   const totalPendingBalance = membersBalance.reduce((sum, member) => sum + member.balance, 0);
 
+
+  // Calculate today's pending balance
+  const todayPendingBalance = transactions
+  .filter(t => t.amount < 0)
+  .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+
   // Calculate stats
   const totalTransactions = transactions.length;
   const received = Math.round((transactions.filter(t => t.amount > 0).length / totalTransactions) * 100) || 0;
@@ -128,13 +135,14 @@ export const loader: LoaderFunction = async ({ params }) => {
       id: t.id,
       user: t.members.full_name,
       amount: t.amount,
-      timestamp: new Date(t.created_at).toLocaleString(),
+      timestamp: new Date(t.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
       avatar: `https://api.dicebear.com/6.x/initials/svg?seed=${t.members.full_name}`,
     })),
     income,
     previousIncome,
     weeklyIncome,
     totalPendingBalance,
+    todayPendingBalance,
     stats: {
       received,
       paid,
@@ -146,7 +154,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 export default function Transactions() {
   const params = useParams();
-  const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, dailyEarnings } =
+  const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, todayPendingBalance, dailyEarnings } =
     useLoaderData<{
       transactions: Transaction[];
       income: number;
@@ -162,9 +170,9 @@ export default function Transactions() {
     }>();
 
   // Calculate total amount and percentages
-  const totalAmount = income + totalPendingBalance;
+  const totalAmount = income + todayPendingBalance;
   const receivedPercentage = (income / totalAmount) * 100;
-  const pendingPercentage = (totalPendingBalance / totalAmount) * 100;
+  const pendingPercentage = (todayPendingBalance / totalAmount) * 100;
 
   // Calculate stroke-dasharray and stroke-dashoffset for each segment
   const circumference = 2 * Math.PI * 45;
@@ -204,13 +212,7 @@ export default function Transactions() {
             >
               <Filter className="text-purple-500">✓</Filter>
             </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-purple-500"
-            >
-              <Download className="h-5 w-5 text-purple-500" />
-            </Button>
+            
           </div>
         </div>
       </div>
@@ -275,7 +277,7 @@ export default function Transactions() {
                     <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
                     <span>Total Pending</span>
                   </div>
-                  <span>₹{totalPendingBalance.toFixed(2)}</span>
+                  <span>₹{todayPendingBalance.toFixed(2)}</span>
                 </div>
               </div>
             </CardContent>
@@ -386,8 +388,6 @@ export default function Transactions() {
         </Card>
       </div>
 
-      {/* Bottom Navigation */}
-     <BottomNav />
     </div>
   );
 }

@@ -1,71 +1,53 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams, useLocation, Link } from "@remix-run/react";
 import { Home, Wallet, PieChart, Users } from 'lucide-react';
+
+interface NavItem {
+  name: string;
+  path: string;
+  icon: React.ElementType;
+}
 
 export default function BottomNav() {
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const navItems: NavItem[] = useMemo(() => [
+    { name: 'Home', path: 'home', icon: Home },
+    { name: 'Transaction', path: 'transaction', icon: Wallet },
+    { name: 'Report', path: 'report', icon: PieChart },
+    { name: 'Members', path: 'members', icon: Users },
+  ], []);
+
   const [activeTab, setActiveTab] = useState(() => {
-    if (location.pathname.includes('/transaction')) return 'transaction';
-    if (location.pathname.includes('/report')) return 'report';
-    if (location.pathname.includes('/members')) return 'members';
-    return 'home';
+    return navItems.find(item => location.pathname.includes(`/${item.path}`))?.path || 'home';
   });
+
   useEffect(() => {
-    if (location.pathname.includes('/transaction')) setActiveTab('transaction');
-    else if (location.pathname.includes('/report')) setActiveTab('report');
-    else if (location.pathname.includes('/members')) setActiveTab('members');
-    else setActiveTab('home');
-  }, [location.pathname]);
+    const newActiveTab = navItems.find(item => location.pathname.includes(`/${item.path}`))?.path || 'home';
+    setActiveTab(newActiveTab);
+  }, [location.pathname, navItems]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
+    <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl" aria-label="Bottom Navigation">
       <div className="flex justify-around items-center text-gray-500">
-        <Link
-        
-          to={`/${params.facilityId}/home`}
-          className="flex flex-col items-center relative"
-          onClick={() => setActiveTab('home')}
-        >
-          <div className={`rounded-full p-3 transition-all duration-300 ease-in-out ${activeTab === 'home' ? 'bg-purple-500' : 'bg-transparent'}`}>
-            <Home className={`h-6 w-6 transition-all duration-300 ease-in-out ${activeTab === 'home' ? 'text-white' : 'text-gray-500'}`} />
-          </div>
-          <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === 'home' ? 'text-purple-500' : 'text-gray-500'}`}>Home</span>
-        </Link>
-        <Link
-       
-          to={`/${params.facilityId}/transaction`}
-          className="flex flex-col items-center relative"
-          onClick={() => setActiveTab('transaction')}
-        >
-          <div className={`rounded-full p-3 transition-all duration-300 ease-in-out ${activeTab === 'transaction' ? 'bg-purple-500' : 'bg-transparent'}`}>
-            <Wallet className={`h-6 w-6 transition-all duration-300 ease-in-out ${activeTab === 'transaction' ? 'text-white' : 'text-gray-500'}`} />
-          </div>
-          <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === 'transaction' ? 'text-purple-500' : 'text-gray-500'}`}>Transaction</span>
-        </Link>
-        <Link
-       
-          to={`/${params.facilityId}/report`}
-          className="flex flex-col items-center relative"
-          onClick={() => setActiveTab('report')}
-        >
-          <div className={`rounded-full p-3 transition-all duration-300 ease-in-out ${activeTab === 'report' ? 'bg-purple-500' : 'bg-transparent'}`}>
-            <PieChart className={`h-6 w-6 transition-all duration-300 ease-in-out ${activeTab === 'report' ? 'text-white' : 'text-gray-500'}`} />
-          </div>
-          <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === 'report' ? 'text-purple-500' : 'text-gray-500'}`}>Report</span>
-        </Link>
-        <Link
-        
-          to={`/${params.facilityId}/members`}
-          className="flex flex-col items-center relative"
-          onClick={() => setActiveTab('members')}
-        >
-          <div className={`rounded-full p-3 transition-all duration-300 ease-in-out ${activeTab === 'members' ? 'bg-purple-500' : 'bg-transparent'}`}>
-            <Users className={`h-6 w-6 transition-all duration-300 ease-in-out ${activeTab === 'members' ? 'text-white' : 'text-gray-500'}`} />
-          </div>
-          <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === 'members' ? 'text-purple-500' : 'text-gray-500'}`}>Members</span>
-        </Link>
+        {navItems.map((item) => (
+          <Link
+            key={item.path}
+            to={`/${params.facilityId}/${item.path}`}
+            className="flex flex-col items-center relative"
+            onClick={() => setActiveTab(item.path)}
+            aria-current={activeTab === item.path ? 'page' : undefined}
+          >
+            <div className={`rounded-full p-3 transition-all duration-300 ease-in-out ${activeTab === item.path ? 'bg-purple-500' : 'bg-transparent'}`}>
+              <item.icon className={`h-6 w-6 transition-all duration-300 ease-in-out ${activeTab === item.path ? 'text-white' : 'text-gray-500'}`} aria-hidden="true" />
+            </div>
+            <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === item.path ? 'text-purple-500' : 'text-gray-500'}`}>
+              {item.name}
+            </span>
+          </Link>
+        ))}
       </div>
     </nav>
   );

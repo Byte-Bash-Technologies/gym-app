@@ -38,7 +38,7 @@ export default function SubscriptionList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-semibold">Subscription Plans</h3>
-        <Link to="new">
+        <Link to="/admin/subscriptions/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" /> Add New Plan
           </Button>

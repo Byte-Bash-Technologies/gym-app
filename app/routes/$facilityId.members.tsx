@@ -1,6 +1,6 @@
 import { useState, useEffect, useTransition } from 'react';
 import { json, type LoaderFunction, defer } from "@remix-run/node";
-import { Outlet, useLoaderData, Link, useParams, useFetcher, useNavigate, useSearchParams } from "@remix-run/react";
+import { Outlet, useLoaderData, Link, useParams, useFetcher, useNavigate, useSearchParams, Await } from "@remix-run/react";
 import {
   Bell,
   Phone,
@@ -30,7 +30,6 @@ import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 
 import { supabase } from "~/utils/supabase.server";
-import BottomNav from "~/components/BottomNav";
 
 interface Member {
   id: number;
@@ -71,16 +70,28 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   const sortBy = url.searchParams.get('sortBy') || 'name';
   const sortOrder = url.searchParams.get('sortOrder') || 'asc';
 
-  const { data: facility, error: facilityError } = await supabase
+  const facilityPromise = supabase
     .from('facilities')
     .select('name')
     .eq('id', facilityId)
     .single();
 
-  if (facilityError) {
-    throw new Response("Facility not found", { status: 404 });
-  }
+  const membersPromise = fetchMembers(facilityId, filters, sortBy, sortOrder);
+  const plansPromise = supabase
+    .from('plans')
+    .select('id, name')
+    .eq('facility_id', facilityId);
 
+  return defer({
+    facility: facilityPromise,
+    members: membersPromise,
+    plans: plansPromise,
+    currentFilters: filters,
+    currentSort: { by: sortBy, order: sortOrder }
+  });
+};
+
+async function fetchMembers(facilityId: string, filters: any, sortBy: string, sortOrder: string) {
   let query = supabase
     .from("members")
     .select(`
@@ -137,32 +148,20 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 
   if (error) {
     console.error("Error fetching members:", error);
-    throw new Response("Error fetching members", { status: 500 });
+    throw new Error("Error fetching members");
   }
 
-  const { data: plans, error: plansError } = await supabase
-    .from('plans')
-    .select('id, name')
-    .eq('facility_id', facilityId);
-
-  if (plansError) {
-    console.error("Error fetching plans:", plansError);
-    throw new Response("Error fetching plans", { status: 500 });
-  }
-
-  const processedMembers = members.map(member => ({
+  return members.map((member: any) => ({
     ...member,
     status: member.memberships[0]?.status === 'active'
       ? (new Date(member.memberships[0].end_date) <= sevenDaysFromNow ? 'expiring' : 'active')
       : 'expired'
   }));
-
-  return json({ members: processedMembers, facility, plans, currentFilters: filters, currentSort: { by: sortBy, order: sortOrder } });
-};
+}
 
 export default function MembersPage() {
-  const { members, facility, plans, currentFilters, currentSort } = useLoaderData<typeof loader>();
-  const [cachedMembers, setCachedMembers] = useState<Member[]>(members);
+  const { facility, members, plans, currentFilters, currentSort } = useLoaderData<typeof loader>();
+  const [cachedMembers, setCachedMembers] = useState<Member[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>(currentFilters.status);
   const [planFilter, setPlanFilter] = useState<string[]>(currentFilters.plans);
@@ -175,7 +174,7 @@ export default function MembersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    if (members.length > 0) {
+    if (members) {
       setCachedMembers(members);
     }
   }, [members]);
@@ -189,32 +188,6 @@ export default function MembersPage() {
       setCachedMembers(fetcher.data.members);
     }
   }, [fetcher.data]);
-
-  const filteredAndSortedMembers = cachedMembers
-    .filter(member => 
-      (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.phone.includes(searchTerm)) &&
-      (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
-      (planFilter.length === 0 || member.memberships.some(m => planFilter.includes(m.plans.name)))
-    )
-    .sort((a, b) => {
-      if (sortOption.by === 'name') {
-        return sortOption.order === 'asc' 
-          ? a.full_name.localeCompare(b.full_name)
-          : b.full_name.localeCompare(a.full_name);
-      } else if (sortOption.by === 'joined') {
-        return sortOption.order === 'asc'
-          ? new Date(a.joined_date).getTime() - new Date(b.joined_date).getTime()
-          : new Date(b.joined_date).getTime() - new Date(a.joined_date).getTime();
-      } else if (sortOption.by === 'balance') {
-        return sortOption.order === 'asc' ? a.balance - b.balance : b.balance - a.balance;
-      }
-      return 0;
-    });
-
-  const capitalizeFirstLetter = (string: string) => {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     startTransition(() => {
@@ -274,10 +247,16 @@ export default function MembersPage() {
     navigate(`${memberId}`, { state: { member: cachedMembers.find(m => m.id === memberId) } });
   };
 
+  const capitalizeFirstLetter = (string: string) => {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
       <header className="bg-white p-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold ml-6">Members - {facility.name}</h1>
+        <h1 className="text-xl font-bold ml-6">
+          Members - <Await resolve={facility}>{(resolved: Facility) => resolved.name}</Await>
+        </h1>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
           <Phone className="h-6 w-6 text-purple-500" />
@@ -350,26 +329,30 @@ export default function MembersPage() {
                       <Label htmlFor={status} className="ml-2">
                         {capitalizeFirstLetter(status)}
                       </Label>
-                </div>
+                    </div>
                   ))}
                 </div>
               </div>
               <div>
                 <h4 className="font-medium mb-1">Plans</h4>
-                <div className="space-y-2">
-                  {plans.map((plan) => (
-                    <div key={plan.id} className="flex items-center">
-                      <Checkbox
-                        id={`plan-${plan.id}`}
-                        checked={planFilter.includes(plan.name)}
-                        onCheckedChange={() => handlePlanFilter(plan.name)}
-                      />
-                      <Label htmlFor={`plan-${plan.id}`} className="ml-2">
-                        {plan.name}
-                      </Label>
+                <Await resolve={plans}>
+                  {(resolvedPlans: Plan[]) => (
+                    <div className="space-y-2">
+                      {resolvedPlans.map((plan) => (
+                        <div key={plan.id} className="flex items-center">
+                          <Checkbox
+                            id={`plan-${plan.id}`}
+                            checked={planFilter.includes(plan.name)}
+                            onCheckedChange={() => handlePlanFilter(plan.name)}
+                          />
+                          <Label htmlFor={`plan-${plan.id}`} className="ml-2">
+                            {plan.name}
+                          </Label>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </Await>
               </div>
               <div>
                 <h4 className="font-medium mb-1">Special Filters</h4>
@@ -461,58 +444,86 @@ export default function MembersPage() {
         
         <Card className="bg-purple-100 p-4">
           <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
-            {isPending ? (
-              Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="flex items-center gap-3 pb-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-3 w-1/2" />
+            <Await
+              resolve={members}
+              errorElement={<div>Error loading members</div>}
+              fallback={
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="flex items-center gap-3 pb-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-3/4 mb-2" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                    <Skeleton className="h-2 w-2 rounded-full" />
                   </div>
-                  <Skeleton className="h-2 w-2 rounded-full" />
-                </div>
-              ))
-            ) : (
-              filteredAndSortedMembers.map((member) => (
-                <div
-                  key={member.id}
-                  onClick={() => handleMemberClick(member.id)}
-                  className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
-                >
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage
-                      src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
-                      alt={member.full_name}
-                    />
-                    <AvatarFallback>{member.full_name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{member.full_name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {member.phone}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
-                    <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
-                  </div>
-                  <div
-                    className={`
-                    h-2 w-2 rounded-full
-                    ${
-                      member.status === "active"
-                        ? "bg-green-500"
-                        : member.status === "expired"
-                        ? "bg-red-500"
-                        : "bg-yellow-500"
+                ))
+              }
+            >
+              {(resolvedMembers: Member[]) => {
+                const filteredAndSortedMembers = resolvedMembers
+                  .filter(member => 
+                    (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    member.phone.includes(searchTerm)) &&
+                    (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
+                    (planFilter.length === 0 || member.memberships.some(m => planFilter.includes(m.plans.name)))
+                  )
+                  .sort((a, b) => {
+                    if (sortOption.by === 'name') {
+                      return sortOption.order === 'asc' 
+                        ? a.full_name.localeCompare(b.full_name)
+                        : b.full_name.localeCompare(a.full_name);
+                    } else if (sortOption.by === 'joined') {
+                      return sortOption.order === 'asc'
+                        ? new Date(a.joined_date).getTime() - new Date(b.joined_date).getTime()
+                        : new Date(b.joined_date).getTime() - new Date(a.joined_date).getTime();
+                    } else if (sortOption.by === 'balance') {
+                      return sortOption.order === 'asc' ? a.balance - b.balance : b.balance - a.balance;
                     }
-                  `}
-                  />
-                  {capitalizeFirstLetter(member.status)}
-                </div>
-              ))
-            )}
+                    return 0;
+                  });
+
+                return filteredAndSortedMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    onClick={() => handleMemberClick(member.id)}
+                    className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
+                  >
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage
+                        src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
+                        alt={member.full_name}
+                      />
+                      <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{member.full_name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {member.phone}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{member.email}</p>
+                    </div>
+                    <div className="text-right hidden md:block">
+                      <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
+                      <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
+                    </div>
+                    <div
+                      className={`
+                      h-2 w-2 rounded-full
+                      ${
+                        member.status === "active"
+                          ? "bg-green-500"
+                          : member.status === "expired"
+                          ? "bg-red-500"
+                          : "bg-yellow-500"
+                      }
+                    `}
+                    />
+                    {capitalizeFirstLetter(member.status)}
+                  </div>
+                ));
+              }}
+            </Await>
           </div>
         </Card>
 
@@ -524,8 +535,6 @@ export default function MembersPage() {
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>
-
-      <BottomNav />
     </div>
   );
 }
