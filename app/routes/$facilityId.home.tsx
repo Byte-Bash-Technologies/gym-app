@@ -1,12 +1,6 @@
 import { json, redirect, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useParams, useNavigate } from "@remix-run/react";
-import {
-  Bell,
-  Phone,
-  Settings,
-  ChevronDown,
-  Cake,
-} from "lucide-react";
+import { Bell, Phone, Settings, ChevronDown, Cake, AlertTriangle, Clock, DollarSign } from 'lucide-react';
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -54,9 +48,10 @@ interface Member {
   id: number;
   full_name: string;
   memberships: { status: string; end_date: string }[];
+  balance: number;
 }
 
-export const loader: LoaderFunction = async ({ params,request }) => {
+export const loader: LoaderFunction = async ({ params, request }) => {
   const supabaseAuth = createServerClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_ANON_KEY!,
@@ -70,12 +65,10 @@ export const loader: LoaderFunction = async ({ params,request }) => {
   );
   const { data: { user } } = await supabaseAuth.auth.getUser();
   
-
   if (!user) {
     return redirect('/login');
   }
 
-  
   const facilityId = params.facilityId;
 
   // Fetch gyms
@@ -101,6 +94,7 @@ export const loader: LoaderFunction = async ({ params,request }) => {
     .select(`
       id,
       full_name,
+      balance,
       memberships (
         status,
         end_date
@@ -120,7 +114,15 @@ export const loader: LoaderFunction = async ({ params,request }) => {
     totalMembers: members.length,
   };
 
+  const expiredMembers: Member[] = [];
+  const expiringSoonMembers: Member[] = [];
+  const membersWithBalance: Member[] = [];
+
   members.forEach(member => {
+    if (member.balance > 0) {
+      membersWithBalance.push(member);
+    }
+
     if (member.memberships && member.memberships.length > 0) {
       const latestMembership = member.memberships[member.memberships.length - 1];
       if (latestMembership.status === 'active') {
@@ -128,9 +130,11 @@ export const loader: LoaderFunction = async ({ params,request }) => {
         const endDate = new Date(latestMembership.end_date);
         if (endDate <= thirtyDaysFromNow && endDate > now) {
           statsData.expiringSoon++;
+          expiringSoonMembers.push(member);
         }
       } else if (new Date(latestMembership.end_date) < now) {
         statsData.expiredMembers++;
+        expiredMembers.push(member);
       }
     }
   });
@@ -148,6 +152,7 @@ export const loader: LoaderFunction = async ({ params,request }) => {
     const dob = new Date(member.date_of_birth);
     return dob.getMonth() === now.getMonth() && dob.getDate() === now.getDate();
   });
+
   // Fetch transactions
   const { data: transactions, error: transactionsError } = await supabase
     .from('transactions')
@@ -204,16 +209,8 @@ export const loader: LoaderFunction = async ({ params,request }) => {
   };
   transactionStats.pending = 100 - transactionStats.received - transactionStats.paid;
 
-  // Fetch total pending balance from members table
-  const { data: membersBalance, error: membersBalanceError } = await supabase
-    .from('members')
-    .select('balance')
-    .eq('facility_id', facilityId)
-    .gt('balance', 0);
-
-  if (membersBalanceError) throw new Error('Failed to fetch members balance');
-
-  const totalPendingBalance = membersBalance.reduce((sum, member) => sum + member.balance, 0);
+  // Calculate total pending balance
+  const totalPendingBalance = membersWithBalance.reduce((sum, member) => sum + member.balance, 0);
 
   return json({
     gyms,
@@ -230,8 +227,12 @@ export const loader: LoaderFunction = async ({ params,request }) => {
     weeklyIncome,
     dailyEarnings,
     totalPendingBalance,
+    expiredMembers,
+    expiringSoonMembers,
+    membersWithBalance,
   });
 };
+
 export default function Index() {
   const params = useParams();
   const navigate = useNavigate();
@@ -244,17 +245,10 @@ export default function Index() {
     previousIncome,
     weeklyIncome,
     totalPendingBalance,
+    expiredMembers,
+    expiringSoonMembers,
+    membersWithBalance,
   } = useLoaderData<typeof loader>();
-
-  // Calculate total amount and percentages for the pie chart
-  const totalAmount = income + totalPendingBalance;
-  const receivedPercentage = (income / totalAmount) * 100;
-  const pendingPercentage = (totalPendingBalance / totalAmount) * 100;
-
-  // Calculate stroke-dasharray and stroke-dashoffset for each segment
-  const circumference = 2 * Math.PI * 45;
-  const receivedDash = (receivedPercentage / 100) * circumference;
-  const pendingDash = (pendingPercentage / 100) * circumference;
 
   const handleStatClick = (filter: string) => {
     navigate(`/${params.facilityId}/members?filter=${filter}`);
@@ -266,7 +260,7 @@ export default function Index() {
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Avatar className="h-10 w-10">
-            <AvatarImage  alt={currentGym.name} />
+            <AvatarImage alt={currentGym.name} />
             <AvatarFallback>{currentGym.name[0]}</AvatarFallback>
           </Avatar>
           <DropdownMenu>
@@ -303,46 +297,38 @@ export default function Index() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 p-4">
-        <Link to={`/${params.facilityId}/members?filter=active`}>
-          <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('active')}>
-            <CardContent className="p-4">
-              <p className="text-gray-600">Active members</p>
-              <p className="text-4xl font-bold text-green-500">
-                {stats.activeMembers}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to={`/${params.facilityId}/members?filter=expiring`}>
-          <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('expiring')}>
-            <CardContent className="p-4">
-              <p className="text-gray-600">Expiring soon</p>
-              <p className="text-4xl font-bold text-yellow-500">
-                {stats.expiringSoon}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to={`/${params.facilityId}/members?filter=expired`}>
-          <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('expired')}>
-            <CardContent className="p-4">
-              <p className="text-gray-600">Expired members</p>
-              <p className="text-4xl font-bold text-red-500">
-                {stats.expiredMembers}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to={`/${params.facilityId}/members`}>
-          <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('all')}>
-            <CardContent className="p-4">
-              <p className="text-gray-600">Total members</p>
-              <p className="text-4xl font-bold text-blue-500">
-                {stats.totalMembers}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('active')}>
+          <CardContent className="p-4">
+            <p className="text-gray-600">Active members</p>
+            <p className="text-4xl font-bold text-green-500">
+              {stats.activeMembers}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('expiring')}>
+          <CardContent className="p-4">
+            <p className="text-gray-600">Expiring soon</p>
+            <p className="text-4xl font-bold text-yellow-500">
+              {stats.expiringSoon}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('expired')}>
+          <CardContent className="p-4">
+            <p className="text-gray-600">Expired members</p>
+            <p className="text-4xl font-bold text-red-500">
+              {stats.expiredMembers}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-white shadow-sm cursor-pointer" onClick={() => handleStatClick('all')}>
+          <CardContent className="p-4">
+            <p className="text-gray-600">Total members</p>
+            <p className="text-4xl font-bold text-blue-500">
+              {stats.totalMembers}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Birthdays Section */}
@@ -368,152 +354,107 @@ export default function Index() {
 
       {/* Expired Members Section */}
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Expired Memberships</h2>
+        <h2 className="text-2xl font-bold mb-4 flex items-center">
+          <AlertTriangle className="mr-2 h-6 w-6 text-red-500" />
+          Expired Memberships
+        </h2>
         <Card>
           <CardContent>
             <ul className="divide-y divide-gray-200">
-              {stats.expiredMembers > 0 ? (
-                // This is a placeholder. You'll need to fetch and map over actual expired members data.
-                <li className="py-4">
-                  <Link to={`/${params.facilityId}/members?filter=expired`} className="text-blue-500 hover:underline">
-                    View {stats.expiredMembers} expired members
-                  </Link>
-                </li>
+              {expiredMembers.length > 0 ? (
+                expiredMembers.slice(0, 5).map((member) => (
+                  <li key={member.id} className="py-4 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Avatar className="h-10 w-10 mr-3">
+                        <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`} alt={member.full_name} />
+                        <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                      </Avatar>
+                      <span>{member.full_name}</span>
+                    </div>
+                    <Badge variant="destructive">Expired</Badge>
+                  </li>
+                ))
               ) : (
                 <li className="py-4 text-gray-500">No expired memberships</li>
               )}
             </ul>
+            {expiredMembers.length > 5 && (
+              <Button variant="link" className="mt-2" onClick={() => handleStatClick('expired')}>
+                View all {expiredMembers.length} expired members
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Expiring Soon Section */}
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Memberships Expiring Soon</h2>
+        <h2 className="text-2xl font-bold mb-4 flex items-center">
+          <Clock className="mr-2 h-6 w-6 text-yellow-500" />
+          Memberships Expiring Soon
+        </h2>
         <Card>
           <CardContent>
             <ul className="divide-y divide-gray-200">
-              {stats.expiringSoon > 0 ? (
-                // This is a placeholder. You'll need to fetch and map over actual expiring soon members data.
-                <li className="py-4">
-                  <Link to={`/${params.facilityId}/members?filter=expiring`} className="text-blue-500 hover:underline">
-                    View {stats.expiringSoon} members with expiring memberships
-                  </Link>
-                </li>
+              {expiringSoonMembers.length > 0 ? (
+                expiringSoonMembers.slice(0, 5).map((member) => (
+                  <li key={member.id} className="py-4 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Avatar className="h-10 w-10 mr-3">
+                        <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`} alt={member.full_name} />
+                        <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                      </Avatar>
+                      <span>{member.full_name}</span>
+                    </div>
+                    <Badge variant="warning">Expiring Soon</Badge>
+                  </li>
+                ))
               ) : (
                 <li className="py-4 text-gray-500">No memberships expiring soon</li>
               )}
             </ul>
+            {expiringSoonMembers.length > 5 && (
+              <Button variant="link" className="mt-2" onClick={() => handleStatClick('expiring')}>
+                View all {expiringSoonMembers.length} members with expiring memberships
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Transactions Section */}
+      {/* Members with Balance Section */}
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4">Transactions</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Transactions Chart */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Transactions</CardTitle>
-                <Badge variant="secondary">Today</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="relative w-48 h-48 mx-auto">
-                <svg
-                  viewBox="0 0 100 100"
-                  className="transform -rotate-90 w-full h-full"
-                >
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#e2e8f0"
-                    strokeWidth="10"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="10"
-                    strokeDasharray={`${receivedDash} ${circumference}`}
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke="#ef4444"
-                    strokeWidth="10"
-                    strokeDasharray={`${pendingDash} ${circumference}`}
-                    strokeDashoffset={-receivedDash}
-                  />
-                </svg>
-              </div>
-              <div className="space-y-2 mt-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-blue-500 mr-2" />
-                    <span>Total received</span>
-                  </div>
-                  <span>₹{income.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
-                    <span>Total Pending</span>
-                  </div>
-                  <span>₹{totalPendingBalance.toFixed(2)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Income Stats */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Income</CardTitle>
-                <Badge variant="secondary">Today</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center">
-                    <h3 className="text-4xl font-bold">₹{income.toFixed(2)}</h3>
-                    <Badge
-                      variant="secondary"
-                      className="ml-2 bg-green-100 text-green-600"
-                    >
-                      ↑ {((income - previousIncome) / previousIncome * 100).toFixed(1)}%
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Compared to ₹{previousIncome.toFixed(2)} yesterday
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Last week incomes</p>
-                  <p className="text-2xl font-bold">
-                    ₹{weeklyIncome.toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Total Pending Balance</p>
-                  <p className="text-2xl font-bold text-red-500">
-                    ₹{totalPendingBalance.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <h2 className="text-2xl font-bold mb-4 flex items-center">
+          <DollarSign className="mr-2 h-6 w-6 text-green-500" />
+          Members with Balance
+        </h2>
+        <Card>
+          <CardContent>
+            <ul className="divide-y divide-gray-200">
+              {membersWithBalance.length > 0 ? (
+                membersWithBalance.slice(0, 5).map((member) => (
+                  <li key={member.id} className="py-4 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Avatar className="h-10 w-10 mr-3">
+                        <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`} alt={member.full_name} />
+                        <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                      </Avatar>
+                      <span>{member.full_name}</span>
+                    </div>
+                    <Badge variant="secondary">₹{member.balance}</Badge>
+                  </li>
+                ))
+              ) : (
+                <li className="py-4 text-gray-500">No members with balance</li>
+              )}
+            </ul>
+            {membersWithBalance.length > 5 && (
+              <Button variant="link" className="mt-2" onClick={() => handleStatClick('balance')}>
+                View all {membersWithBalance.length} members with balance
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Bottom Navigation */}

@@ -1,15 +1,11 @@
 import { json, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useParams } from "@remix-run/react";
 import {
-  PieChart,
-  Wallet,
   Bell,
   Phone,
   Settings,
   Search,
   Download,
-  Home,
-  Users,
   ArrowUp,
   ArrowDown,
   Filter,
@@ -251,7 +247,7 @@ export default function ReportPage() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Transactions</CardTitle>
-                <Badge variant="secondary">Today</Badge>
+                {/* <Badge variant="secondary">Total</Badge> */}
               </div>
             </CardHeader>
             <CardContent>

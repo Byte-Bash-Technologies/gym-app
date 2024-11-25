@@ -7,7 +7,6 @@ import {
   Settings,
   Search,
   UserPlus,
-  Download,
   Filter,
   ChevronDown,
   X,

@@ -23,7 +23,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl">
       <div className="flex justify-around items-center text-gray-500">
         <Link
-        prefetch="render"
+        
           to={`/${params.facilityId}/home`}
           className="flex flex-col items-center relative"
           onClick={() => setActiveTab('home')}
@@ -34,7 +34,7 @@ export default function BottomNav() {
           <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === 'home' ? 'text-purple-500' : 'text-gray-500'}`}>Home</span>
         </Link>
         <Link
-        prefetch="render"
+       
           to={`/${params.facilityId}/transaction`}
           className="flex flex-col items-center relative"
           onClick={() => setActiveTab('transaction')}
@@ -45,7 +45,7 @@ export default function BottomNav() {
           <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === 'transaction' ? 'text-purple-500' : 'text-gray-500'}`}>Transaction</span>
         </Link>
         <Link
-        prefetch="render"
+       
           to={`/${params.facilityId}/report`}
           className="flex flex-col items-center relative"
           onClick={() => setActiveTab('report')}
@@ -56,7 +56,7 @@ export default function BottomNav() {
           <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === 'report' ? 'text-purple-500' : 'text-gray-500'}`}>Report</span>
         </Link>
         <Link
-        prefetch="render"
+        
           to={`/${params.facilityId}/members`}
           className="flex flex-col items-center relative"
           onClick={() => setActiveTab('members')}

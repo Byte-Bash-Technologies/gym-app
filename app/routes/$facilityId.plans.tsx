@@ -28,10 +28,12 @@ interface Plan {
   description: string;
 }
 
-export const loader: LoaderFunction = async () => {
+export const loader: LoaderFunction = async ({params}) => {
+  const { facilityId } = params;
   const { data: plans, error } = await supabase
     .from("plans")
     .select("*")
+    .or(`facility_id.is.null,facility_id.eq.${facilityId}`)
     .order("name");
 
   if (error) {
@@ -42,9 +44,11 @@ export const loader: LoaderFunction = async () => {
   return json({ plans });
 };
 
-export const action: ActionFunction = async ({ request }) => {
+export const action: ActionFunction = async ({ request, params }) => {
+  const {facilityId} = params;
   const formData = await request.formData();
   const action = formData.get("_action");
+
 
   switch (action) {
     case "create":
@@ -57,7 +61,7 @@ export const action: ActionFunction = async ({ request }) => {
       if (action === "create") {
         const { error } = await supabase
           .from("plans")
-          .insert([{ name, duration, price, description }]);
+          .insert([{ name, duration, price, description, facility_id: facilityId }]);
 
         if (error)
           return json({ error: "Failed to create plan" }, { status: 400 });
@@ -65,7 +69,7 @@ export const action: ActionFunction = async ({ request }) => {
         const id = formData.get("id") as string;
         const { error } = await supabase
           .from("plans")
-          .update({ name, duration, price, description })
+          .update({ name, duration, price, description, facility_id: facilityId })
           .eq("id", id);
 
         if (error)
@@ -85,7 +89,7 @@ export const action: ActionFunction = async ({ request }) => {
       return json({ error: "Invalid action" }, { status: 400 });
   }
 
-  return redirect("/settings/plans");
+  return redirect(`/${facilityId}/plans`);
 };
 
 export default function Plans() {

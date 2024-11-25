@@ -21,10 +21,13 @@ interface LoaderData {
   messageTemplates: MessageTemplate[];
 }
 
-export const loader: LoaderFunction = async () => {
+
+export const loader: LoaderFunction = async ({ params }) => {
+  const { facilityId } = params;
   const { data: messageTemplates, error } = await supabase
     .from('message_templates')
     .select('*')
+    .or(`facility_id.is.null,facility_id.eq.${facilityId}`)
     .order('title');
 
   if (error) {
@@ -35,7 +38,8 @@ export const loader: LoaderFunction = async () => {
   return json({ messageTemplates });
 };
 
-export const action: ActionFunction = async ({ request }) => {
+export const action: ActionFunction = async ({ request, params }) => {
+  const { facilityId } = params;
   const formData = await request.formData();
   const action = formData.get('_action');
 
@@ -51,8 +55,8 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       const { error } = action === 'create'
-        ? await supabase.from('message_templates').insert({ title, content })
-        : await supabase.from('message_templates').update({ title, content }).eq('id', id);
+        ? await supabase.from('message_templates').insert({ title, content , facility_id: facilityId })
+        : await supabase.from('message_templates').update({ title, content ,facility_id:facilityId}).eq('id', id);
 
       if (error) {
         return json({ error: `Failed to ${action} message template` }, { status: 500 });
