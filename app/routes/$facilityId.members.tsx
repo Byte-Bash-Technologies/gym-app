@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLoaderData, useSearchParams, useNavigate, Link, Outlet } from "@remix-run/react";
+import { useLoaderData, useSearchParams, useNavigate, Link, Outlet, useNavigation } from "@remix-run/react";
 import debounce from 'lodash.debounce';
 import { Bell, Phone, Settings, Search, UserPlus, Filter, ChevronDown, X, SortAsc, SortDesc } from 'lucide-react';
 import { Button } from "~/components/ui/button";
@@ -16,13 +16,124 @@ import {
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
+import { json, type LoaderFunction } from "@remix-run/node";
+import { supabase } from "~/utils/supabase.server";
+
+export const loader: LoaderFunction = async ({ params, request }) => {
+  const facilityId = params.facilityId;
+  
+  if (!facilityId) {
+    throw new Error("Facility ID is required");
+  }
+
+  try {
+    const url = new URL(request.url);
+    const filters = {
+      status: url.searchParams.getAll('status'),
+      plans: url.searchParams.getAll('plans'),
+      newMembers: url.searchParams.get('newMembers') === 'true',
+      expired30Days: url.searchParams.get('expired30Days') === 'true',
+      expiringIn1Week: url.searchParams.get('expiringIn1Week') === 'true',
+    };
+    const sortBy = url.searchParams.get('sortBy') || 'name';
+    const sortOrder = url.searchParams.get('sortOrder') || 'asc';
+
+    const { data: facility, error: facilityError } = await supabase
+      .from('facilities')
+      .select('name')
+      .eq('id', facilityId)
+      .single();
+
+    if (facilityError) throw facilityError;
+
+    const { data: members, error: membersError } = await supabase
+      .from("members")
+      .select(`
+        id, 
+        full_name, 
+        email, 
+        phone, 
+        balance,
+        joined_date,
+        memberships(status, end_date, plans(name))
+      `)
+      .eq("facility_id", facilityId);
+
+    if (membersError) throw membersError;
+
+    const { data: plans, error: plansError } = await supabase
+      .from('plans')
+      .select('id, name')
+      .eq('facility_id', facilityId);
+
+    if (plansError) throw plansError;
+
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const processedMembers = members.map((member: any) => ({
+      ...member,
+      status: member.memberships[0]?.status === 'active'
+        ? (new Date(member.memberships[0].end_date) <= sevenDaysFromNow ? 'expiring' : 'active')
+        : 'expired'
+    }));
+
+    return json({
+      facility,
+      members: processedMembers,
+      plans,
+      currentFilters: filters,
+      currentSort: { by: sortBy, order: sortOrder }
+    });
+  } catch (error) {
+    console.error('Error in loader:', error);
+    throw new Response("Error loading data", { status: 500 });
+  }
+};
 
 export default function MembersPage() {
+  const navigation = useNavigation();
   const data = useLoaderData<typeof loader>();
+  const [searchParams, setSearchParams] = useSearchParams();
   
-  // Handle loading/error states
-  if (!data) {
-    return <div className="p-4">Loading...</div>;
+  // Show loading state when navigating
+  if (navigation.state === "loading") {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col">
+        <header className="bg-white p-4 flex items-center justify-between">
+          <h1 className="text-xl font-bold ml-6">Members</h1>
+        </header>
+        <main className="flex-1 p-4 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+            <p className="text-gray-500">Loading members...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (!data || !data.facility) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex flex-col">
+        <header className="bg-white p-4 flex items-center justify-between">
+          <h1 className="text-xl font-bold ml-6">Members</h1>
+        </header>
+        <main className="flex-1 p-4 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-500">Error loading members data.</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Try again
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const { facility, members = [], plans = [], currentFilters, currentSort } = data;
@@ -32,7 +143,6 @@ export default function MembersPage() {
     return <div className="p-4">Facility not found</div>;
   }
 
-  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>(currentFilters.status);
   const [planFilter, setPlanFilter] = useState<string[]>(currentFilters.plans);
@@ -82,12 +192,12 @@ export default function MembersPage() {
     updateSearchParams('sortOrder', sortOption.order);
   };
 
-  const updateSearchParams = (key: string, value: string) => {
+  const updateSearchParams = (key: string, value: string | boolean) => {
     const current = searchParams.getAll(key);
-    if (current.includes(value)) {
-      searchParams.delete(key, value);
+    if (current.includes(value.toString())) {
+      searchParams.delete(key, value.toString());
     } else {
-      searchParams.append(key, value);
+      searchParams.append(key, value.toString());
     }
     setSearchParams(searchParams);
   };
@@ -240,7 +350,7 @@ export default function MembersPage() {
                     <Checkbox
                       id="newMembers"
                       checked={currentFilters.newMembers}
-                      onCheckedChange={() => updateSearchParams('newMembers', (!currentFilters.newMembers).toString())}
+                      onCheckedChange={() => updateSearchParams('newMembers', !currentFilters.newMembers)}
                     />
                     <Label htmlFor="newMembers" className="ml-2">
                       New Members (Last 30 days)
@@ -250,7 +360,7 @@ export default function MembersPage() {
                     <Checkbox
                       id="expired30Days"
                       checked={currentFilters.expired30Days}
-                      onCheckedChange={() => updateSearchParams('expired30Days', (!currentFilters.expired30Days).toString())}
+                      onCheckedChange={() => updateSearchParams('expired30Days', !currentFilters.expired30Days)}
                     />
                     <Label htmlFor="expired30Days" className="ml-2">
                       Expired in Last 30 Days
@@ -260,7 +370,7 @@ export default function MembersPage() {
                     <Checkbox
                       id="expiringIn1Week"
                       checked={currentFilters.expiringIn1Week}
-                      onCheckedChange={() => updateSearchParams('expiringIn1Week', (!currentFilters.expiringIn1Week).toString())}
+                      onCheckedChange={() => updateSearchParams('expiringIn1Week', !currentFilters.expiringIn1Week)}
                     />
                     <Label htmlFor="expiringIn1Week" className="ml-2">
                       Expiring in 1 Week
@@ -294,7 +404,7 @@ export default function MembersPage() {
             {currentFilters.newMembers && (
               <Badge variant="secondary" className="text-xs">
                 New Members
-                <button onClick={() => updateSearchParams('newMembers', 'false')} className="ml-1">
+                <button onClick={() => updateSearchParams('newMembers', false)} className="ml-1">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -302,7 +412,7 @@ export default function MembersPage() {
             {currentFilters.expired30Days && (
               <Badge variant="secondary" className="text-xs">
                 Expired 30 Days
-                <button onClick={() => updateSearchParams('expired30Days', 'false')} className="ml-1">
+                <button onClick={() => updateSearchParams('expired30Days', false)} className="ml-1">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -310,7 +420,7 @@ export default function MembersPage() {
             {currentFilters.expiringIn1Week && (
               <Badge variant="secondary" className="text-xs">
                 Expiring in 1 Week
-                <button onClick={() => updateSearchParams('expiringIn1Week', 'false')} className="ml-1">
+                <button onClick={() => updateSearchParams('expiringIn1Week', false)} className="ml-1">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -377,6 +487,28 @@ export default function MembersPage() {
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>
+    </div>
+  );
+}
+
+export function ErrorBoundary() {
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      <header className="bg-white p-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold ml-6">Members</h1>
+      </header>
+      <main className="flex-1 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500">Something went wrong while loading the members.</p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Try again
+          </Button>
+        </div>
+      </main>
     </div>
   );
 }
