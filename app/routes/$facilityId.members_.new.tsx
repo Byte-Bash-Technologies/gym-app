@@ -1,14 +1,14 @@
-"use client";
-
 import { useState, useTransition } from "react";
-import { json, useActionData, redirect } from "@remix-run/react";
-import { type ActionFunction } from "@remix-run/node";
+import { json, useActionData, redirect, useLoaderData } from "@remix-run/react";
+import { type ActionFunction, type LoaderFunction } from "@remix-run/node";
 import { supabase } from "~/utils/supabase.server";
-import { ArrowLeft, Bell, Phone, Settings } from "lucide-react";
+import { ArrowLeft, Bell, Phone, Settings, ImagePlus } from 'lucide-react';
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
+import { Textarea } from "~/components/ui/textarea";
+import { Switch } from "~/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -16,6 +16,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+
+export const loader: LoaderFunction = async ({ params }) => {
+  const { data: facility } = await supabase
+    .from("facilities")
+    .select("name")
+    .eq("id", params.facilityId)
+    .single();
+
+  const { data: plans } = await supabase
+    .from("plans")
+    .select("*")
+    .eq("facility_id", params.facilityId);
+
+  return json({ facilityName: facility?.name, plans });
+};
 
 export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
@@ -27,9 +42,36 @@ export const action: ActionFunction = async ({ request, params }) => {
   const blood_type = formData.get("blood_type") as string;
   const height = formData.get("height") ? parseInt(formData.get("height") as string, 10) : null;
   const weight = formData.get("weight") ? parseInt(formData.get("weight") as string, 10) : null;
-  const admission_no = formData.get("admission_no") as string;
+  const address = formData.get("address") as string;
+  const photo = formData.get("photo") as File;
+  const plan_id = formData.get("plan_id") as string;
+  const payment_amount = parseFloat(formData.get("payment_amount") as string);
+  const discount = parseFloat(formData.get("discount") as string) || 0;
 
-  const { data, error } = await supabase
+  // Generate admission number
+  const facilityPrefix = (params.facilityId as string).substring(0, 2).toUpperCase();
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  const admission_no = `${facilityPrefix}-${randomNum}`;
+
+  // Upload photo to Supabase storage
+  let photoUrl = null;
+  if (photo.size > 0) {
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("member-photos")
+      .upload(`${admission_no}.jpg`, photo,
+        {cacheControl:'3600',
+          upsert: false});
+
+    if (uploadError) {
+      console.error("Error uploading photo:", uploadError.message);
+      return json({ error: uploadError.message }, { status: 400 });
+    }
+
+    photoUrl = supabase.storage.from("member-photos").getPublicUrl(`${admission_no}.jpg`).data.publicUrl;
+  }
+
+  // Insert member data
+  const { data: memberData, error: memberError } = await supabase
     .from("members")
     .insert([
       {
@@ -41,24 +83,90 @@ export const action: ActionFunction = async ({ request, params }) => {
         blood_type,
         height,
         weight,
-        facility_id:params.facilityId,
+        facility_id: params.facilityId,
         admission_no,
         status: "active",
+        address,
+        photo_url: photoUrl,
       },
     ])
     .select();
 
-  if (error) {
-    return json({ error: error.message }, { status: 400 });
+  if (memberError) {
+    return json({ error: memberError.message }, { status: 400 });
+  }
+
+  // If a plan is selected, create a membership and process payment
+  if (plan_id) {
+    const { data: planData } = await supabase
+      .from("plans")
+      .select("price")
+      .eq("id", plan_id)
+      .single();
+
+    const planPrice = planData?.price || 0;
+    const discountedPrice = planPrice - discount;
+    const balance = discountedPrice - payment_amount;
+
+    const { error: membershipError } = await supabase
+      .from("memberships")
+      .insert([
+        {
+          member_id: memberData[0].id,
+          plan_id,
+          start_date: new Date().toISOString(),
+          status: "active",
+          price: planPrice,
+          discount,
+          payment_amount,
+          balance,
+        },
+      ]);
+
+    if (membershipError) {
+      return json({ error: membershipError.message }, { status: 400 });
+    }
+
+    // Create transaction record
+    const { error: transactionError } = await supabase
+      .from("transactions")
+      .insert([
+        {
+          member_id: memberData[0].id,
+          amount: payment_amount,
+          type: "payment",
+          date: new Date().toISOString(),
+        },
+      ]);
+
+    if (transactionError) {
+      return json({ error: transactionError.message }, { status: 400 });
+    }
+  }
+
+  // Generate PDF (implement this function)
+  const pdfUrl = await generateMembershipPDF(memberData[0].id);
+
+  // Send WhatsApp message
+  if (phone.length === 10) {
+    const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here: ${pdfUrl}`;
+    const whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
+    // You can use this link to send the message programmatically or provide it to staff
+    console.log("WhatsApp Link:", whatsappLink);
   }
 
   return redirect(`/${params.facilityId}/members`);
 };
 
 export default function NewMemberForm() {
+  const { facilityName, plans } = useLoaderData<typeof loader>();
   const actionData = useActionData();
   const transition = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
+  const [addPlan, setAddPlan] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [discount, setDiscount] = useState<number>(0);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const form = event.currentTarget;
@@ -68,6 +176,12 @@ export default function NewMemberForm() {
     } else {
       setFormError(null);
     }
+  };
+
+  const handlePlanChange = (planId: string) => {
+    const plan = plans.find((p) => p.id === planId);
+    setSelectedPlan(plan);
+    setPaymentAmount(plan?.price || 0);
   };
 
   return (
@@ -83,13 +197,15 @@ export default function NewMemberForm() {
         </div>
         <div className="flex items-center gap-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
+          <a href="tel:8300861600">
+            <Phone className="h-6 w-6 text-purple-500" />
+          </a>
           <Settings className="h-6 w-6 text-purple-500" />
         </div>
       </header>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} method="post" className="p-4 space-y-6">
+      <form onSubmit={handleSubmit} method="post" className="p-4 space-y-6" encType="multipart/form-data">
         {formError && <p className="text-red-500">{formError}</p>}
         {actionData?.error && (
           <p className="text-red-500">{actionData.error}</p>
@@ -132,7 +248,38 @@ export default function NewMemberForm() {
             name="phone"
             placeholder="+91 XX XX X X X"
             required
+            pattern="[0-9]{10}"
+            title="Please enter a 10-digit phone number"
           />
+        </div>
+
+        {/* Address */}
+        <div className="space-y-2">
+          <Label htmlFor="address">Address</Label>
+          <Textarea
+            id="address"
+            name="address"
+            placeholder="Enter your address"
+          />
+        </div>
+
+        {/* Photo */}
+        <div className="space-y-2">
+          <Label htmlFor="photo">Photo</Label>
+          <label htmlFor="photo" className="block">
+            <Input
+              id="photo"
+              name="photo"
+              type="file"
+              accept="image/*"
+              required
+              className="hidden"
+            />
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
+              <ImagePlus className="h-8 w-8 mb-2" />
+              <span>Upload photo</span>
+            </div>
+          </label>
         </div>
 
         {/* DOB */}
@@ -148,7 +295,6 @@ export default function NewMemberForm() {
               placeholder="Day / Month / Year"
               required
             />
-            {/* <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" /> */}
           </div>
         </div>
 
@@ -209,11 +355,72 @@ export default function NewMemberForm() {
           <Input id="weight" name="weight" placeholder="-- kg" />
         </div>
 
-        {/* Admission Number */}
-        <div className="space-y-2">
-          <Label htmlFor="admission_no">Admission no</Label>
-          <Input id="admission_no" name="admission_no" placeholder="#id73737" />
+        {/* Add Plan Toggle */}
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="add-plan"
+            checked={addPlan}
+            onCheckedChange={setAddPlan}
+          />
+          <Label htmlFor="add-plan">Add Membership Plan</Label>
         </div>
+
+        {/* Membership Plan Selection */}
+        {addPlan && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="plan_id">Membership Plan</Label>
+              <Select name="plan_id" onValueChange={handlePlanChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id}>
+                      {plan.name} - ₹{plan.price}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedPlan && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="discount">Discount</Label>
+                  <Input
+                    id="discount"
+                    name="discount"
+                    type="number"
+                    min="0"
+                    max={selectedPlan.price}
+                    value={discount}
+                    onChange={(e) => setDiscount(parseFloat(e.target.value))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="payment_amount">Payment Amount</Label>
+                  <Input
+                    id="payment_amount"
+                    name="payment_amount"
+                    type="number"
+                    min="0"
+                    max={selectedPlan.price - discount}
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value))}
+                  />
+                </div>
+
+                <div>
+                  <p>Total: ₹{selectedPlan.price}</p>
+                  <p>Discount: ₹{discount}</p>
+                  <p>Balance: ₹{selectedPlan.price - discount - paymentAmount}</p>
+                </div>
+              </>
+            )}
+          </>
+        )}
 
         {/* Submit Button */}
         <Button

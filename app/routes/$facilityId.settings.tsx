@@ -43,7 +43,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     return redirect('/login');
   }
 
-  const { data: userData, error: userError } = await supabase
+  const { data: userData, error: userError } = await supabaseClient
     .from('users')
     .select('*')
     .eq('id', user.id)
@@ -54,7 +54,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     return redirect('/login');
   }
 
-  const { data: facility, error: facilityError } = await supabase
+  const { data: facility, error: facilityError } = await supabaseClient
     .from('facilities')
     .select('*')
     .eq('id', facilityId)
@@ -65,8 +65,8 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     return redirect('/');
   }
 
-  const { data: subscription, error: subscriptionError } = await supabase
-    .from('subscriptions')
+  const { data: subscription, error: subscriptionError } = await supabaseClient
+    .from('facility_subscriptions')
     .select('*')
     .eq('facility_id', facilityId)
     .order('created_at', { ascending: false })
@@ -115,7 +115,9 @@ export default function SettingsPage() {
         </div>
         <div className="flex items-center gap-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
+          <a href="tel:8300861600">
+            <Phone className="h-6 w-6 text-purple-500" />
+          </a>
           <SettingsIcon className="h-6 w-6 text-purple-500" />
         </div>
       </header>

@@ -1,8 +1,8 @@
 import { json, redirect, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useParams, useNavigate } from "@remix-run/react";
-import { Bell, Phone, Settings, ChevronDown, Cake, AlertTriangle, Clock, DollarSign } from 'lucide-react';
+import { Bell, Phone, Settings, ChevronDown } from 'lucide-react';
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import {
@@ -13,7 +13,6 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { supabase } from "~/utils/supabase.server";
 import { createServerClient, parse } from '@supabase/ssr';
-import BottomNav from "~/components/BottomNav";
 
 interface Gym {
   id: string;
@@ -31,17 +30,6 @@ interface Birthday {
   id: number;
   name: string;
   avatar: string;
-}
-
-interface TransactionStats {
-  received: number;
-  paid: number;
-  pending: number;
-}
-
-interface DailyEarning {
-  date: string;
-  amount: number;
 }
 
 interface Member {
@@ -105,7 +93,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   if (membersError) throw new Error('Failed to fetch members and memberships');
 
   const now = new Date();
-  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const tenDaysFromNow = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
 
   const statsData: Stats = {
     activeMembers: 0,
@@ -123,7 +111,6 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       membersWithBalance.push(member);
     }
 
-
     if (member.memberships && member.memberships.length > 0) {
       let hasActiveMembership = false;
       let isExpiringSoon = false;
@@ -131,14 +118,14 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 
       member.memberships.forEach(membership => {
         const endDate = new Date(membership.end_date);
-        if (membership.status === 'active') {
-          hasActiveMembership = true;
+        if (endDate > now) {
           allMembershipsExpired = false;
-          if (endDate <= thirtyDaysFromNow && endDate > now) {
-            isExpiringSoon = true;
+          if (membership.status === 'active') {
+            hasActiveMembership = true;
+            if (endDate <= tenDaysFromNow) {
+              isExpiringSoon = true;
+            }
           }
-        } else if (endDate >= now) {
-          allMembershipsExpired = false;
         }
       });
 
@@ -148,10 +135,16 @@ export const loader: LoaderFunction = async ({ params, request }) => {
           statsData.expiringSoon++;
           expiringSoonMembers.push(member);
         }
-      } else if (allMembershipsExpired) {
+      }
+      
+      if (allMembershipsExpired) {
         statsData.expiredMembers++;
         expiredMembers.push(member);
       }
+    } else {
+      // If a member has no memberships, consider them expired
+      statsData.expiredMembers++;
+      expiredMembers.push(member);
     }
   });
 
@@ -169,65 +162,6 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     return dob.getMonth() === now.getMonth() && dob.getDate() === now.getDate();
   });
 
-  // Fetch transactions
-  const { data: transactions, error: transactionsError } = await supabase
-    .from('transactions')
-    .select('amount, created_at')
-    .eq('type', 'payment')
-    .eq('facility_id', facilityId)
-    .gte('created_at', now.toISOString().split('T')[0]);
-
-  if (transactionsError) throw new Error('Failed to fetch transactions');
-
-  const income = transactions.reduce((sum, t) => sum + t.amount, 0);
-
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const { data: previousTransactions, error: previousError } = await supabase
-    .from('transactions')
-    .select('amount')
-    .eq('type', 'payment')
-    .eq('facility_id', facilityId)
-    .gte('created_at', yesterday.toISOString().split('T')[0])
-    .lt('created_at', now.toISOString().split('T')[0]);
-
-  if (previousError) throw new Error('Failed to fetch previous transactions');
-
-  const previousIncome = previousTransactions.reduce((sum, t) => sum + t.amount, 0);
-
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const { data: weeklyTransactions, error: weeklyError } = await supabase
-    .from('transactions')
-    .select('amount, created_at')
-    .eq('type', 'payment')
-    .eq('facility_id', facilityId)
-    .gte('created_at', sevenDaysAgo.toISOString());
-
-  if (weeklyError) throw new Error('Failed to fetch weekly transactions');
-
-  const weeklyIncome = weeklyTransactions.reduce((sum, t) => sum + t.amount, 0);
-
-  // Calculate daily earnings for the past week
-  const dailyEarnings: DailyEarning[] = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-    const dateString = date.toISOString().split('T')[0];
-    const amount = weeklyTransactions
-      .filter(t => t.created_at.startsWith(dateString))
-      .reduce((sum, t) => sum + t.amount, 0);
-    return { date: dateString, amount };
-  }).reverse();
-
-  // Calculate transaction stats
-  const totalTransactions = transactions.length;
-  const transactionStats: TransactionStats = {
-    received: Math.round((transactions.filter(t => t.amount > 0).length / totalTransactions) * 100) || 0,
-    paid: Math.round((transactions.filter(t => t.amount < 0).length / totalTransactions) * 100) || 0,
-    pending: 0,
-  };
-  transactionStats.pending = 100 - transactionStats.received - transactionStats.paid;
-
-  // Calculate total pending balance
-  const totalPendingBalance = membersWithBalance.reduce((sum, member) => sum + member.balance, 0);
-
   return json({
     gyms,
     currentGym,
@@ -237,15 +171,10 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       name: b.full_name,
       avatar: `https://api.dicebear.com/6.x/initials/svg?seed=${b.full_name}`,
     })),
-    transactionStats,
-    income,
-    previousIncome,
-    weeklyIncome,
-    dailyEarnings,
-    totalPendingBalance,
     expiredMembers,
     expiringSoonMembers,
     membersWithBalance,
+    currentDate: now.toISOString(),
   });
 };
 
@@ -257,17 +186,29 @@ export default function Index() {
     currentGym,
     stats,
     birthdays,
-    income,
-    previousIncome,
-    weeklyIncome,
-    totalPendingBalance,
     expiredMembers,
     expiringSoonMembers,
     membersWithBalance,
+    currentDate,
   } = useLoaderData<typeof loader>();
 
   const handleStatClick = (filter: string) => {
     navigate(`/${params.facilityId}/members?filter=${filter}`);
+  };
+
+  const formatExpirationDate = (endDate: string) => {
+    const expirationDate = new Date(endDate);
+    const now = new Date(currentDate);
+    const diffTime = expirationDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 0) {
+      return `Expires in ${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+    } else if (diffDays < 0) {
+      return `Expired ${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''} ago`;
+    } else {
+      return 'Expires today';
+    }
   };
 
   return (
@@ -304,8 +245,10 @@ export default function Index() {
         </div>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
-          <Link to="/settings">
+          <a href="tel:8300861600">
+            <Phone className="h-6 w-6 text-purple-500" />
+          </a>
+          <Link to={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
           </Link>
         </div>
@@ -350,8 +293,7 @@ export default function Index() {
       {/* Birthdays Section */}
       {birthdays.length > 0 && (
         <div className="p-4">
-          <h2 className="text-2xl font-bold mb-4 flex items-center">
-            <Cake className="mr-2 h-6 w-6 text-purple-500" />
+          <h2 className="text-xl font-bold mb-4">
             Birthdays Today
           </h2>
           <div className="flex space-x-4">
@@ -370,8 +312,7 @@ export default function Index() {
 
       {/* Expired Members Section */}
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4 flex items-center">
-          <AlertTriangle className="mr-2 h-6 w-6 text-red-500" />
+        <h2 className="text-lg font-bold mb-4">
           Expired Memberships
         </h2>
         <Card>
@@ -385,7 +326,14 @@ export default function Index() {
                         <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`} alt={member.full_name} />
                         <AvatarFallback>{member.full_name[0]}</AvatarFallback>
                       </Avatar>
-                      <span>{member.full_name}</span>
+                      <div>
+                        <span className="font-medium">{member.full_name}</span>
+                        <p className="text-sm text-gray-500">
+                          {member.memberships && member.memberships.length > 0
+                            ? formatExpirationDate(member.memberships[0].end_date)
+                            : 'No active membership'}
+                        </p>
+                      </div>
                     </div>
                     <Badge variant="destructive">Expired</Badge>
                   </li>
@@ -405,8 +353,7 @@ export default function Index() {
 
       {/* Expiring Soon Section */}
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4 flex items-center">
-          <Clock className="mr-2 h-6 w-6 text-yellow-500" />
+        <h2 className="text-lg font-bold mb-4">
           Memberships Expiring Soon
         </h2>
         <Card>
@@ -420,7 +367,12 @@ export default function Index() {
                         <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`} alt={member.full_name} />
                         <AvatarFallback>{member.full_name[0]}</AvatarFallback>
                       </Avatar>
-                      <span>{member.full_name}</span>
+                      <div>
+                        <span className="font-medium">{member.full_name}</span>
+                        <p className="text-sm text-gray-500">
+                          {formatExpirationDate(member.memberships[0].end_date)}
+                        </p>
+                      </div>
                     </div>
                     <Badge variant="warning">Expiring Soon</Badge>
                   </li>
@@ -440,8 +392,7 @@ export default function Index() {
 
       {/* Members with Balance Section */}
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-4 flex items-center">
-          <DollarSign className="mr-2 h-6 w-6 text-green-500" />
+        <h2 className="text-lg font-bold mb-4">
           Members with Balance
         </h2>
         <Card>
@@ -455,9 +406,16 @@ export default function Index() {
                         <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`} alt={member.full_name} />
                         <AvatarFallback>{member.full_name[0]}</AvatarFallback>
                       </Avatar>
-                      <span>{member.full_name}</span>
+                      <div>
+                        <span className="font-medium">{member.full_name}</span>
+                        <p className="text-sm text-gray-500">
+                          {member.memberships && member.memberships.length > 0
+                            ? new Date(member.memberships[0].end_date).toLocaleDateString('en-GB')
+                            : 'No active membership'}
+                        </p>
+                      </div>
                     </div>
-                    <Badge variant="secondary">₹{member.balance}</Badge>
+                    <Badge variant="secondary" className="text-red-500">₹{member.balance}</Badge>
                   </li>
                 ))
               ) : (
@@ -472,8 +430,6 @@ export default function Index() {
           </CardContent>
         </Card>
       </div>
-
-
     </div>
   );
 }

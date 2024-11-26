@@ -271,25 +271,53 @@ export default function MemberProfile() {
   const handleDownloadProfile = () => {
     const doc = new jsPDF();
     
+    // Adding a border
+    doc.rect(10, 10, 190, 277); // x, y, width, height
+    
+    // Adding a logo
+    const logo = new Image();
+    logo.src = "/favicon.ico"; // Replace with your logo path
+    doc.addImage(logo, "PNG", 15, 15, 30, 30); // x, y, width, height
+    
+    // Gym name, address, and phone number centered
     doc.setFontSize(18);
-    doc.text("Member Profile", 105, 15, { align: "center" });
+    doc.text("Gym Name", 105, 20, { align: "center" }); // Replace "Gym Name"
     
     doc.setFontSize(12);
-    doc.text(`Name: ${member.full_name}`, 20, 30);
-    doc.text(`Email: ${member.email}`, 20, 40);
-    doc.text(`Phone: ${member.phone}`, 20, 50);
-    doc.text(`Gender: ${member.gender}`, 20, 60);
-    doc.text(`Date of Birth: ${new Date(member.date_of_birth).toLocaleDateString()}`, 20, 70);
-    doc.text(`Blood Type: ${member.blood_type}`, 20, 80);
-    doc.text(`Height: ${member.height} cm`, 20, 90);
-    doc.text(`Weight: ${member.weight} kg`, 20, 100);
-    doc.text(`Admission No: ${member.admission_no}`, 20, 110);
-    doc.text(`Joined Date: ${new Date(member.joined_date).toLocaleDateString()}`, 20, 120);
-    doc.text(`Status: ${member.status}`, 20, 130);
-    doc.text(`Balance: ₹${member.balance}`, 20, 140);
-
+    doc.text("123 Fitness Street, FitCity, 456789", 105, 28, { align: "center" }); // Replace address
+    doc.text("Phone: +123 456 7890", 105, 35, { align: "center" }); // Replace phone number
+    
+    // Date in the top-right corner
+    const today = new Date();
+    doc.text(today.toLocaleDateString(), 180, 20, { align: "right" });
+    
+    // Member profile header
+    doc.setFontSize(16);
+    doc.text("Member Profile", 105, 50, { align: "center" });
+    
+    // Listing member details
+    doc.setFontSize(12);
+    const detailsStartY = 60; // Starting Y position for details
+    const lineHeight = 10; // Line height for spacing
+    const details = [
+      `Name: ${member.full_name}`,
+      `Email: ${member.email}`,
+      `Phone: ${member.phone}`,
+      `Gender: ${member.gender}`,
+      `Date of Birth: ${new Date(member.date_of_birth).toLocaleDateString()}`,
+      `Blood Type: ${member.blood_type}`,
+      `Height: ${member.height} cm`,
+      `Weight: ${member.weight} kg`,
+    ];
+  
+    details.forEach((detail, index) => {
+      doc.text(detail, 20, detailsStartY + index * lineHeight);
+    });
+  
+    // Save the PDF
     doc.save(`${member.full_name}_profile.pdf`);
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -303,7 +331,9 @@ export default function MemberProfile() {
         </div>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
+          <a href="tel:8300861600">
+            <Phone className="h-6 w-6 text-purple-500" />
+          </a>
           <Link to="/settings">
           <Settings className="h-6 w-6 text-purple-500" />
           </Link>

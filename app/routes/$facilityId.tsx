@@ -67,7 +67,7 @@ export default function FacilityLayout() {
           </div>
         </div>
       </header>*/}
-      <main className="flex-grow container mx-auto px-4 py-1">
+      <main className="flex-grow container mx-auto">
         <Outlet />
       </main>
       <BottomNav />

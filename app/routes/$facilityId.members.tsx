@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useLoaderData, useSearchParams, useNavigate, Link, Outlet, useNavigation } from "@remix-run/react";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLoaderData, useSearchParams, useNavigate,useParams, Link, Outlet } from "@remix-run/react";
 import debounce from 'lodash.debounce';
 import { Bell, Phone, Settings, Search, UserPlus, Filter, ChevronDown, X, SortAsc, SortDesc } from 'lucide-react';
 import { Button } from "~/components/ui/button";
@@ -92,77 +92,27 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 };
 
 export default function MembersPage() {
-  const navigation = useNavigation();
   const data = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Show loading state when navigating
-  if (navigation.state === "loading") {
-    return (
-      <div className="min-h-screen bg-gray-100 flex flex-col">
-        <header className="bg-white p-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold ml-6">Members</h1>
-        </header>
-        <main className="flex-1 p-4 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-            <p className="text-gray-500">Loading members...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Handle error state
-  if (!data || !data.facility) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex flex-col">
-        <header className="bg-white p-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold ml-6">Members</h1>
-        </header>
-        <main className="flex-1 p-4 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-500">Error loading members data.</p>
-            <Button 
-              variant="outline" 
-              className="mt-4"
-              onClick={() => window.location.reload()}
-            >
-              Try again
-            </Button>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   const { facility, members = [], plans = [], currentFilters, currentSort } = data;
-
-  // Handle case where facility is null
-  if (!facility) {
-    return <div className="p-4">Facility not found</div>;
-  }
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>(currentFilters.status);
   const [planFilter, setPlanFilter] = useState<string[]>(currentFilters.plans);
   const [sortOption, setSortOption] = useState<{ by: string; order: 'asc' | 'desc' }>(currentSort);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [filteredMembers, setFilteredMembers] = useState(members);
   const navigate = useNavigate();
 
   const debouncedSearch = useCallback(
     debounce((term: string) => {
-      searchParams.set('search', term);
-      setSearchParams(searchParams);
+      setSearchTerm(term);
     }, 300),
-    [searchParams, setSearchParams]
+    []
   );
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-    debouncedSearch(term);
+    debouncedSearch(e.target.value);
   };
 
   const handleStatusFilter = (status: string) => {
@@ -171,7 +121,6 @@ export default function MembersPage() {
         ? prev.filter(s => s !== status)
         : [...prev, status]
     );
-    updateSearchParams('status', status);
   };
 
   const handlePlanFilter = (plan: string) => {
@@ -180,7 +129,6 @@ export default function MembersPage() {
         ? prev.filter(p => p !== plan)
         : [...prev, plan]
     );
-    updateSearchParams('plans', plan);
   };
 
   const handleSortChange = (by: string) => {
@@ -188,29 +136,12 @@ export default function MembersPage() {
       by,
       order: prev.by === by && prev.order === 'asc' ? 'desc' : 'asc'
     }));
-    updateSearchParams('sortBy', by);
-    updateSearchParams('sortOrder', sortOption.order);
-  };
-
-  const updateSearchParams = (key: string, value: string | boolean) => {
-    const current = searchParams.getAll(key);
-    if (current.includes(value.toString())) {
-      searchParams.delete(key, value.toString());
-    } else {
-      searchParams.append(key, value.toString());
-    }
-    setSearchParams(searchParams);
   };
 
   const clearFilters = () => {
     setStatusFilter([]);
     setPlanFilter([]);
-    searchParams.delete('status');
-    searchParams.delete('plans');
-    searchParams.delete('newMembers');
-    searchParams.delete('expired30Days');
-    searchParams.delete('expiringIn1Week');
-    setSearchParams(searchParams);
+    setSearchParams(new URLSearchParams());
   };
 
   const handleMemberClick = (memberId: number) => {
@@ -221,8 +152,8 @@ export default function MembersPage() {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
-  useEffect(() => {
-    const filtered = members.filter(member => 
+  const filteredMembers = useMemo(() => {
+    return members.filter(member => 
       (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.phone.includes(searchTerm)) &&
       (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
@@ -241,8 +172,22 @@ export default function MembersPage() {
       }
       return 0;
     });
-    setFilteredMembers(filtered);
   }, [members, searchTerm, statusFilter, planFilter, sortOption]);
+
+  useEffect(() => {
+    const newParams = new URLSearchParams(searchParams);
+    if (searchTerm) newParams.set('search', searchTerm);
+    if (statusFilter.length) newParams.set('status', statusFilter.join(','));
+    if (planFilter.length) newParams.set('plans', planFilter.join(','));
+    newParams.set('sortBy', sortOption.by);
+    newParams.set('sortOrder', sortOption.order);
+    setSearchParams(newParams, { replace: true });
+  }, [searchTerm, statusFilter, planFilter, sortOption, setSearchParams]);
+
+  if (!facility) {
+    return <div className="p-4">Facility not found</div>;
+  }
+  const params = useParams();
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
@@ -252,8 +197,10 @@ export default function MembersPage() {
         </h1>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
-          <Link to="/settings">
+          <a href="tel:8300861600">
+            <Phone className="h-6 w-6 text-purple-500" />
+          </a>
+          <Link to={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
           </Link>
         </div>
@@ -266,7 +213,6 @@ export default function MembersPage() {
               type="text"
               placeholder="Search by name or number"
               className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
-              value={searchTerm}
               onChange={handleSearch}
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -329,7 +275,7 @@ export default function MembersPage() {
               <div>
                 <h4 className="font-medium mb-1">Plans</h4>
                 <div className="space-y-2">
-                  {plans.map((plan) => (
+                  {plans.map((plan: { id: string; name: string }) => (
                     <div key={plan.id} className="flex items-center">
                       <Checkbox
                         id={`plan-${plan.id}`}
@@ -343,46 +289,11 @@ export default function MembersPage() {
                   ))}
                 </div>
               </div>
-              <div>
-                <h4 className="font-medium mb-1">Special Filters</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="newMembers"
-                      checked={currentFilters.newMembers}
-                      onCheckedChange={() => updateSearchParams('newMembers', !currentFilters.newMembers)}
-                    />
-                    <Label htmlFor="newMembers" className="ml-2">
-                      New Members (Last 30 days)
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="expired30Days"
-                      checked={currentFilters.expired30Days}
-                      onCheckedChange={() => updateSearchParams('expired30Days', !currentFilters.expired30Days)}
-                    />
-                    <Label htmlFor="expired30Days" className="ml-2">
-                      Expired in Last 30 Days
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="expiringIn1Week"
-                      checked={currentFilters.expiringIn1Week}
-                      onCheckedChange={() => updateSearchParams('expiringIn1Week', !currentFilters.expiringIn1Week)}
-                    />
-                    <Label htmlFor="expiringIn1Week" className="ml-2">
-                      Expiring in 1 Week
-                    </Label>
-                  </div>
-                </div>
-              </div>
             </div>
           </Card>
         )}
 
-        {(statusFilter.length > 0 || planFilter.length > 0 || Object.values(currentFilters).some(Boolean)) && (
+        {(statusFilter.length > 0 || planFilter.length > 0) && (
           <div className="flex items-center space-x-2 flex-wrap">
             <span className="text-sm text-gray-500">Filtered by:</span>
             {statusFilter.map(filter => (
@@ -401,30 +312,6 @@ export default function MembersPage() {
                 </button>
               </Badge>
             ))}
-            {currentFilters.newMembers && (
-              <Badge variant="secondary" className="text-xs">
-                New Members
-                <button onClick={() => updateSearchParams('newMembers', false)} className="ml-1">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {currentFilters.expired30Days && (
-              <Badge variant="secondary" className="text-xs">
-                Expired 30 Days
-                <button onClick={() => updateSearchParams('expired30Days', false)} className="ml-1">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {currentFilters.expiringIn1Week && (
-              <Badge variant="secondary" className="text-xs">
-                Expiring in 1 Week
-                <button onClick={() => updateSearchParams('expiringIn1Week', false)} className="ml-1">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
             <Button variant="ghost" size="sm" onClick={clearFilters}>Clear all</Button>
           </div>
         )}
@@ -436,7 +323,7 @@ export default function MembersPage() {
             {!filteredMembers?.length ? (
               <div className="text-center py-4">No members found</div>
             ) : (
-              filteredMembers.map((member) => (
+              filteredMembers.map((member: any) => (
                 <div
                   key={member.id}
                   onClick={() => handleMemberClick(member.id)}
@@ -447,7 +334,8 @@ export default function MembersPage() {
                       src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
                       alt={member.full_name}
                     />
-                    <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                    <AvatarFallback>{member.full_name[0]
+}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <h3 className="font-semibold">{member.full_name}</h3>
@@ -465,14 +353,16 @@ export default function MembersPage() {
                     h-2 w-2 rounded-full
                     ${
                       member.status === "active"
-                        ? "bg-green-500"
-                        : member.status === "expired"
-                        ? "bg-red-500"
-                        : "bg-yellow-500"
+                      ? "bg-green-500"
+                      : member.status === "expired"
+                      ? "bg-red-500"
+                      : "bg-yellow-500"
                     }
-                  `}
+                    `}
                   />
-                  {capitalizeFirstLetter(member.status)}
+                  <span className="hidden md:inline">
+                    {capitalizeFirstLetter(member.status)}
+                  </span>
                 </div>
               ))
             )}
@@ -487,28 +377,6 @@ export default function MembersPage() {
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>
-    </div>
-  );
-}
-
-export function ErrorBoundary() {
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-white p-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold ml-6">Members</h1>
-      </header>
-      <main className="flex-1 p-4 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500">Something went wrong while loading the members.</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            Try again
-          </Button>
-        </div>
-      </main>
     </div>
   );
 }

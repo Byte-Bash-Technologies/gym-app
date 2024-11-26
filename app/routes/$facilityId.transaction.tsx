@@ -5,11 +5,6 @@ import {
   Phone,
   Settings,
   Search,
-  Download,
-  Home,
-  Wallet,
-  PieChart,
-  Users,
   Filter,
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
@@ -188,8 +183,10 @@ export default function Transactions() {
         </div>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <Phone className="h-6 w-6 text-purple-500" />
-          <Link to="/settings">
+          <a href="tel:8300861600">
+            <Phone className="h-6 w-6 text-purple-500" />
+          </a>
+          <Link to={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
           </Link>
         </div>
