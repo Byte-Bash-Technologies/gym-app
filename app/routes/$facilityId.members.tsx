@@ -1,6 +1,6 @@
-import { useState, useEffect, useTransition } from 'react';
-import { json, type LoaderFunction, defer } from "@remix-run/node";
-import { Outlet, useLoaderData, Link, useParams, useFetcher, useNavigate, useSearchParams, Await } from "@remix-run/react";
+import { useState, useEffect, useCallback } from 'react';
+import { useLoaderData, useSearchParams, useNavigate, Link, Outlet } from "@remix-run/react";
+import debounce from 'lodash.debounce';
 import {
   Bell,
   Phone,
@@ -17,7 +17,6 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Card } from "~/components/ui/card";
-import { Skeleton } from "~/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,170 +28,29 @@ import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 
-import { supabase } from "~/utils/supabase.server";
-
-interface Member {
-  id: number;
-  full_name: string;
-  phone: string;
-  email: string;
-  status: "active" | "expired" | "expiring";
-  balance: number;
-  joined_date: string;
-  memberships: {
-    status: string;
-    end_date: string;
-    plans: {
-      name: string;
-    };
-  }[];
-}
-
-interface Facility {
-  name: string;
-}
-
-interface Plan {
-  id: number;
-  name: string;
-}
-
-export const loader: LoaderFunction = async ({ params, request }) => {
-  const facilityId = params.facilityId;
-  const url = new URL(request.url);
-  const filters = {
-    status: url.searchParams.getAll('status'),
-    plans: url.searchParams.getAll('plans'),
-    newMembers: url.searchParams.get('newMembers') === 'true',
-    expired30Days: url.searchParams.get('expired30Days') === 'true',
-    expiringIn1Week: url.searchParams.get('expiringIn1Week') === 'true',
-  };
-  const sortBy = url.searchParams.get('sortBy') || 'name';
-  const sortOrder = url.searchParams.get('sortOrder') || 'asc';
-
-  const facilityPromise = supabase
-    .from('facilities')
-    .select('name')
-    .eq('id', facilityId)
-    .single();
-
-  const membersPromise = fetchMembers(facilityId, filters, sortBy, sortOrder);
-  const plansPromise = supabase
-    .from('plans')
-    .select('id, name')
-    .eq('facility_id', facilityId);
-
-  return defer({
-    facility: facilityPromise,
-    members: membersPromise,
-    plans: plansPromise,
-    currentFilters: filters,
-    currentSort: { by: sortBy, order: sortOrder }
-  });
-};
-
-async function fetchMembers(facilityId: string, filters: any, sortBy: string, sortOrder: string) {
-  let query = supabase
-    .from("members")
-    .select(`
-      id, 
-      full_name, 
-      email, 
-      phone, 
-      balance,
-      joined_date,
-      memberships(status, end_date, plans(name))
-    `)
-    .eq("facility_id", facilityId);
-
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-  if (filters.status.length > 0) {
-    query = query.filter('memberships.status', 'in', `(${filters.status.join(',')})`);
-  }
-
-  if (filters.plans.length > 0) {
-    query = query.filter('memberships.plans.name', 'in', `(${filters.plans.join(',')})`);
-  }
-
-  if (filters.newMembers) {
-    query = query.gte('joined_date', thirtyDaysAgo.toISOString());
-  }
-
-  if (filters.expired30Days) {
-    query = query.lte('memberships.end_date', now.toISOString()).gte('memberships.end_date', thirtyDaysAgo.toISOString());
-  }
-
-  if (filters.expiringIn1Week) {
-    query = query.lte('memberships.end_date', sevenDaysFromNow.toISOString()).gte('memberships.end_date', now.toISOString());
-  }
-
-  // Apply sorting
-  switch (sortBy) {
-    case 'joined':
-      query = query.order('joined_date', { ascending: sortOrder === 'asc' });
-      break;
-    case 'name':
-      query = query.order('full_name', { ascending: sortOrder === 'asc' });
-      break;
-    case 'balance':
-      query = query.order('balance', { ascending: sortOrder === 'asc' });
-      break;
-    default:
-      query = query.order('full_name', { ascending: true });
-  }
-
-  const { data: members, error } = await query;
-
-  if (error) {
-    console.error("Error fetching members:", error);
-    throw new Error("Error fetching members");
-  }
-
-  return members.map((member: any) => ({
-    ...member,
-    status: member.memberships[0]?.status === 'active'
-      ? (new Date(member.memberships[0].end_date) <= sevenDaysFromNow ? 'expiring' : 'active')
-      : 'expired'
-  }));
-}
-
 export default function MembersPage() {
   const { facility, members, plans, currentFilters, currentSort } = useLoaderData<typeof loader>();
-  const [cachedMembers, setCachedMembers] = useState<Member[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>(currentFilters.status);
   const [planFilter, setPlanFilter] = useState<string[]>(currentFilters.plans);
   const [sortOption, setSortOption] = useState<{ by: string; order: 'asc' | 'desc' }>(currentSort);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const params = useParams();
-  const fetcher = useFetcher();
-  const [isPending, startTransition] = useTransition();
+  const [filteredMembers, setFilteredMembers] = useState(members);
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
 
-  useEffect(() => {
-    if (members) {
-      setCachedMembers(members);
-    }
-  }, [members]);
-
-  useEffect(() => {
-    fetcher.load(`/${params.facilityId}/members?index`);
-  }, [params.facilityId, fetcher]);
-
-  useEffect(() => {
-    if (fetcher.data && fetcher.data.members) {
-      setCachedMembers(fetcher.data.members);
-    }
-  }, [fetcher.data]);
+  const debouncedSearch = useCallback(
+    debounce((term: string) => {
+      searchParams.set('search', term);
+      setSearchParams(searchParams);
+    }, 300),
+    [searchParams, setSearchParams]
+  );
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    startTransition(() => {
-      setSearchTerm(e.target.value);
-    });
+    const term = e.target.value;
+    setSearchTerm(term);
+    debouncedSearch(term);
   };
 
   const handleStatusFilter = (status: string) => {
@@ -244,18 +102,41 @@ export default function MembersPage() {
   };
 
   const handleMemberClick = (memberId: number) => {
-    navigate(`${memberId}`, { state: { member: cachedMembers.find(m => m.id === memberId) } });
+    navigate(`${memberId}`, { state: { member: members.find(m => m.id === memberId) } });
   };
 
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
+  useEffect(() => {
+    const filtered = members.filter(member => 
+      (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.phone.includes(searchTerm)) &&
+      (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
+      (planFilter.length === 0 || member.memberships.some(m => planFilter.includes(m.plans.name)))
+    ).sort((a, b) => {
+      if (sortOption.by === 'name') {
+        return sortOption.order === 'asc' 
+          ? a.full_name.localeCompare(b.full_name)
+          : b.full_name.localeCompare(a.full_name);
+      } else if (sortOption.by === 'joined') {
+        return sortOption.order === 'asc'
+          ? new Date(a.joined_date).getTime() - new Date(b.joined_date).getTime()
+          : new Date(b.joined_date).getTime() - new Date(a.joined_date).getTime();
+      } else if (sortOption.by === 'balance') {
+        return sortOption.order === 'asc' ? a.balance - b.balance : b.balance - a.balance;
+      }
+      return 0;
+    });
+    setFilteredMembers(filtered);
+  }, [members, searchTerm, statusFilter, planFilter, sortOption]);
+
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
       <header className="bg-white p-4 flex items-center justify-between">
         <h1 className="text-xl font-bold ml-6">
-          Members - <Await resolve={facility}>{(resolved: Facility) => resolved.name}</Await>
+          Members - {facility.name}
         </h1>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
@@ -335,24 +216,20 @@ export default function MembersPage() {
               </div>
               <div>
                 <h4 className="font-medium mb-1">Plans</h4>
-                <Await resolve={plans}>
-                  {(resolvedPlans: Plan[]) => (
-                    <div className="space-y-2">
-                      {resolvedPlans.map((plan) => (
-                        <div key={plan.id} className="flex items-center">
-                          <Checkbox
-                            id={`plan-${plan.id}`}
-                            checked={planFilter.includes(plan.name)}
-                            onCheckedChange={() => handlePlanFilter(plan.name)}
-                          />
-                          <Label htmlFor={`plan-${plan.id}`} className="ml-2">
-                            {plan.name}
-                          </Label>
-                        </div>
-                      ))}
+                <div className="space-y-2">
+                  {plans.map((plan) => (
+                    <div key={plan.id} className="flex items-center">
+                      <Checkbox
+                        id={`plan-${plan.id}`}
+                        checked={planFilter.includes(plan.name)}
+                        onCheckedChange={() => handlePlanFilter(plan.name)}
+                      />
+                      <Label htmlFor={`plan-${plan.id}`} className="ml-2">
+                        {plan.name}
+                      </Label>
                     </div>
-                  )}
-                </Await>
+))}
+                </div>
               </div>
               <div>
                 <h4 className="font-medium mb-1">Special Filters</h4>
@@ -444,93 +321,52 @@ export default function MembersPage() {
         
         <Card className="bg-purple-100 p-4">
           <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
-            <Await
-              resolve={members}
-              errorElement={<div>Error loading members</div>}
-              fallback={
-                Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="flex items-center gap-3 pb-4">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="flex-1">
-                      <Skeleton className="h-4 w-3/4 mb-2" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                    <Skeleton className="h-2 w-2 rounded-full" />
-                  </div>
-                ))
-              }
-            >
-              {(resolvedMembers: Member[]) => {
-                const filteredAndSortedMembers = resolvedMembers
-                  .filter(member => 
-                    (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    member.phone.includes(searchTerm)) &&
-                    (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
-                    (planFilter.length === 0 || member.memberships.some(m => planFilter.includes(m.plans.name)))
-                  )
-                  .sort((a, b) => {
-                    if (sortOption.by === 'name') {
-                      return sortOption.order === 'asc' 
-                        ? a.full_name.localeCompare(b.full_name)
-                        : b.full_name.localeCompare(a.full_name);
-                    } else if (sortOption.by === 'joined') {
-                      return sortOption.order === 'asc'
-                        ? new Date(a.joined_date).getTime() - new Date(b.joined_date).getTime()
-                        : new Date(b.joined_date).getTime() - new Date(a.joined_date).getTime();
-                    } else if (sortOption.by === 'balance') {
-                      return sortOption.order === 'asc' ? a.balance - b.balance : b.balance - a.balance;
-                    }
-                    return 0;
-                  });
-
-                return filteredAndSortedMembers.map((member) => (
-                  <div
-                    key={member.id}
-                    onClick={() => handleMemberClick(member.id)}
-                    className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
-                  >
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage
-                        src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
-                        alt={member.full_name}
-                      />
-                      <AvatarFallback>{member.full_name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{member.full_name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {member.phone}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{member.email}</p>
-                    </div>
-                    <div className="text-right hidden md:block">
-                      <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
-                      <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
-                    </div>
-                    <div
-                      className={`
-                      h-2 w-2 rounded-full
-                      ${
-                        member.status === "active"
-                          ? "bg-green-500"
-                          : member.status === "expired"
-                          ? "bg-red-500"
-                          : "bg-yellow-500"
-                      }
-                    `}
-                    />
-                    {capitalizeFirstLetter(member.status)}
-                  </div>
-                ));
-              }}
-            </Await>
+            {filteredMembers.map((member) => (
+              <div
+                key={member.id}
+                onClick={() => handleMemberClick(member.id)}
+                className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
+              >
+                <Avatar className="h-12 w-12">
+                  <AvatarImage
+                    src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
+                    alt={member.full_name}
+                  />
+                  <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="font-semibold">{member.full_name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {member.phone}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{member.email}</p>
+                </div>
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
+                  <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
+                </div>
+                <div
+                  className={`
+                  h-2 w-2 rounded-full
+                  ${
+                    member.status === "active"
+                      ? "bg-green-500"
+                      : member.status === "expired"
+                      ? "bg-red-500"
+                      : "bg-yellow-500"
+                  }
+                `}
+                />
+                {capitalizeFirstLetter(member.status)}
+              </div>
+            ))}
           </div>
         </Card>
 
         <Outlet />
       </main>
 
-      <Link to={`/${params.facilityId}/members/new`} className="fixed right-6 bottom-[7rem]">
+      <Link to="new" className="fixed right-6 bottom-[7rem]">
         <Button className="w-14 h-14 rounded-full bg-purple-500 hover:bg-purple-600 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
@@ -538,3 +374,4 @@ export default function MembersPage() {
     </div>
   );
 }
+
