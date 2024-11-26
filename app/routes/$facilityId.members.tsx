@@ -1,18 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLoaderData, useSearchParams, useNavigate, Link, Outlet } from "@remix-run/react";
 import debounce from 'lodash.debounce';
-import {
-  Bell,
-  Phone,
-  Settings,
-  Search,
-  UserPlus,
-  Filter,
-  ChevronDown,
-  X,
-  SortAsc,
-  SortDesc,
-} from "lucide-react";
+import { Bell, Phone, Settings, Search, UserPlus, Filter, ChevronDown, X, SortAsc, SortDesc } from 'lucide-react';
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -29,7 +18,20 @@ import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 
 export default function MembersPage() {
-  const { facility, members, plans, currentFilters, currentSort } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
+  
+  // Handle loading/error states
+  if (!data) {
+    return <div className="p-4">Loading...</div>;
+  }
+
+  const { facility, members = [], plans = [], currentFilters, currentSort } = data;
+
+  // Handle case where facility is null
+  if (!facility) {
+    return <div className="p-4">Facility not found</div>;
+  }
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>(currentFilters.status);
@@ -136,7 +138,7 @@ export default function MembersPage() {
     <div className="min-h-screen bg-gray-100 pb-20 relative">
       <header className="bg-white p-4 flex items-center justify-between">
         <h1 className="text-xl font-bold ml-6">
-          Members - {facility.name}
+          Members - {facility?.name || 'Loading...'}
         </h1>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
@@ -228,7 +230,7 @@ export default function MembersPage() {
                         {plan.name}
                       </Label>
                     </div>
-))}
+                  ))}
                 </div>
               </div>
               <div>
@@ -321,45 +323,49 @@ export default function MembersPage() {
         
         <Card className="bg-purple-100 p-4">
           <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
-            {filteredMembers.map((member) => (
-              <div
-                key={member.id}
-                onClick={() => handleMemberClick(member.id)}
-                className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
-              >
-                <Avatar className="h-12 w-12">
-                  <AvatarImage
-                    src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
-                    alt={member.full_name}
-                  />
-                  <AvatarFallback>{member.full_name[0]}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h3 className="font-semibold">{member.full_name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {member.phone}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{member.email}</p>
-                </div>
-                <div className="text-right hidden md:block">
-                  <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
-                  <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
-                </div>
+            {!filteredMembers?.length ? (
+              <div className="text-center py-4">No members found</div>
+            ) : (
+              filteredMembers.map((member) => (
                 <div
-                  className={`
-                  h-2 w-2 rounded-full
-                  ${
-                    member.status === "active"
-                      ? "bg-green-500"
-                      : member.status === "expired"
-                      ? "bg-red-500"
-                      : "bg-yellow-500"
-                  }
-                `}
-                />
-                {capitalizeFirstLetter(member.status)}
-              </div>
-            ))}
+                  key={member.id}
+                  onClick={() => handleMemberClick(member.id)}
+                  className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
+                >
+                  <Avatar className="h-12 w-12">
+                    <AvatarImage
+                      src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
+                      alt={member.full_name}
+                    />
+                    <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{member.full_name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {member.phone}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                  </div>
+                  <div className="text-right hidden md:block">
+                    <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
+                    <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
+                  </div>
+                  <div
+                    className={`
+                    h-2 w-2 rounded-full
+                    ${
+                      member.status === "active"
+                        ? "bg-green-500"
+                        : member.status === "expired"
+                        ? "bg-red-500"
+                        : "bg-yellow-500"
+                    }
+                  `}
+                  />
+                  {capitalizeFirstLetter(member.status)}
+                </div>
+              ))
+            )}
           </div>
         </Card>
 
