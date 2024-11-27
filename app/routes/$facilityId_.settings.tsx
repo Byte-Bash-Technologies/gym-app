@@ -10,12 +10,15 @@ import {
   BarChart,
   User2,
   Clock,
+  X,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { supabase } from "~/utils/supabase.client";
 import { createServerClient, parse, serialize } from '@supabase/ssr';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "~/components/ui/dialog";
+import { useState } from "react";
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const { facilityId } = params;
@@ -67,7 +70,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 
   const { data: subscription, error: subscriptionError } = await supabaseClient
     .from('facility_subscriptions')
-    .select('*')
+    .select('*, subscription_plans(*)')
     .eq('facility_id', facilityId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -80,10 +83,10 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   return json({ user: userData, facility, subscription });
 };
 
-export default function SettingsPage() {
+export default function Component() {
   const { user, facility, subscription } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  
+  const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
 
   const handleLogout = async () => {
     console.log('Logging out...');
@@ -104,23 +107,19 @@ export default function SettingsPage() {
     return `Expiring in ${monthsLeft} month${monthsLeft !== 1 ? 's' : ''}`;
   };
 
+  const handleContactUs = () => {
+    window.open(`https://wa.me/918300861600`, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ArrowLeft
-            className="h-6 w-6 cursor-pointer"
-            onClick={() => navigate(`/${facility.id}`)}
-          />
+          <Link to={`/${facility.id}/home`}>
+            <ArrowLeft className="h-6 w-6 cursor-pointer" />
+          </Link>
           <h1 className="text-xl font-bold">Settings</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <Bell className="h-6 w-6 text-purple-500" />
-          <a href="tel:8300861600">
-            <Phone className="h-6 w-6 text-purple-500" />
-          </a>
-          <SettingsIcon className="h-6 w-6 text-purple-500" />
         </div>
       </header>
 
@@ -153,7 +152,7 @@ export default function SettingsPage() {
 
             <div className="space-y-2">
               <h4 className="font-semibold">Current plan</h4>
-              <p className="text-lg">{subscription ? subscription.plan_name : 'No active plan'}</p>
+              <p className="text-lg">{subscription ? subscription.subscription_plans.name : 'No active plan'}</p>
               <p className="text-green-500 text-sm inline-block bg-green-50 px-3 py-1 rounded-full">
                 • {getExpirationText()}
               </p>
@@ -188,11 +187,11 @@ export default function SettingsPage() {
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Sportsdot</h2>
           <Card className="divide-y">
-            <Button variant="ghost" className="w-full justify-start p-4">
+            <Button variant="ghost" className="w-full justify-start p-4" onClick={handleContactUs}>
               <User2 className="h-5 w-5 mr-3 text-purple-500" />
               Contact us
             </Button>
-            <Button variant="ghost" className="w-full justify-start p-4">
+            <Button variant="ghost" className="w-full justify-start p-4" onClick={() => setIsInfoDialogOpen(true)}>
               <Clock className="h-5 w-5 mr-3 text-purple-500" />
               Support and Information
             </Button>
@@ -200,11 +199,56 @@ export default function SettingsPage() {
         </section>
 
         {/* Logout Button */}
-      <Button variant="destructive" onClick={handleLogout} type="button">  
-        Logout
-      </Button>
+        <Button variant="destructive" onClick={handleLogout} type="button">  
+          Logout
+        </Button>
         <Outlet />
       </main>
+    
+      {/* Support and Information Dialog */}
+      <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Support and Information</DialogTitle>
+            <Button
+              variant="ghost"
+              className="absolute right-4 top-4"
+              onClick={() => setIsInfoDialogOpen(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </DialogHeader>
+          <DialogDescription>
+            <div className="space-y-4">
+              <p>
+                Welcome to Sportsdot support! We're here to help you manage your fitness facility efficiently.
+              </p>
+              <h3 className="font-semibold">Contact Information:</h3>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>Phone: +91 8300861600</li>
+                <li>Email: support@sportsdot.com</li>
+                <li>WhatsApp: +91 8300861600</li>
+              </ul>
+              <h3 className="font-semibold">Support Hours:</h3>
+              <p>Monday to Friday: 9:00 AM to 6:00 PM IST</p>
+              <h3 className="font-semibold">FAQs:</h3>
+              <ul className="list-disc pl-5 space-y-2">
+                <li>How do I update my gym's information?</li>
+                <li>How can I manage memberships?</li>
+                <li>What payment methods are supported?</li>
+              </ul>
+              <p>
+                For more detailed information, please visit our{" "}
+                <a href="/help-center" className="text-purple-500 underline">
+                  Help Center
+                </a>
+                .
+              </p>
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

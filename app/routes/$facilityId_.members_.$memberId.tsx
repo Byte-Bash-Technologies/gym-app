@@ -273,7 +273,7 @@ export default function MemberProfile() {
     const doc = new jsPDF();
     
     // Adding a border
-    doc.rect(10, 10, 190, 277); // x, y, width, height
+    doc.rect(10, 10, 190, 260); // x, y, width, height
     
     // Adding a logo
     const logo = new Image();
@@ -282,15 +282,16 @@ export default function MemberProfile() {
     
     // Gym name, address, and phone number centered
     doc.setFontSize(18);
-    doc.text("Gym Name", 105, 20, { align: "center" }); // Replace "Gym Name"
+    doc.text("Sports Dot", 105, 20, { align: "center" }); // Replace "Gym Name"
     
     doc.setFontSize(12);
     doc.text("123 Fitness Street, FitCity, 456789", 105, 28, { align: "center" }); // Replace address
-    doc.text("Phone: +123 456 7890", 105, 35, { align: "center" }); // Replace phone number
+    doc.text("Phone: +91 8300861600", 105, 35, { align: "center" }); // Replace phone number
     
     // Date in the top-right corner
     const today = new Date();
-    doc.text(today.toLocaleDateString(), 180, 20, { align: "right" });
+    const formattedDate = `Date: ${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+    doc.text(formattedDate, 180, 20, { align: "right" });
     
     // Member profile header
     doc.setFontSize(16);
@@ -359,7 +360,9 @@ export default function MemberProfile() {
       {/* Contact Section */}
       <CardContent className="flex justify-center space-x-4">
           <Button onClick={handlePhoneClick}>
+            <a href={`tel:${member.phone}`}>
             <Phone className="h-4 w-4 mr-2" />
+            </a>
             Call
           </Button>
           <Drawer open={isWhatsAppDrawerOpen} onOpenChange={setIsWhatsAppDrawerOpen}>

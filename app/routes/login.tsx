@@ -57,7 +57,7 @@ export default function Login() {
         {/* Logo */}
         <div className="flex flex-col items-center">
           <div className=' space-y-2 relative w-32 h-32'>
-            <img src="./public/icons/sportsdot-favicon-64-01.svg" alt="Logo" className="w-full h-full object-contain" />
+            <img src="~/assets/sportsdot-favicon-64-01.svg" alt="Logo" className="w-full h-full object-contain" />
         </div>
         </div>
 

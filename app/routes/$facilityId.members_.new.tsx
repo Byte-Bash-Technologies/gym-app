@@ -1,3 +1,4 @@
+// app/routes/$facilityId.members_.new.tsx
 import { useState, useTransition } from "react";
 import { json, useActionData, redirect, useLoaderData, useParams } from "@remix-run/react";
 import { type ActionFunction, type LoaderFunction } from "@remix-run/node";
@@ -54,9 +55,9 @@ export const action: ActionFunction = async ({ request, params }) => {
   const facilityPrefix = (params.facilityId as string).substring(0, 2).toUpperCase();
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   const admission_no = `${facilityPrefix}-${randomNum}`;
-
-  // Upload photo to Supabase storage
   let photoUrl = null;
+// Upload photo to Supabase storage
+  
   if (photo.size > 0) {
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("member-photos")
@@ -71,7 +72,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 
     photoUrl = supabase.storage.from("member-photos").getPublicUrl(`${admission_no}.jpg`).data.publicUrl;
   }
-  
+
 
   // If a plan is selected, create a membership and process payment
   if (plan_id) {
@@ -154,8 +155,9 @@ export const action: ActionFunction = async ({ request, params }) => {
           membership_id: membership?.id || null,
           amount: payment_amount,
           facility_id: params.facilityId,
-          type: "cash",
-          
+          type: "payment",
+          payment_method: "cash",
+          status:"completed"
         },
       ]);
 
@@ -169,9 +171,14 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   // Send WhatsApp message
   if (phone.length === 10) {
-    const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here: ${pdfUrl}`;
+  //const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here: ${pdfUrl}`;
+    const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here:`;
     const whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
     // You can use this link to send the message programmatically or provide it to staff
+    const response = await fetch(whatsappLink);
+    if (!response.ok) {
+      console.error("Failed to send WhatsApp message");
+    }
     console.log("WhatsApp Link:", whatsappLink);
   }
 
@@ -188,6 +195,23 @@ export default function NewMemberForm() {
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
   const params = useParams();
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    setSelectedFile(file);
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setPreview(null);
+    }
+  };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const form = event.currentTarget;
@@ -286,25 +310,6 @@ export default function NewMemberForm() {
           />
         </div>
 
-        {/* Photo */}
-        <div className="space-y-2">
-          <Label htmlFor="photo">Photo</Label>
-          <label htmlFor="photo" className="block">
-            <Input
-              id="photo"
-              name="photo"
-              type="file"
-              accept="image/*"
-              required
-              className="hidden"
-            />
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
-              <ImagePlus className="h-8 w-8 mb-2" />
-              <span>Upload photo</span>
-            </div>
-          </label>
-        </div>
-
         {/* DOB */}
         <div className="space-y-2">
           <Label htmlFor="date_of_birth">
@@ -377,7 +382,31 @@ export default function NewMemberForm() {
           <Label htmlFor="weight">Weight</Label>
           <Input id="weight" name="weight" placeholder="-- kg" />
         </div>
-
+        {/* Photo */}
+        <div className="space-y-2">
+          <Label htmlFor="photo">Photo</Label>
+          <label htmlFor="photo" className="block">
+            <Input
+              id="photo"
+              name="photo"
+              type="file"
+              accept="image/*"
+              required
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
+              {preview ? (
+                <img src={preview} alt="Selected" className="h-32 w-32 object-cover  mb-2" />
+              ) : (
+                <>
+                  <ImagePlus className="h-8 w-8 mb-2" />
+                  <span>Upload photo</span>
+                </>
+              )}
+            </div>
+          </label>
+        </div>
         {/* Add Plan Toggle */}
         <div className="flex items-center space-x-2">
           <Switch
