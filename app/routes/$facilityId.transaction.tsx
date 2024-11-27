@@ -113,12 +113,6 @@ export const loader: LoaderFunction = async ({ params }) => {
   const totalPendingBalance = membersBalance.reduce((sum, member) => sum + member.balance, 0);
 
 
-  // Calculate today's pending balance
-  const todayPendingBalance = transactions
-  .filter(t => t.amount < 0)
-  .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-
   // Calculate stats
   const totalTransactions = transactions.length;
   const received = Math.round((transactions.filter(t => t.amount > 0).length / totalTransactions) * 100) || 0;
@@ -137,7 +131,6 @@ export const loader: LoaderFunction = async ({ params }) => {
     previousIncome,
     weeklyIncome,
     totalPendingBalance,
-    todayPendingBalance,
     stats: {
       received,
       paid,
@@ -149,7 +142,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 export default function Transactions() {
   const params = useParams();
-  const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, todayPendingBalance, dailyEarnings } =
+  const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, dailyEarnings } =
     useLoaderData<{
       transactions: Transaction[];
       income: number;
@@ -165,9 +158,9 @@ export default function Transactions() {
     }>();
 
   // Calculate total amount and percentages
-  const totalAmount = income + todayPendingBalance;
+  const totalAmount = income + totalPendingBalance;
   const receivedPercentage = (income / totalAmount) * 100;
-  const pendingPercentage = (todayPendingBalance / totalAmount) * 100;
+  const pendingPercentage = (totalPendingBalance / totalAmount) * 100;
 
   // Calculate stroke-dasharray and stroke-dashoffset for each segment
   const circumference = 2 * Math.PI * 45;
@@ -186,9 +179,12 @@ export default function Transactions() {
           <a href="tel:8300861600">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <Link to={`/${params.facilityId}/settings`}>
+          <a  href={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
-          </Link>
+          </a>
+          {/*<Link to={`/${params.facilityId}/settings`}>
+            <Settings className="h-6 w-6 text-purple-500" />
+          </Link>*/}
         </div>
       </header>
 
@@ -274,7 +270,7 @@ export default function Transactions() {
                     <div className="w-3 h-3 rounded-full bg-red-500 mr-2" />
                     <span>Total Pending</span>
                   </div>
-                  <span>₹{todayPendingBalance.toFixed(2)}</span>
+                  <span>₹{totalPendingBalance.toFixed(2)}</span>
                 </div>
               </div>
             </CardContent>

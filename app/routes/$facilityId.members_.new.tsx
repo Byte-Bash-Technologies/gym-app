@@ -1,5 +1,5 @@
 import { useState, useTransition } from "react";
-import { json, useActionData, redirect, useLoaderData } from "@remix-run/react";
+import { json, useActionData, redirect, useLoaderData, useParams } from "@remix-run/react";
 import { type ActionFunction, type LoaderFunction } from "@remix-run/node";
 import { supabase } from "~/utils/supabase.server";
 import { ArrowLeft, Bell, Phone, Settings, ImagePlus } from 'lucide-react';
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { generateMembershipPDF } from "~/utils/pdf-generator.server";
 
 export const loader: LoaderFunction = async ({ params }) => {
   const { data: facility } = await supabase
@@ -27,7 +28,8 @@ export const loader: LoaderFunction = async ({ params }) => {
   const { data: plans } = await supabase
     .from("plans")
     .select("*")
-    .eq("facility_id", params.facilityId);
+    .or(`facility_id.is.null,facility_id.eq.${params.facilityId}`)
+    .order("price");
 
   return json({ facilityName: facility?.name, plans });
 };
@@ -69,7 +71,19 @@ export const action: ActionFunction = async ({ request, params }) => {
 
     photoUrl = supabase.storage.from("member-photos").getPublicUrl(`${admission_no}.jpg`).data.publicUrl;
   }
+  
 
+  // If a plan is selected, create a membership and process payment
+  if (plan_id) {
+    const { data: planData } = await supabase
+      .from("plans")
+      .select("price")
+      .eq("id", plan_id)
+      .single();
+
+    const planPrice = planData?.price || 0;
+    const discountedPrice = planPrice - discount;
+    const balance = discountedPrice - payment_amount;
   // Insert member data
   const { data: memberData, error: memberError } = await supabase
     .from("members")
@@ -87,6 +101,7 @@ export const action: ActionFunction = async ({ request, params }) => {
         admission_no,
         status: "active",
         address,
+        balance,
         photo_url: photoUrl,
       },
     ])
@@ -96,30 +111,33 @@ export const action: ActionFunction = async ({ request, params }) => {
     return json({ error: memberError.message }, { status: 400 });
   }
 
-  // If a plan is selected, create a membership and process payment
-  if (plan_id) {
-    const { data: planData } = await supabase
-      .from("plans")
-      .select("price")
-      .eq("id", plan_id)
-      .single();
+  // Calculate end date based on the plan duration
+  const { data: planDetails } = await supabase
+    .from("plans")
+    .select("duration")
+    .eq("id", plan_id)
+    .single();
 
-    const planPrice = planData?.price || 0;
-    const discountedPrice = planPrice - discount;
-    const balance = discountedPrice - payment_amount;
+  const duration = planDetails?.duration || 0;
+  const startDate = new Date();
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + duration);
 
-    const { error: membershipError } = await supabase
+
+
+    const { data:membership,error: membershipError } = await supabase
       .from("memberships")
       .insert([
         {
           member_id: memberData[0].id,
           plan_id,
           start_date: new Date().toISOString(),
+          end_date: endDate.toISOString(),
           status: "active",
           price: planPrice,
           discount,
           payment_amount,
-          balance,
+          
         },
       ]);
 
@@ -133,9 +151,11 @@ export const action: ActionFunction = async ({ request, params }) => {
       .insert([
         {
           member_id: memberData[0].id,
+          membership_id: membership?.id || null,
           amount: payment_amount,
-          type: "payment",
-          date: new Date().toISOString(),
+          facility_id: params.facilityId,
+          type: "cash",
+          
         },
       ]);
 
@@ -145,7 +165,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   }
 
   // Generate PDF (implement this function)
-  const pdfUrl = await generateMembershipPDF(memberData[0].id);
+  //const pdfUrl = await generateMembershipPDF(memberData[0].id);
 
   // Send WhatsApp message
   if (phone.length === 10) {
@@ -167,6 +187,7 @@ export default function NewMemberForm() {
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
+  const params = useParams();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const form = event.currentTarget;
@@ -200,7 +221,9 @@ export default function NewMemberForm() {
           <a href="tel:8300861600">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <Settings className="h-6 w-6 text-purple-500" />
+          <a  href={`/${params.facilityId}/settings`}>
+            <Settings className="h-6 w-6 text-purple-500" />
+          </a>
         </div>
       </header>
 
@@ -412,10 +435,15 @@ export default function NewMemberForm() {
                   />
                 </div>
 
-                <div>
-                  <p>Total: ₹{selectedPlan.price}</p>
+                                <div>
+                  <p>Total: ₹{selectedPlan.price - discount}</p>
                   <p>Discount: ₹{discount}</p>
-                  <p>Balance: ₹{selectedPlan.price - discount - paymentAmount}</p>
+                  <p>
+                    Balance: ₹
+                    {paymentAmount >= (selectedPlan.price - discount)
+                      ? 0
+                      : (selectedPlan.price - discount) - paymentAmount}
+                  </p>
                 </div>
               </>
             )}
@@ -434,3 +462,4 @@ export default function NewMemberForm() {
     </div>
   );
 }
+

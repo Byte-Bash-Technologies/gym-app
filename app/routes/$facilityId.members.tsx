@@ -52,7 +52,8 @@ export const loader: LoaderFunction = async ({ params, request }) => {
         id, 
         full_name, 
         email, 
-        phone, 
+        phone,
+        photo_url, 
         balance,
         joined_date,
         memberships(status, end_date, plans(name))
@@ -92,6 +93,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 };
 
 export default function MembersPage() {
+  const params = useParams();
   const data = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -187,7 +189,7 @@ export default function MembersPage() {
   if (!facility) {
     return <div className="p-4">Facility not found</div>;
   }
-  const params = useParams();
+ 
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
@@ -200,9 +202,9 @@ export default function MembersPage() {
           <a href="tel:8300861600">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <Link to={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
-          </Link>
+          <a href={`/${params.facilityId}/settings`}>         
+          <Settings className="h-6 w-6 text-purple-500" />
+          </a>             
         </div>
       </header>
 
@@ -330,12 +332,8 @@ export default function MembersPage() {
                   className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
                 >
                   <Avatar className="h-12 w-12">
-                    <AvatarImage
-                      src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
-                      alt={member.full_name}
-                    />
-                    <AvatarFallback>{member.full_name[0]
-}</AvatarFallback>
+                  <AvatarImage src={member.photo_url} alt={member.full_name} />
+                    <AvatarFallback>{member.full_name[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <h3 className="font-semibold">{member.full_name}</h3>

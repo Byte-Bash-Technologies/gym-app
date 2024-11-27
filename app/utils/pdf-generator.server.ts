@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import { PassThrough } from 'stream';
 import { createReadableStreamFromReadable } from '@remix-run/node';
+import { supabase } from './supabase.client';
 
 export async function generateMembershipPDF(memberId: number) {
   const doc = new PDFDocument();

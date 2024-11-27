@@ -72,9 +72,12 @@ export default function ReportPage() {
           <a href="tel:8300861600">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <Link to={`/${params.facilityId}/settings`}>
+          <a  href={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
-          </Link>
+          </a>
+          {/*<Link to={`/${params.facilityId}/settings`}>
+            <Settings className="h-6 w-6 text-purple-500" />
+          </Link>*/}
         </div>
       </header>
 

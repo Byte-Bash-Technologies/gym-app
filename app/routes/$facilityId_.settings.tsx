@@ -83,8 +83,10 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 export default function SettingsPage() {
   const { user, facility, subscription } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  
 
   const handleLogout = async () => {
+    console.log('Logging out...');
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Error logging out:', error);
@@ -198,12 +200,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Logout Button */}
-        <Button 
-          className="w-full bg-purple-500 hover:bg-purple-600 text-white py-6 rounded-full text-lg mt-8"
-          onClick={handleLogout}
-        >
-          Logout
-        </Button>
+      <Button variant="destructive" onClick={handleLogout} type="button">  
+        Logout
+      </Button>
         <Outlet />
       </main>
     </div>

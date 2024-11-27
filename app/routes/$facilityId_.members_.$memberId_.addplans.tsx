@@ -46,6 +46,7 @@ export const loader: LoaderFunction = async ({ params }) => {
   const { data: plans, error: plansError } = await supabase
     .from('plans')
     .select('*')
+    .or(`facility_id.is.null,facility_id.eq.${params.facilityId}`)
     .order('price');
 
   if (plansError) throw new Response("Error fetching plans", { status: 500 });

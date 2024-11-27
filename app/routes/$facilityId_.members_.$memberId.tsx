@@ -26,6 +26,7 @@ interface Member {
   height: number;
   weight: number;
   admission_no: string;
+  photo_url: string;
   joined_date: string;
   status: string;
   balance: number;
@@ -343,7 +344,7 @@ export default function MemberProfile() {
       {/* Profile Section */}
       <div className="flex flex-col items-center mb-6">
         <Avatar className="w-24 h-24 mb-2">
-          <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`} alt={member.full_name} />
+          <AvatarImage src={member.photo_url} alt={member.full_name} />
           <AvatarFallback>{member.full_name[0]}</AvatarFallback>
         </Avatar>
         <h2 className="text-xl font-bold">{member.full_name}</h2>
