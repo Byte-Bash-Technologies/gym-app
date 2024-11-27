@@ -6,6 +6,7 @@ import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Checkbox } from '~/components/ui/checkbox';
+import iconImage from '~/assets/sportsdot-favicon-64-01.svg';
 
 export const action = async ({ request }) => {
   const response = new Response();
@@ -56,9 +57,9 @@ export default function Login() {
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center">
-          <div className=' space-y-2 relative w-32 h-32'>
-            <img src="~/assets/sportsdot-favicon-64-01.svg" alt="Logo" className="w-full h-full object-contain" />
-        </div>
+            <div className='space-y-2 relative w-32 h-32'>
+            <img src={iconImage} alt="logo" className="w-full h-full object-cover" />
+            </div>
         </div>
 
         {/* Login Form */}

@@ -121,9 +121,9 @@ function FacilityGrid({ facilities }: { facilities: Facility[] }) {
                 className="text-xs"
               >
                 {facility.type === "gym" ? (
-                  <Dumbbell className="h-3 w-3 mr-1" />
+                  <Dumbbell className="h-4 w-4 mr-1" />
                 ) : (
-                  <Volleyball className="h-3 w-3 mr-1" />
+                  <Volleyball className="h-4 w-4 mr-1" />
                 )}
                 {facility.type === "gym" ? "Gym" : "Badminton"}
               </Badge>
