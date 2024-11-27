@@ -165,10 +165,10 @@ export default function RenewMembership() {
 
   return (
     <div className="container mx-auto p-4 max-w-md">
-      <Card>
+      <Card className="bg-card text-card-foreground">
         <CardHeader>
           <CardTitle className="text-2xl font-bold flex items-center">
-            <Link to={`/${params.facilityId}/members/${member.id}`}>
+            <Link to={`/${params.facilityId}/members/${member.id}`} className="text-foreground hover:text-primary transition-colors">
               <ArrowLeft className="h-6 w-6 mr-2" />
             </Link>
             Renew Membership
@@ -176,22 +176,22 @@ export default function RenewMembership() {
         </CardHeader>
         <CardContent>
           <div className="mb-6">
-            <h2 className="text-lg font-semibold">{member.full_name}</h2>
-            <p className="text-gray-600">{member.email}</p>
-            <p className="text-gray-600">{member.phone}</p>
-            <p className="text-sm text-gray-500">Admission No: {member.admission_no}</p>
-            <p className="text-sm text-gray-500">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
-            <p className="text-sm text-gray-500">Current Balance: ₹{member.balance.toFixed(2)}</p>
+            <h2 className="text-lg font-semibold text-foreground">{member.full_name}</h2>
+            <p className="text-muted-foreground">{member.email}</p>
+            <p className="text-muted-foreground">{member.phone}</p>
+            <p className="text-sm text-muted-foreground">Admission No: {member.admission_no}</p>
+            <p className="text-sm text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
+            <p className="text-sm text-muted-foreground">Current Balance: ₹{member.balance.toFixed(2)}</p>
           </div>
 
           <Form method="post" className="space-y-4">
             <div>
-              <Label htmlFor="planId">Select Plan</Label>
+              <Label htmlFor="planId" className="text-foreground">Select Plan</Label>
               <Select 
                 name="planId" 
                 onValueChange={(value) => setSelectedPlan(plans.find(p => p.id === value) || null)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-background text-foreground">
                   <SelectValue placeholder="Choose a plan" />
                 </SelectTrigger>
                 <SelectContent>
@@ -205,13 +205,14 @@ export default function RenewMembership() {
             </div>
 
             <div>
-              <Label htmlFor="discount">Discount</Label>
+              <Label htmlFor="discount" className="text-foreground">Discount</Label>
               <Input
                 id="discount"
                 name="discount"
                 type="number"
                 value={discount}
                 onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                className="bg-background text-foreground"
               />
             </div>
 
@@ -221,14 +222,14 @@ export default function RenewMembership() {
                 checked={isFullPayment}
                 onCheckedChange={setIsFullPayment}
               />
-              <Label htmlFor="paymentType">Full Payment</Label>
+              <Label htmlFor="paymentType" className="text-foreground">Full Payment</Label>
             </div>
 
             <input type="hidden" name="isFullPayment" value={isFullPayment.toString()} />
 
             {!isFullPayment && (
               <div>
-                <Label htmlFor="paidAmount">Paid Amount</Label>
+                <Label htmlFor="paidAmount" className="text-foreground">Paid Amount</Label>
                 <Input
                   id="paidAmount"
                   name="paidAmount"
@@ -236,35 +237,36 @@ export default function RenewMembership() {
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
                   max={calculateTotal()}
+                  className="bg-background text-foreground"
                 />
               </div>
             )}
 
             {selectedPlan && (
               <div>
-                <p className="font-semibold">Total: ₹{calculateTotal()}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-semibold text-foreground">Total: ₹{calculateTotal()}</p>
+                <p className="text-sm text-muted-foreground">
                   Remaining balance: ₹{calculateRemaining()}
                 </p>
               </div>
             )}
 
             <div>
-              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Label htmlFor="paymentMethod" className="text-foreground">Payment Method</Label>
               <Select name="paymentMethod" required defaultValue="cash">
-              <SelectTrigger>
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="credit_card">Credit Card</SelectItem>
-                <SelectItem value="debit_card">Debit Card</SelectItem>
-                <SelectItem value="upi">UPI</SelectItem>
-              </SelectContent>
+                <SelectTrigger className="bg-background text-foreground">
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="credit_card">Credit Card</SelectItem>
+                  <SelectItem value="debit_card">Debit Card</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
               <CreditCard className="w-4 h-4 mr-2" />
               Renew Membership
             </Button>

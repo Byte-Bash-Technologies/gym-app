@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { json, redirect, ActionFunction, LoaderFunction } from '@remix-run/node';
-import { useActionData, useLoaderData, Form } from '@remix-run/react';
+import { useActionData, useLoaderData, Form, Link } from '@remix-run/react';
 import { createServerClient, parse, serialize } from '@supabase/ssr';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '~/components/ui/card';
-import { Alert, AlertDescription } from '~/components/ui/alert';
 import { Checkbox } from '~/components/ui/checkbox';
 import { supabase } from "~/utils/supabase.server";
 
@@ -30,7 +28,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return redirect('/');
+    return json({ isCurrentUserAdmin: false });
   }
 
   const { data: userData, error } = await supabase
@@ -41,7 +39,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   if (error || !userData?.is_admin) {
     console.error('Error fetching user data or user is not an admin:', error);
-    return redirect('/');
+    return json({ isCurrentUserAdmin: false });
   }
 
   return json({ isCurrentUserAdmin: userData.is_admin });
@@ -49,7 +47,21 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export const action: ActionFunction = async ({ request }) => {
   const response = new Response();
-  
+  const supabase = createServerClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (key) => parse(request.headers.get("Cookie") || "")[key],
+        set: (key, value, options) => {
+          response.headers.append("Set-Cookie", serialize(key, value, options));
+        },
+        remove: (key, options) => {
+          response.headers.append("Set-Cookie", serialize(key, "", options));
+        },
+      },
+    }
+  );
 
   const formData = await request.formData();
   const email = formData.get('email') as string;
@@ -112,45 +124,85 @@ export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Sign Up</CardTitle>
-          <CardDescription>Create a new account</CardDescription>
-        </CardHeader>
-        <Form method="post" onSubmit={() => setIsLoading(true)}>
-          <CardContent className="space-y-4">
+    <div className="min-h-screen bg-gradient-to-b from-white to-purple-100 flex flex-col items-center px-4 py-8">
+      <div className="w-full max-w-sm space-y-8">
+        {/* Logo */}
+        <div className="flex flex-col items-center">
+          <div className='space-y-2 relative w-32 h-32'>
+            <img src="./public/icons/sportsdot-favicon-64-01.svg" alt="Logo" className="w-full h-full object-contain" />
+          </div>
+        </div>
+
+        {/* Signup Form */}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-medium text-center text-purple-600">Sign Up</h2>
+          
+          <Form method="post" onSubmit={() => setIsLoading(true)} className="space-y-6">
             {actionData?.error && (
-              <Alert variant="destructive">
-                <AlertDescription>{actionData.error}</AlertDescription>
-              </Alert>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input id="fullName" name="fullName" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
-            </div>
-            {isCurrentUserAdmin && (
-              <div className="flex items-center space-x-2">
-                <Checkbox id="isAdmin" name="isAdmin" />
-                <Label htmlFor="isAdmin">Create as Admin User</Label>
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <span className="block sm:inline">{actionData.error}</span>
               </div>
             )}
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  name="fullName"
+                  placeholder="Full Name"
+                  className="h-12 bg-white rounded-2xl"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Email"
+                  className="h-12 bg-white rounded-2xl"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Password"
+                  className="h-12 bg-white rounded-2xl"
+                  required
+                />
+              </div>
+              {isCurrentUserAdmin && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="isAdmin" name="isAdmin" className="border-purple-300" />
+                  <Label htmlFor="isAdmin" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Create as Admin User
+                  </Label>
+                </div>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full h-12 text-lg font-medium bg-purple-400 hover:bg-purple-500 rounded-2xl" disabled={isLoading}>
               {isLoading ? 'Signing up...' : 'Sign up'}
             </Button>
-          </CardFooter>
-        </Form>
-      </Card>
+
+            <div className="text-center space-x-1">
+              <span className="text-sm text-gray-600">Already have an account?</span>
+              <Link
+                to="/login"
+                className="text-sm font-medium text-purple-600 hover:text-purple-500"
+              >
+                Log in
+              </Link>
+            </div>
+          </Form>
+        </div>
+      </div>
     </div>
   );
 }

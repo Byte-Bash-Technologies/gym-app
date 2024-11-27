@@ -1,14 +1,6 @@
-import { json, type LoaderFunction ,redirect} from "@remix-run/node";
+import { json, type LoaderFunction, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate } from "@remix-run/react";
-import {
-  Dumbbell,
-  Volleyball,
-  Users,
-  DollarSign,
-  Calendar,
-  ChevronRight,
-  Settings,
-} from "lucide-react";
+import { Dumbbell, VibrateIcon as Volleyball, Users, DollarSign, Calendar, ChevronRight, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
@@ -22,7 +14,7 @@ interface Facility {
   type: string;
   members: number;
   revenue?: number;
-  lastBilling?: string; // Add this line
+  lastBilling?: string;
 }
 
 interface LoaderData {
@@ -45,7 +37,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   const { data: { user } } = await supabaseAuth.auth.getUser();
   
-
   if (!user) {
     return redirect('/login');
   }
@@ -55,9 +46,9 @@ export const loader: LoaderFunction = async ({ request }) => {
     .select('*')
     .eq('user_id', user.id);
   const {data:userName} = await supabase
-  .from('users')
-  .select('full_name')
-  .eq('id', user.id)
+    .from('users')
+    .select('full_name')
+    .eq('id', user.id)
 
   if (error) {
     return json({ error: error.message });
@@ -73,15 +64,15 @@ export default function Dashboard() {
   const badmintonFacilities = facilities.filter((f) => f.type === "badminton");
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       {/* Header */}
-      <header className="bg-white p-4 flex items-center justify-between">
+      <header className="bg-card text-card-foreground p-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center">
           <Link to="/">{/* <ArrowLeft className="h-6 w-6 mr-2" /> */}</Link>
           <h1 className="text-xl font-bold">Facility Dashboard</h1>
         </div>
         <Link to="/settings">
-          <Settings className="h-6 w-6 text-gray-600" />
+          <Settings className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
         </Link>
       </header>
 
@@ -118,7 +109,7 @@ function FacilityGrid({ facilities }: { facilities: Facility[] }) {
         <Card
           key={facility.id}
           className={`${
-            facility.type === "gym" ? "border-blue-200" : "border-green-200"
+            facility.type === "gym" ? "border-primary/20" : "border-secondary/20"
           } cursor-pointer hover:shadow-md transition-shadow`}
           onClick={() => navigate(`${facility.id}/home`)}
         >
@@ -127,11 +118,12 @@ function FacilityGrid({ facilities }: { facilities: Facility[] }) {
               <CardTitle>{facility.name}</CardTitle>
               <Badge
                 variant={facility.type === "gym" ? "default" : "secondary"}
+                className="text-xs"
               >
                 {facility.type === "gym" ? (
-                  <Dumbbell className="h-4 w-4 mr-1" />
+                  <Dumbbell className="h-3 w-3 mr-1" />
                 ) : (
-                  <Volleyball className="h-4 w-4 mr-1" />
+                  <Volleyball className="h-3 w-3 mr-1" />
                 )}
                 {facility.type === "gym" ? "Gym" : "Badminton"}
               </Badge>
@@ -139,16 +131,16 @@ function FacilityGrid({ facilities }: { facilities: Facility[] }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex items-center">
-                <Users className="h-5 w-5 mr-2 text-blue-500" />
+              <div className="flex items-center text-sm">
+                <Users className="h-4 w-4 mr-2 text-primary" />
                 <span>{facility.members} members</span>
               </div>
-              <div className="flex items-center">
-                <DollarSign className="h-5 w-5 mr-2 text-green-500" />
+              <div className="flex items-center text-sm">
+                <DollarSign className="h-4 w-4 mr-2 text-primary" />
                 <span>${(facility.revenue || 1000).toLocaleString()} revenue</span>
               </div>
-              <div className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-purple-500" />
+              <div className="flex items-center text-sm">
+                <Calendar className="h-4 w-4 mr-2 text-primary" />
                 <span>
                   Last billed:{" "}
                   {new Date(facility.lastBilling).toLocaleDateString()}
@@ -156,7 +148,7 @@ function FacilityGrid({ facilities }: { facilities: Facility[] }) {
               </div>
             </div>
             <div className="flex justify-end mt-4">
-              <ChevronRight className="h-6 w-6 text-gray-400" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>

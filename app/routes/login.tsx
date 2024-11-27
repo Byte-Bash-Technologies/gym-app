@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { json, redirect } from '@remix-run/node';
-import { useActionData, Form } from '@remix-run/react';
+import { useActionData, Form, Link } from '@remix-run/react';
 import { createServerClient, parse, serialize } from '@supabase/ssr';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '~/components/ui/card';
-import { Alert, AlertDescription } from '~/components/ui/alert';
+import { Checkbox } from '~/components/ui/checkbox';
 
 export const action = async ({ request }) => {
   const response = new Response();
@@ -53,35 +52,88 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
-        </CardHeader>
-        <Form method="post" onSubmit={() => setIsLoading(true)}>
-          <CardContent className="space-y-4">
+    <div className="min-h-screen bg-gradient-to-b from-white to-purple-100 flex flex-col items-center px-4 py-8">
+      <div className="w-full max-w-sm space-y-8">
+        {/* Logo */}
+        <div className="flex flex-col items-center">
+          <div className=' space-y-2 relative w-32 h-32'>
+            <img src="./public/icons/sportsdot-favicon-64-01.svg" alt="Logo" className="w-full h-full object-contain" />
+        </div>
+        </div>
+
+        {/* Login Form */}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-medium text-center text-purple-600">Login</h2>
+          
+          <Form method="post" onSubmit={() => setIsLoading(true)} className="space-y-6">
             {actionData?.error && (
-              <Alert variant="destructive">
-                <AlertDescription>{actionData.error}</AlertDescription>
-              </Alert>
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <span className="block sm:inline">{actionData.error}</span>
+              </div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" required />
+            
+            <div className="space-y-4">
+                  <div className="space-y-2">
+                  <Label htmlFor="email">Email / number</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    placeholder="Email / number"
+                    className="h-12 bg-white rounded-2xl"
+                    type="text"
+                    required
+                  />
+                  </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  placeholder="Password"
+                  className="h-12 bg-white rounded-2xl"
+                  type="password"
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="remember" className="border-purple-300" />
+                <label
+                  htmlFor="remember"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Remember Me
+                </label>
+              </div>
+              <Link
+                to="/#"
+                className="text-sm text-purple-600 hover:text-purple-500"
+              >
+                Forget Password?
+              </Link>
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (actionData?.error ? 'Log in' : 'Logging in...') : 'Log in'}
+
+            <Button type="submit" className="w-full h-12 text-lg font-medium bg-purple-400 hover:bg-purple-500 rounded-2xl" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
-          </CardFooter>
-        </Form>
-      </Card>
+
+            <div className="text-center space-x-1">
+              <span className="text-sm text-gray-600">Don't have an account?</span>
+              <Link
+                to="#"
+                className="text-sm font-medium text-purple-600 hover:text-purple-500"
+              >
+                <a href="tel:8300861600">
+                  CONTACT US
+                </a>
+              </Link>
+            </div>
+          </Form>
+        </div>
+      </div>
     </div>
   );
 }
