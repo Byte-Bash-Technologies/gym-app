@@ -193,7 +193,10 @@ export default function Index() {
   } = useLoaderData<typeof loader>();
 
   const handleStatClick = (filter: string) => {
-    navigate(`/${params.facilityId}/members?filter=${filter}`);
+    if (filter === "all") {
+      return navigate(`/${params.facilityId}/members`);
+    }
+    navigate(`/${params.facilityId}/members?sortBy=name&sortOrder=asc&status=${filter}`);
   };
 
   const formatExpirationDate = (endDate: string) => {

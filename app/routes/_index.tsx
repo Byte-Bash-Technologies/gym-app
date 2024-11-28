@@ -1,6 +1,6 @@
 import { json, type LoaderFunction, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate } from "@remix-run/react";
-import { Dumbbell, VibrateIcon as Volleyball, Users, DollarSign, Calendar, ChevronRight, Settings } from 'lucide-react';
+import { Dumbbell, VibrateIcon as Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
@@ -71,9 +71,6 @@ export default function Dashboard() {
           <Link to="/">{/* <ArrowLeft className="h-6 w-6 mr-2" /> */}</Link>
           <h1 className="text-xl font-bold">Facility Dashboard</h1>
         </div>
-        <Link to="/settings">
-          <Settings className="h-6 w-6 text-muted-foreground hover:text-foreground transition-colors" />
-        </Link>
       </header>
 
       {/* Main Content */}
@@ -136,8 +133,8 @@ function FacilityGrid({ facilities }: { facilities: Facility[] }) {
                 <span>{facility.members} members</span>
               </div>
               <div className="flex items-center text-sm">
-                <DollarSign className="h-4 w-4 mr-2 text-primary" />
-                <span>${(facility.revenue || 1000).toLocaleString()} revenue</span>
+                <ChartColumnIncreasing className="h-4 w-4 mr-2 text-primary" />
+                <span>₹{(facility.revenue || 1000).toLocaleString()} revenue</span>
               </div>
               <div className="flex items-center text-sm">
                 <Calendar className="h-4 w-4 mr-2 text-primary" />

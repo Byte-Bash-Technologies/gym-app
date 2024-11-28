@@ -1,13 +1,13 @@
-import { supabase } from "~/utils/supabase.server";
-import { json, redirect } from "@remix-run/node";
+import { type ActionFunctionArgs, redirect } from "@remix-run/node";
+import { createClient } from "~/utils/logout.server";
 
-export const action = async ({ request }) => {
-    const { data, error } = await supabase.auth.signOut();
+export async function action({ request }: ActionFunctionArgs) {
+  const { supabase, headers } = createClient(request);
 
-    if (error) {
-        console.error("Error logging out:", error.message);
-        return json({ error: error.message }, { status: 500 });
-    }
+  await supabase.auth.signOut();
+  return redirect("/login", { headers });
+}
 
-    return redirect("/login");
-};
+export function loader() {
+  return redirect("/");
+}

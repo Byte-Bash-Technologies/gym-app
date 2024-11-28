@@ -37,6 +37,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
+  console.log("Form Data:", formData);
   const full_name = formData.get("full_name") as string;
   const email = formData.get("email") as string;
   const phone = formData.get("phone") as string;
@@ -56,6 +57,8 @@ export const action: ActionFunction = async ({ request, params }) => {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   const admission_no = `${facilityPrefix}-${randomNum}`;
   let photoUrl = null;
+  let transactionID;
+  let whatsappLink;
 // Upload photo to Supabase storage
   
   if (photo.size > 0) {
@@ -78,13 +81,14 @@ export const action: ActionFunction = async ({ request, params }) => {
   if (plan_id) {
     const { data: planData } = await supabase
       .from("plans")
-      .select("price")
+      .select("price,duration")
       .eq("id", plan_id)
       .single();
 
     const planPrice = planData?.price || 0;
     const discountedPrice = planPrice - discount;
     const balance = discountedPrice - payment_amount;
+    
   // Insert member data
   const { data: memberData, error: memberError } = await supabase
     .from("members")
@@ -112,14 +116,7 @@ export const action: ActionFunction = async ({ request, params }) => {
     return json({ error: memberError.message }, { status: 400 });
   }
 
-  // Calculate end date based on the plan duration
-  const { data: planDetails } = await supabase
-    .from("plans")
-    .select("duration")
-    .eq("id", plan_id)
-    .single();
-
-  const duration = planDetails?.duration || 0;
+  const duration = planData?.duration || 0;
   const startDate = new Date();
   const endDate = new Date(startDate);
   endDate.setMonth(endDate.getMonth() + duration);
@@ -147,7 +144,7 @@ export const action: ActionFunction = async ({ request, params }) => {
     }
 
     // Create transaction record
-    const { error: transactionError } = await supabase
+    const {data:transaction ,error: transactionError } = await supabase
       .from("transactions")
       .insert([
         {
@@ -164,7 +161,36 @@ export const action: ActionFunction = async ({ request, params }) => {
     if (transactionError) {
       return json({ error: transactionError.message }, { status: 400 });
     }
+    transactionID = await  supabase.from("transactions").select("id").eq('facility_id',params.facilityId).order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+    console.log("Transaction ID:",transactionID);
   }
+  else {  const {error: memberError } = await supabase
+  .from("members")
+  .insert([
+    {
+      full_name,
+      email,
+      phone,
+      gender,
+      date_of_birth,
+      blood_type,
+      height,
+      weight,
+      facility_id: params.facilityId,
+      admission_no,
+      status: "active",
+      address,
+      balance:0,
+      photo_url: photoUrl,
+    },
+  ])
+  .select();
+  if(memberError){
+    return json({ error: memberError.message }, { status: 400 });
+  }
+}
 
   // Generate PDF (implement this function)
   //const pdfUrl = await generateMembershipPDF(memberData[0].id);
@@ -172,8 +198,8 @@ export const action: ActionFunction = async ({ request, params }) => {
   // Send WhatsApp message
   if (phone.length === 10) {
   //const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here: ${pdfUrl}`;
-    const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here:`;
-    const whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
+    const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here:${transactionID?.data?.id || ""}`;
+    whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
     // You can use this link to send the message programmatically or provide it to staff
     const response = await fetch(whatsappLink);
     if (!response.ok) {
@@ -182,7 +208,8 @@ export const action: ActionFunction = async ({ request, params }) => {
     console.log("WhatsApp Link:", whatsappLink);
   }
 
-  return redirect(`/${params.facilityId}/members`);
+  return redirect(`${whatsappLink}`);
+ 
 };
 
 export default function NewMemberForm() {
@@ -391,7 +418,6 @@ export default function NewMemberForm() {
               name="photo"
               type="file"
               accept="image/*"
-              required
               className="hidden"
               onChange={handleFileChange}
             />
@@ -454,13 +480,13 @@ export default function NewMemberForm() {
                 <div className="space-y-2">
                   <Label htmlFor="payment_amount">Payment Amount</Label>
                   <Input
-                    id="payment_amount"
-                    name="payment_amount"
-                    type="number"
-                    min="0"
-                    max={selectedPlan.price - discount}
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value))}
+                  id="payment_amount"
+                  name="payment_amount"
+                  type="number"
+                  min="0"
+                  max={selectedPlan.price - discount}
+                  value={Math.min(paymentAmount, selectedPlan.price - discount)}
+                  onChange={(e) => setPaymentAmount(Math.min(parseFloat(e.target.value), selectedPlan.price - discount))}
                   />
                 </div>
 

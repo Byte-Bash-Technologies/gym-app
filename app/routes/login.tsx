@@ -110,7 +110,7 @@ export default function Login() {
                 </label>
               </div>
               <Link
-                to="/#"
+                to="#"
                 className="text-sm text-purple-600 hover:text-purple-500"
               >
                 Forget Password?

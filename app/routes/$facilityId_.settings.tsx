@@ -1,23 +1,12 @@
 import { json, redirect, LoaderFunction } from "@remix-run/node";
 import { Outlet, useLoaderData, useNavigate, Link } from "@remix-run/react";
-import {
-  ArrowLeft,
-  Bell,
-  Phone,
-  Settings as SettingsIcon,
-  RefreshCcw,
-  MessageSquare,
-  BarChart,
-  User2,
-  Clock,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Bell, Phone, SettingsIcon, RefreshCcw, MessageSquare, BarChart, User2, Clock, X, LogOut } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { supabase } from "~/utils/supabase.client";
 import { createServerClient, parse, serialize } from '@supabase/ssr';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "~/components/ui/dialog";
 import { useState } from "react";
 
 export const loader: LoaderFunction = async ({ params, request }) => {
@@ -87,14 +76,15 @@ export default function Component() {
   const { user, facility, subscription } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
+  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
 
   const handleLogout = async () => {
-    console.log('Logging out...');
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error logging out:', error);
-    } else {
-      navigate('/login');
+    try {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Error during logout:', error);
     }
   };
 
@@ -107,8 +97,16 @@ export default function Component() {
     return `Expiring in ${monthsLeft} month${monthsLeft !== 1 ? 's' : ''}`;
   };
 
-  const handleContactUs = () => {
-    window.open(`https://wa.me/918300861600`, '_blank');
+  const handleWhatsAppContact = () => {
+    const phoneNumber = "918300861600";
+    const message = encodeURIComponent("Hello, I need assistance with my Sportsdot account.");
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+    setIsContactDialogOpen(false);
+  };
+
+  const handlePhoneContact = () => {
+    window.location.href = "tel:+918300861600";
+    setIsContactDialogOpen(false);
   };
 
   return (
@@ -187,7 +185,7 @@ export default function Component() {
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Sportsdot</h2>
           <Card className="divide-y">
-            <Button variant="ghost" className="w-full justify-start p-4" onClick={handleContactUs}>
+            <Button variant="ghost" className="w-full justify-start p-4" onClick={() => setIsContactDialogOpen(true)}>
               <User2 className="h-5 w-5 mr-3 text-purple-500" />
               Contact us
             </Button>
@@ -199,12 +197,35 @@ export default function Component() {
         </section>
 
         {/* Logout Button */}
-        <Button variant="destructive" onClick={handleLogout} type="button">  
+        <Link to="/logout"
+          className="w-full flex items-center justify-center gap-2"
+        >
+          <LogOut className="h-5 w-5" />
           Logout
-        </Button>
+        </Link>
         <Outlet />
       </main>
     
+      {/* Contact Us Dialog */}
+      <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contact Us</DialogTitle>
+          </DialogHeader>
+          <DialogDescription className="space-y-4">
+            <p>Choose how you would like to contact us:</p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={handleWhatsAppContact} className="w-full">
+                Contact via WhatsApp
+              </Button>
+              <Button onClick={handlePhoneContact} variant="outline" className="w-full">
+                Call Us
+              </Button>
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
+
       {/* Support and Information Dialog */}
       <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
         <DialogContent>
