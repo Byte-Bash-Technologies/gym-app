@@ -135,6 +135,7 @@ export const action: ActionFunction = async ({ request, params }) => {
           price: planPrice,
           discount,
           payment_amount,
+          facility_id: params.facilityId,
           
         },
       ]);
@@ -142,14 +143,17 @@ export const action: ActionFunction = async ({ request, params }) => {
     if (membershipError) {
       return json({ error: membershipError.message }, { status: 400 });
     }
-
+    const MembershipID = await  supabase.from("memberships").select("id").eq('facility_id',params.facilityId).order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+    console.log("Transaction ID:",transactionID);
     // Create transaction record
     const {data:transaction ,error: transactionError } = await supabase
       .from("transactions")
       .insert([
         {
           member_id: memberData[0].id,
-          membership_id: membership?.id || null,
+          membership_id: MembershipID.data?.id|| null,
           amount: payment_amount,
           facility_id: params.facilityId,
           type: "payment",
@@ -198,7 +202,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   // Send WhatsApp message
   if (phone.length === 10) {
   //const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here: ${pdfUrl}`;
-    const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here:${transactionID?.data?.id || ""}`;
+    const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here: https://${process.env.APP_URL!}/${transactionID?.data?.id || ""}`;
     whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
     // You can use this link to send the message programmatically or provide it to staff
     const response = await fetch(whatsappLink);
@@ -293,7 +297,7 @@ export default function NewMemberForm() {
           <Input
             id="full_name"
             name="full_name"
-            placeholder="Benston"
+            placeholder="Name"
             required
           />
         </div>
