@@ -48,21 +48,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export const action: ActionFunction = async ({ request }) => {
   const response = new Response();
-  const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (key) => parse(request.headers.get("Cookie") || "")[key],
-        set: (key, value, options) => {
-          response.headers.append("Set-Cookie", serialize(key, value, options));
-        },
-        remove: (key, options) => {
-          response.headers.append("Set-Cookie", serialize(key, "", options));
-        },
-      },
-    }
-  );
 
   const formData = await request.formData();
   const email = formData.get('email') as string;
@@ -111,9 +96,7 @@ export const action: ActionFunction = async ({ request }) => {
       return json({ error: 'Failed to create user profile' });
     }
 
-    return redirect('/', {
-      headers: response.headers,
-    });
+    return redirect('/admin/dashboard');
   }
 
   return json({ error: 'An unexpected error occurred' });

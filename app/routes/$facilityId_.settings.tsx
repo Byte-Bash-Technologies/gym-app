@@ -92,9 +92,9 @@ export default function Component() {
     if (!subscription) return 'No active subscription';
     const expirationDate = new Date(subscription.end_date);
     const now = new Date();
-    const monthsLeft = (expirationDate.getFullYear() - now.getFullYear()) * 12 + 
-                       (expirationDate.getMonth() - now.getMonth());
-    return `Expiring in ${monthsLeft} month${monthsLeft !== 1 ? 's' : ''}`;
+    const timeDiff = expirationDate.getTime() - now.getTime();
+    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    return `Expiring in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
   };
 
   const handleWhatsAppContact = () => {

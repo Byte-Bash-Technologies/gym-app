@@ -34,7 +34,7 @@ export default function BottomNav() {
       <div className="flex justify-around items-center text-gray-500">
         {navItems.map((item) => (
           <Link
-          prefetch="render"
+          
             key={item.path}
             to={`/${params.facilityId}/${item.path}`}
             className="flex flex-col items-center relative"

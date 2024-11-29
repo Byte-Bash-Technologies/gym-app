@@ -95,7 +95,7 @@ export const loader: LoaderFunction = async ({ params }) => {
   const totalPaid = allPayments?.reduce((sum, payment) => {
     return payment.type === 'payment' ? sum + payment.amount : sum - payment.amount;
   }, 0) || 0;
-  const balance = netAmount - totalPaid;
+  const balance = Math.max(0, netAmount - totalPaid);
 
   return json({
     transaction,
@@ -207,31 +207,31 @@ export default function InvoicePage() {
                   {format(new Date(transaction.membership.start_date), 'MMM d, yyyy')} - {' '}
                   {format(new Date(transaction.membership.end_date), 'MMM d, yyyy')}
                 </TableCell>
-                <TableCell className="text-right">${(calculations.totalAmount || 0).toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{calculations.totalAmount.toFixed(2)}</TableCell>
               </TableRow>
             </TableBody>
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={2} className="text-right">Total Amount</TableCell>
-                <TableCell className="text-right">${(calculations.totalAmount || 0).toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{calculations.totalAmount.toFixed(2)}</TableCell>
               </TableRow>
               {calculations.discount > 0 && (
                 <TableRow>
                   <TableCell colSpan={2} className="text-right">Discount</TableCell>
-                  <TableCell className="text-right">-${(calculations.discount || 0).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">-₹{calculations.discount.toFixed(2)}</TableCell>
                 </TableRow>
               )}
               <TableRow>
                 <TableCell colSpan={2} className="text-right">Net Amount</TableCell>
-                <TableCell className="text-right">${calculations.netAmount.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{calculations.netAmount.toFixed(2)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell colSpan={2} className="text-right">Total Paid</TableCell>
-                <TableCell className="text-right">${calculations.totalPaid.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{calculations.totalPaid.toFixed(2)}</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell colSpan={2} className="text-right font-medium">Balance</TableCell>
-                <TableCell className="text-right font-medium">${calculations.balance.toFixed(2)}</TableCell>
+                <TableCell className="text-right font-medium">₹{calculations.balance.toFixed(2)}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -240,10 +240,10 @@ export default function InvoicePage() {
           <div className="text-sm text-muted-foreground">
             <h3 className="font-semibold mb-2">Current Transaction</h3>
             <p>Type: <span className="capitalize">{transaction.type}</span></p>
-            <p>Amount: ${transaction.amount.toFixed(2)}</p>
+            <p>Amount: ₹{transaction.amount.toFixed(2)}</p>
             {calculations.balance > 0 && (
               <p className="mt-2 text-destructive">
-                Please note: There is a remaining balance of ${calculations.balance.toFixed(2)} on this membership.
+                Please note: There is a remaining balance of ₹{calculations.balance.toFixed(2)} on this membership.
               </p>
             )}
           </div>

@@ -198,8 +198,15 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Facility Insights Dashboard</h1>
-
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Facility Insights Dashboard</h1>
+        <Link to="/signup">
+          <Button>
+        <UserPlus className="mr-2 h-4 w-4" />
+        Add User
+          </Button>
+        </Link>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -239,7 +246,7 @@ export default function AdminDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Members</CardTitle>
+            <CardTitle className="text-sm font-medium">Expired Members</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -355,12 +362,6 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex justify-between items-center">
             <CardTitle>Facility Details</CardTitle>
-            <Link to="/admin/add-user">
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add User
-              </Button>
-            </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
