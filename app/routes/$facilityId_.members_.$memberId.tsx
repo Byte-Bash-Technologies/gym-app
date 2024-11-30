@@ -1,20 +1,21 @@
 import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
-import { useLoaderData, Link, useFetcher,useParams } from "@remix-run/react";
+import { useLoaderData, Link, useFetcher, useParams } from "@remix-run/react";
 import { useState } from "react";
-import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus,MessageCircle, Clock} from "lucide-react"
-import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar"
+import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus, MessageCircle, Clock } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { jsPDF } from "jspdf";
-import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-import { Badge } from "~/components/ui/badge"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "~/components/ui/sheet"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "~/components/ui/drawer"
-import { Label } from "~/components/ui/label"
-import { Input } from "~/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
-import { supabase } from "~/utils/supabase.server"
-import { toast } from "~/hooks/use-toast"
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "~/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "~/components/ui/drawer";
+import { Label } from "~/components/ui/label";
+import { Input } from "~/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { supabase } from "~/utils/supabase.server";
+import { toast } from "~/hooks/use-toast";
+
 interface Member {
   id: string;
   full_name: string;
@@ -51,14 +52,16 @@ interface Transaction {
   payment_method: string;
   created_at: string;
 }
+
 interface MessageTemplate {
   id: string;
   title: string;
   content: string;
 }
+
 interface LoaderData {
   member: Member;
-  activeMemberships: Membership[];
+  activeMembership: Membership | null;
   expiredMemberships: Membership[];
   recentTransactions: Transaction[];
   messageTemplates: MessageTemplate[];
@@ -67,14 +70,14 @@ interface LoaderData {
 export const loader: LoaderFunction = async ({ params }) => {
   const facilityId = params.facilityId;
   const { data: facility, error: facilityError } = await supabase
-  .from('facilities')
-  .select('name')
-  .eq('id', facilityId)
-  .single();
+    .from('facilities')
+    .select('name')
+    .eq('id', facilityId)
+    .single();
 
-if (facilityError) {
-  throw new Response("Facility not found", { status: 404 });
-}
+  if (facilityError) {
+    throw new Response("Facility not found", { status: 404 });
+  }
 
   const { data: member, error: memberError } = await supabase
     .from('members')
@@ -100,38 +103,38 @@ if (facilityError) {
     `)
     .eq('member_id', params.memberId)
     .order('start_date', { ascending: false });
-    const now = new Date();
-    const activeMemberships = memberships?.filter(m => new Date(m.end_date) >= now) || [];
-    const expiredMemberships = memberships?.filter(m => new Date(m.end_date) < now) || [];
-  
-    // Update membership statuses
-    for (const membership of activeMemberships) {
-      if (membership.status !== 'active') {
-        await supabase
-          .from('memberships')
-          .update({ status: 'active' })
-          .eq('id', membership.id);
-        membership.status = 'active';
-      }
+
+  const now = new Date();
+  const activeMembership = memberships?.find(m => new Date(m.end_date) >= now) || null;
+  const expiredMemberships = memberships?.filter(m => new Date(m.end_date) < now) || [];
+
+  // Update membership statuses
+  if (activeMembership && activeMembership.status !== 'active') {
+    await supabase
+      .from('memberships')
+      .update({ status: 'active' })
+      .eq('id', activeMembership.id);
+    activeMembership.status = 'active';
+  }
+
+  for (const membership of expiredMemberships) {
+    if (membership.status !== 'expired') {
+      await supabase
+        .from('memberships')
+        .update({ status: 'expired' })
+        .eq('id', membership.id);
+      membership.status = 'expired';
     }
-  
-    for (const membership of expiredMemberships) {
-      if (membership.status !== 'expired') {
-        await supabase
-          .from('memberships')
-          .update({ status: 'expired' })
-          .eq('id', membership.id);
-        membership.status = 'expired';
-      }
-    }
+  }
+
   const { data: transactions, error: transactionsError } = await supabase
     .from('transactions')
     .select('*')
     .eq('member_id', params.memberId)
     .order('created_at', { ascending: false })
     .limit(5);
-  
-    const { data: messageTemplates, error: messageTemplatesError } = await supabase
+
+  const { data: messageTemplates, error: messageTemplatesError } = await supabase
     .from('message_templates')
     .select('*')
     .order('title');
@@ -142,15 +145,14 @@ if (facilityError) {
 
   return json({
     member,
-    activeMemberships,
+    activeMembership,
     expiredMemberships,
     recentTransactions: transactions ?? [],
     messageTemplates: messageTemplates ?? []
   });
-
 };
 
-export const action: ActionFunction = async ({ request,params }) => {
+export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
   const action = formData.get('_action');
 
@@ -195,7 +197,7 @@ export const action: ActionFunction = async ({ request,params }) => {
       .insert({
         member_id: memberId,
         amount,
-        facility_id:params.facilityId,
+        facility_id: params.facilityId,
         type: 'payment',
         payment_method: paymentMethod,
         status: 'completed'
@@ -221,12 +223,13 @@ export const action: ActionFunction = async ({ request,params }) => {
 };
 
 export default function MemberProfile() {
-  const { member, activeMemberships,expiredMemberships, recentTransactions, messageTemplates } = useLoaderData<LoaderData>();
+  const { member, activeMembership, expiredMemberships, recentTransactions, messageTemplates } = useLoaderData<LoaderData>();
   const params = useParams();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isWhatsAppDrawerOpen, setIsWhatsAppDrawerOpen] = useState(false);
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
   const fetcher = useFetcher();
+
   const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -257,7 +260,6 @@ export default function MemberProfile() {
       });
     }
   }
-  
 
   const handlePhoneClick = () => {
     window.location.href = `tel:${member.phone}`;
@@ -271,31 +273,31 @@ export default function MemberProfile() {
 
   const handleDownloadProfile = () => {
     const doc = new jsPDF();
-  
+
     // Add a border
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.5);
-    doc.roundedRect(10, 10, 190, 270, 5, 5); // x, y, width, height, radiusX, radiusY
-  
+    doc.roundedRect(10, 10, 190, 270, 5, 5);
+
     // Add a logo at the top
     const logo = new Image();
-    logo.src = "/favicon.ico"; // Replace with your logo path
-    doc.addImage(logo, "PNG", 15, 15, 30, 30); // x, y, width, height
-  
+    logo.src = "/favicon.ico";
+    doc.addImage(logo, "PNG", 15, 15, 30, 30);
+
     // Gym name, address, and contact information
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("Sports Dot", 105, 30, { align: "center" }); // Gym name
-  
+    doc.text("Sports Dot", 105, 30, { align: "center" });
+
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("123 Fitness Street, FitCity, 456789", 105, 38, { align: "center" }); // Address
-    doc.text("Phone: +91 8300861600 | Email: info@sportsdot.com", 105, 43, { align: "center" }); // Contact details
-  
+    doc.text("123 Fitness Street, FitCity, 456789", 105, 38, { align: "center" });
+    doc.text("Phone: +91 8300861600 | Email: info@sportsdot.com", 105, 43, { align: "center" });
+
     // Add a horizontal line
     doc.setLineWidth(0.2);
-    doc.line(15, 50, 195, 50); // x1, y1, x2, y2
-  
+    doc.line(15, 50, 195, 50);
+
     // Date in the top-right corner
     const today = new Date();
     const formattedDate = `Date: ${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1)
@@ -303,15 +305,15 @@ export default function MemberProfile() {
       .padStart(2, "0")}/${today.getFullYear()}`;
     doc.setFontSize(10);
     doc.text(formattedDate, 190, 20, { align: "right" });
-  
+
     // Member profile section header
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text("Member Profile", 105, 60, { align: "center" });
-  
+
     // Member details, listed one by one
-    const detailsStartY = 70; // Starting Y position for details
-    const lineHeight = 15; // Line height for spacing
+    const detailsStartY = 70;
+    const lineHeight = 15;
     const details = [
       `Name: ${member.full_name}`,
       `Email: ${member.email}`,
@@ -322,26 +324,22 @@ export default function MemberProfile() {
       `Height: ${member.height} cm`,
       `Weight: ${member.weight} kg`,
     ];
-  
+
     // Add each detail to the PDF
     details.forEach((detail, index) => {
       const textY = detailsStartY + index * lineHeight;
       doc.setFont("helvetica", "normal");
-      doc.text(detail, 20, textY); // Add each detail one by one
+      doc.text(detail, 20, textY);
     });
-  
+
     // Footer for branding
     doc.setFontSize(10);
     doc.setFont("helvetica", "italic");
     doc.text("Generated by Sports Dot Gym Management System", 105, 280, { align: "center" });
-  
+
     // Save the PDF
     doc.save(`${member.full_name}_profile.pdf`);
   };
-  
-  
-  
-  
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -359,7 +357,7 @@ export default function MemberProfile() {
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
           <Link to="/settings">
-          <Settings className="h-6 w-6 text-purple-500" />
+            <Settings className="h-6 w-6 text-purple-500" />
           </Link>
         </div>
       </header>
@@ -372,81 +370,77 @@ export default function MemberProfile() {
         </Avatar>
         <h2 className="text-xl font-bold">{member.full_name}</h2>
         <p className="text-gray-500">{member.email}</p>
-         <p className="text-gray-500">{member.phone}</p>
-         <Button variant="ghost" className="mt-2" onClick={handleDownloadProfile}>
+        <p className="text-gray-500">{member.phone}</p>
+        <Button variant="ghost" className="mt-2" onClick={handleDownloadProfile}>
           <Download className="h-4 w-4 mr-2" />
           Download Profile
         </Button>
       </div>
-      
+
       {/* Contact Section */}
       <CardContent className="flex justify-center space-x-4">
-          <Button onClick={handlePhoneClick}>
-            <a href={`tel:${member.phone}`}>
+        <Button onClick={handlePhoneClick}>
+          <a href={`tel:${member.phone}`}>
             <Phone className="h-4 w-4 mr-2" />
-            </a>
-            Call
-          </Button>
-          <Drawer open={isWhatsAppDrawerOpen} onOpenChange={setIsWhatsAppDrawerOpen}>
-            <DrawerTrigger asChild>
-              <Button>
-                <MessageCircle className="h-4 w-4 mr-2" />
-                WhatsApp
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-              <DrawerHeader>
-                <DrawerTitle>Send WhatsApp Message</DrawerTitle>
-              </DrawerHeader>
-              <div className="p-4 space-y-4">
-                {messageTemplates.map((template) => (
-                  <Button
-                    key={template.id}
-                    onClick={() => handleWhatsAppSend(template.content)}
-                    className="w-full justify-start"
-                  >
-                    {template.title}
-                  </Button>
-                ))}
-              </div>
-            </DrawerContent>
-          </Drawer>
-        </CardContent>
+          </a>
+          Call
+        </Button>
+        <Drawer open={isWhatsAppDrawerOpen} onOpenChange={setIsWhatsAppDrawerOpen}>
+          <DrawerTrigger asChild>
+            <Button>
+              <MessageCircle className="h-4 w-4 mr-2" />
+              WhatsApp
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Send WhatsApp Message</DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4 space-y-4">
+              {messageTemplates.map((template) => (
+                <Button
+                  key={template.id}
+                  onClick={() => handleWhatsAppSend(template.content)}
+                  className="w-full justify-start"
+                >
+                  {template.title}
+                </Button>
+              ))}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      </CardContent>
 
-      {/* Active Memberships */}
+      {/* Active Membership */}
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-bold">Active Memberships</CardTitle>
+          <CardTitle className="text-lg font-bold">Active Membership</CardTitle>
           <span className="text-sm text-gray-500">#{member.admission_no}</span>
         </CardHeader>
         <CardContent>
-          {activeMemberships.length > 0 ? (
-            <div className="space-y-4">
-              {activeMemberships.map((membership) => (
-                <div key={membership.id} className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold">{membership.plans?.name || 'Unknown Plan'}</h3>
-                    <p className="text-sm text-gray-500">
-                      {new Date(membership.start_date).toLocaleDateString()} - {new Date(membership.end_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">₹{membership.plans?.price || 'N/A'}</p>
-                    <p className="text-sm text-gray-500">{membership.plans?.duration || 'N/A'} days</p>
-                  </div>
-                  <Badge variant="success">
-                    {membership.status}
-                  </Badge>
-                </div>
-              ))}
+          {activeMembership ? (
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-semibold">{activeMembership.plans?.name || 'Unknown Plan'}</h3>
+                <p className="text-sm text-gray-500">
+                  {new Date(activeMembership.start_date).toLocaleDateString()} - {new Date(activeMembership.end_date).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold">₹{activeMembership.plans?.price || 'N/A'}</p>
+                <p className="text-sm text-gray-500">{activeMembership.plans?.duration || 'N/A'} days</p>
+              </div>
+              <Badge variant="success">
+                {activeMembership.status}
+              </Badge>
             </div>
           ) : (
-            <p className="text-sm text-yellow-500">No active memberships found</p>
+            <p className="text-sm text-yellow-500">No active membership found</p>
           )}
           <Link to="addplans">
             <Button variant="outline" size="sm" className="mt-4">
               <Plus className="h-4 w-4 mr-2" />
-              Add Membership
+              {activeMembership ? 'Change Membership' : 'Add Membership'}
             </Button>
           </Link>
         </CardContent>
@@ -629,5 +623,5 @@ export default function MemberProfile() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

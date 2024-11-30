@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
+import { Button } from "~/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface Facility {
   id: string;
@@ -58,7 +60,14 @@ export default function FacilitiesList() {
               </CardContent>
             </Card>
           </Link>
+          
         ))}
+        {/* Floating action button */}
+        <Link to="/admin/add-facility" className="fixed right-6 bottom-6">
+          <Button size="icon" className="h-14 w-14 rounded-full">
+            <Plus className="h-6 w-6" />
+          </Button>
+        </Link>
       </div>
     </div>
   );

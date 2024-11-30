@@ -175,12 +175,7 @@ export default function AdminDashboard() {
           <Outlet />
         </div>
 
-        {/* Floating action button */}
-        <Link to="/admin/add-facility" className="fixed right-6 bottom-6">
-          <Button size="icon" className="h-14 w-14 rounded-full">
-            <Plus className="h-6 w-6" />
-          </Button>
-        </Link>
+        
       </main>
     </div>
   );

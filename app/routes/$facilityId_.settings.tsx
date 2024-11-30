@@ -94,7 +94,14 @@ export default function Component() {
     const now = new Date();
     const timeDiff = expirationDate.getTime() - now.getTime();
     const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
-    return `Expiring in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+
+    if (daysLeft < 0) {
+      return `Expired ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} ago`;
+    } else if (daysLeft <= 5) {
+      return `Expiring soon in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+    } else {
+      return `Expiring in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+    }
   };
 
   const handleWhatsAppContact = () => {
@@ -151,9 +158,17 @@ export default function Component() {
             <div className="space-y-2">
               <h4 className="font-semibold">Current plan</h4>
               <p className="text-lg">{subscription ? subscription.subscription_plans.name : 'No active plan'}</p>
-              <p className="text-green-500 text-sm inline-block bg-green-50 px-3 py-1 rounded-full">
+                <p
+                className={`text-sm inline-block px-3 py-1 rounded-full ${
+                  getExpirationText().includes('Expiring soon')
+                  ? 'bg-yellow-50 text-yellow-500'
+                  : getExpirationText().includes('Expired')
+                  ? 'bg-red-50 text-red-500'
+                  : 'bg-green-50 text-green-500'
+                }`}
+                >
                 • {getExpirationText()}
-              </p>
+                </p>
               <Button variant="ghost" className="text-gray-500 pl-0">
                 <RefreshCcw className="h-4 w-4 mr-2" />
                 Change plan
