@@ -1,12 +1,12 @@
-import { Outlet, Link, useLocation } from "@remix-run/react";
+import { Outlet, Link, useLocation, redirect } from "@remix-run/react";
 import { useLoaderData } from "@remix-run/react";
 import { json, LoaderFunction } from "@remix-run/node";
 import { Button } from "~/components/ui/button";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "~/components/ui/sheet";
-import { Plus, Menu, LayoutDashboard, Building, CreditCard, Settings, ChevronRight, Home, ChevronLeft } from 'lucide-react';
-
-import { createServerClient,parse,serialize } from "@supabase/ssr";
+import { Plus, Menu, LayoutDashboard, Building, CreditCard, Settings, ChevronRight, Home, ChevronLeft, User } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { createServerClient, parse, serialize } from "@supabase/ssr";
 import { useState } from "react";
 
 export const loader: LoaderFunction = async ({ request }) => {
@@ -34,7 +34,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   const { data: userData, error } = await supabase
     .from('users')
-    .select('is_admin')
+    .select('*')
     .eq('id', user.id)
     .single();
 
@@ -43,8 +43,24 @@ export const loader: LoaderFunction = async ({ request }) => {
     return json({ isCurrentUserAdmin: false });
   }
 
-  return json({ isCurrentUserAdmin: userData.is_admin, user });
+ 
+
+  return json({ isCurrentUserAdmin: userData.is_admin, user: userData });
+
 };
+
+const UserProfile = ({ user }) => (
+  <div className="flex items-center space-x-4 mb-6 p-4 bg-gray-100 rounded-lg">
+    <Avatar>
+      <AvatarImage src={user.avatar_url} alt={user.full_name} />
+      <AvatarFallback>{user.full_name.charAt(0)}</AvatarFallback>
+    </Avatar>
+    <div>
+      <p className="text-sm font-medium">{user.full_name}</p>
+      <p className="text-xs text-gray-500">{user.email}</p>
+    </div>
+  </div>
+);
 
 export default function AdminDashboard() {
   const { isCurrentUserAdmin, user } = useLoaderData<{ isCurrentUserAdmin: boolean, user: any }>();
@@ -64,9 +80,6 @@ export default function AdminDashboard() {
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const location = useLocation();
 
-
-  
-
   const sidebarItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard' },
     { icon: Building, label: 'Facilities', href: '/admin/facilities' },
@@ -84,6 +97,7 @@ export default function AdminDashboard() {
           </Button>
         )}
       </div>
+      {(isDesktopSidebarOpen || isMobile) && <UserProfile user={user} />}
       <nav className="space-y-2">
         {sidebarItems.map((item) => (
           <Link
@@ -174,8 +188,6 @@ export default function AdminDashboard() {
           <Breadcrumbs />
           <Outlet />
         </div>
-
-        
       </main>
     </div>
   );

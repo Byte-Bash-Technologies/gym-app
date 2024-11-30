@@ -86,7 +86,7 @@ export const loader: LoaderFunction = async ({ params }) => {
     .eq('id', params.memberId)
     .single();
 
-  if (memberError) throw new Response("Member not found", { status: 404 });
+  if (memberError) throw new Response("Member not found", { status: 405 });
 
   const { data: memberships, error: membershipsError } = await supabase
     .from('memberships')
@@ -151,7 +151,7 @@ export const loader: LoaderFunction = async ({ params }) => {
     messageTemplates: messageTemplates ?? []
   });
 };
-
+export {ErrorBoundary}from "~/components/CatchErrorBoundary";
 export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
   const action = formData.get('_action');
