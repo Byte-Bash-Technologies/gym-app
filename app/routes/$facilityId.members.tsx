@@ -1,7 +1,25 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useLoaderData, useSearchParams, useNavigate,useParams, Link, Outlet } from "@remix-run/react";
-import debounce from 'lodash.debounce';
-import { Bell, Phone, Settings, Search, UserPlus, Filter, ChevronDown, X, SortAsc, SortDesc } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  useLoaderData,
+  useSearchParams,
+  useNavigate,
+  useParams,
+  Link,
+  Outlet,
+} from "@remix-run/react";
+import debounce from "lodash.debounce";
+import {
+  Bell,
+  Phone,
+  Settings,
+  Search,
+  UserPlus,
+  Filter,
+  ChevronDown,
+  X,
+  SortAsc,
+  SortDesc,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -21,7 +39,7 @@ import { supabase } from "~/utils/supabase.server";
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const facilityId = params.facilityId;
-  
+
   if (!facilityId) {
     throw new Error("Facility ID is required");
   }
@@ -29,26 +47,27 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   try {
     const url = new URL(request.url);
     const filters = {
-      status: url.searchParams.getAll('status'),
-      plans: url.searchParams.getAll('plans'),
-      newMembers: url.searchParams.get('newMembers') === 'true',
-      expired30Days: url.searchParams.get('expired30Days') === 'true',
-      expiringIn1Week: url.searchParams.get('expiringIn1Week') === 'true',
+      status: url.searchParams.getAll("status"),
+      plans: url.searchParams.getAll("plans"),
+      newMembers: url.searchParams.get("newMembers") === "true",
+      expired30Days: url.searchParams.get("expired30Days") === "true",
+      expiringIn1Week: url.searchParams.get("expiringIn1Week") === "true",
     };
-    const sortBy = url.searchParams.get('sortBy') || 'name';
-    const sortOrder = url.searchParams.get('sortOrder') || 'asc';
+    const sortBy = url.searchParams.get("sortBy") || "name";
+    const sortOrder = url.searchParams.get("sortOrder") || "asc";
 
     const { data: facility, error: facilityError } = await supabase
-      .from('facilities')
-      .select('name')
-      .eq('id', facilityId)
+      .from("facilities")
+      .select("name")
+      .eq("id", facilityId)
       .single();
 
     if (facilityError) throw facilityError;
 
     const { data: members, error: membersError } = await supabase
       .from("members")
-      .select(`
+      .select(
+        `
         id, 
         full_name, 
         email, 
@@ -57,15 +76,16 @@ export const loader: LoaderFunction = async ({ params, request }) => {
         balance,
         joined_date,
         memberships(status, end_date, plans(name))
-      `)
+      `
+      )
       .eq("facility_id", facilityId);
 
     if (membersError) throw membersError;
 
     const { data: plans, error: plansError } = await supabase
-      .from('plans')
-      .select('id, name')
-      .eq('facility_id', facilityId);
+      .from("plans")
+      .select("id, name")
+      .eq("facility_id", facilityId);
 
     if (plansError) throw plansError;
 
@@ -74,9 +94,12 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 
     const processedMembers = members.map((member: any) => ({
       ...member,
-      status: member.memberships[0]?.status === 'active'
-        ? (new Date(member.memberships[0].end_date) <= sevenDaysFromNow ? 'expiring' : 'active')
-        : 'expired'
+      status:
+        member.memberships[0]?.status === "active"
+          ? new Date(member.memberships[0].end_date) <= sevenDaysFromNow
+            ? "expiring"
+            : "active"
+          : "expired",
     }));
 
     return json({
@@ -84,10 +107,10 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       members: processedMembers,
       plans,
       currentFilters: filters,
-      currentSort: { by: sortBy, order: sortOrder }
+      currentSort: { by: sortBy, order: sortOrder },
     });
   } catch (error) {
-    console.error('Error in loader:', error);
+    console.error("Error in loader:", error);
     throw new Response("Error loading data", { status: 500 });
   }
 };
@@ -96,13 +119,24 @@ export default function MembersPage() {
   const params = useParams();
   const data = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  const { facility, members = [], plans = [], currentFilters, currentSort } = data;
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string[]>(currentFilters.status);
+  const {
+    facility,
+    members = [],
+    plans = [],
+    currentFilters,
+    currentSort,
+  } = data;
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>(
+    currentFilters.status
+  );
   const [planFilter, setPlanFilter] = useState<string[]>(currentFilters.plans);
-  const [sortOption, setSortOption] = useState<{ by: string; order: 'asc' | 'desc' }>(currentSort);
+  const [sortOption, setSortOption] = useState<{
+    by: string;
+    order: "asc" | "desc";
+  }>(currentSort);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -118,25 +152,23 @@ export default function MembersPage() {
   };
 
   const handleStatusFilter = (status: string) => {
-    setStatusFilter(prev => 
-      prev.includes(status) 
-        ? prev.filter(s => s !== status)
+    setStatusFilter((prev) =>
+      prev.includes(status)
+        ? prev.filter((s) => s !== status)
         : [...prev, status]
     );
   };
 
   const handlePlanFilter = (plan: string) => {
-    setPlanFilter(prev => 
-      prev.includes(plan) 
-        ? prev.filter(p => p !== plan)
-        : [...prev, plan]
+    setPlanFilter((prev) =>
+      prev.includes(plan) ? prev.filter((p) => p !== plan) : [...prev, plan]
     );
   };
 
   const handleSortChange = (by: string) => {
-    setSortOption(prev => ({
+    setSortOption((prev) => ({
       by,
-      order: prev.by === by && prev.order === 'asc' ? 'desc' : 'asc'
+      order: prev.by === by && prev.order === "asc" ? "desc" : "asc",
     }));
   };
 
@@ -147,7 +179,9 @@ export default function MembersPage() {
   };
 
   const handleMemberClick = (memberId: number) => {
-    navigate(`${memberId}`, { state: { member: members.find(m => m.id === memberId) } });
+    navigate(`${memberId}`, {
+      state: { member: members.find((m) => m.id === memberId) },
+    });
   };
 
   const capitalizeFirstLetter = (string: string) => {
@@ -155,56 +189,63 @@ export default function MembersPage() {
   };
 
   const filteredMembers = useMemo(() => {
-    return members.filter(member => 
-      (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.phone.includes(searchTerm)) &&
-      (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
-      (planFilter.length === 0 || member.memberships.some(m => planFilter.includes(m.plans.name)))
-    ).sort((a, b) => {
-      if (sortOption.by === 'name') {
-        return sortOption.order === 'asc' 
-          ? a.full_name.localeCompare(b.full_name)
-          : b.full_name.localeCompare(a.full_name);
-      } else if (sortOption.by === 'joined') {
-        return sortOption.order === 'asc'
-          ? new Date(a.joined_date).getTime() - new Date(b.joined_date).getTime()
-          : new Date(b.joined_date).getTime() - new Date(a.joined_date).getTime();
-      } else if (sortOption.by === 'balance') {
-        return sortOption.order === 'asc' ? a.balance - b.balance : b.balance - a.balance;
-      }
-      return 0;
-    });
+    return members
+      .filter(
+        (member) =>
+          (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            member.phone.includes(searchTerm)) &&
+          (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
+          (planFilter.length === 0 ||
+            member.memberships.some((m) => planFilter.includes(m.plans.name)))
+      )
+      .sort((a, b) => {
+        if (sortOption.by === "name") {
+          return sortOption.order === "asc"
+            ? a.full_name.localeCompare(b.full_name)
+            : b.full_name.localeCompare(a.full_name);
+        } else if (sortOption.by === "joined") {
+          return sortOption.order === "asc"
+            ? new Date(a.joined_date).getTime() -
+                new Date(b.joined_date).getTime()
+            : new Date(b.joined_date).getTime() -
+                new Date(a.joined_date).getTime();
+        } else if (sortOption.by === "balance") {
+          return sortOption.order === "asc"
+            ? a.balance - b.balance
+            : b.balance - a.balance;
+        }
+        return 0;
+      });
   }, [members, searchTerm, statusFilter, planFilter, sortOption]);
 
   useEffect(() => {
     const newParams = new URLSearchParams(searchParams);
-    if (searchTerm) newParams.set('search', searchTerm);
-    if (statusFilter.length) newParams.set('status', statusFilter.join(','));
-    if (planFilter.length) newParams.set('plans', planFilter.join(','));
-    newParams.set('sortBy', sortOption.by);
-    newParams.set('sortOrder', sortOption.order);
+    if (searchTerm) newParams.set("search", searchTerm);
+    if (statusFilter.length) newParams.set("status", statusFilter.join(","));
+    if (planFilter.length) newParams.set("plans", planFilter.join(","));
+    newParams.set("sortBy", sortOption.by);
+    newParams.set("sortOrder", sortOption.order);
     setSearchParams(newParams, { replace: true });
   }, [searchTerm, statusFilter, planFilter, sortOption, setSearchParams]);
 
   if (!facility) {
     return <div className="p-4">Facility not found</div>;
   }
- 
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
       <header className="bg-white p-4 flex items-center justify-between">
         <h1 className="text-xl font-bold ml-6">
-          Members - {facility?.name || 'Loading...'}
+          Members - {facility?.name || "Loading..."}
         </h1>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <a href="tel:8300861600">
+          <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <a href={`/${params.facilityId}/settings`}>         
-          <Settings className="h-6 w-6 text-purple-500" />
-          </a>             
+          <a href={`/${params.facilityId}/settings`}>
+            <Settings className="h-6 w-6 text-purple-500" />
+          </a>
         </div>
       </header>
 
@@ -238,21 +279,41 @@ export default function MembersPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => handleSortChange('name')}>
-                    Sort by Name {sortOption.by === 'name' && (sortOption.order === 'asc' ? <SortAsc className="ml-2 h-4 w-4" /> : <SortDesc className="ml-2 h-4 w-4" />)}
+                  <DropdownMenuItem onSelect={() => handleSortChange("name")}>
+                    Sort by Name{" "}
+                    {sortOption.by === "name" &&
+                      (sortOption.order === "asc" ? (
+                        <SortAsc className="ml-2 h-4 w-4" />
+                      ) : (
+                        <SortDesc className="ml-2 h-4 w-4" />
+                      ))}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleSortChange('joined')}>
-                    Sort by Join Date {sortOption.by === 'joined' && (sortOption.order === 'asc' ? <SortAsc className="ml-2 h-4 w-4" /> : <SortDesc className="ml-2 h-4 w-4" />)}
+                  <DropdownMenuItem onSelect={() => handleSortChange("joined")}>
+                    Sort by Join Date{" "}
+                    {sortOption.by === "joined" &&
+                      (sortOption.order === "asc" ? (
+                        <SortAsc className="ml-2 h-4 w-4" />
+                      ) : (
+                        <SortDesc className="ml-2 h-4 w-4" />
+                      ))}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleSortChange('balance')}>
-                    Sort by Balance {sortOption.by === 'balance' && (sortOption.order === 'asc' ? <SortAsc className="ml-2 h-4 w-4" /> : <SortDesc className="ml-2 h-4 w-4" />)}
+                  <DropdownMenuItem
+                    onSelect={() => handleSortChange("balance")}
+                  >
+                    Sort by Balance{" "}
+                    {sortOption.by === "balance" &&
+                      (sortOption.order === "asc" ? (
+                        <SortAsc className="ml-2 h-4 w-4" />
+                      ) : (
+                        <SortDesc className="ml-2 h-4 w-4" />
+                      ))}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
         </div>
-        
+
         {isFilterOpen && (
           <Card className="p-4 bg-white">
             <h3 className="font-semibold mb-2">Filters</h3>
@@ -260,7 +321,7 @@ export default function MembersPage() {
               <div>
                 <h4 className="font-medium mb-1">Status</h4>
                 <div className="space-y-2">
-                  {['active', 'expired', 'expiring'].map((status) => (
+                  {["active", "expired", "expiring"].map((status) => (
                     <div key={status} className="flex items-center">
                       <Checkbox
                         id={status}
@@ -298,15 +359,18 @@ export default function MembersPage() {
         {(statusFilter.length > 0 || planFilter.length > 0) && (
           <div className="flex items-center space-x-2 flex-wrap">
             <span className="text-sm text-gray-500">Filtered by:</span>
-            {statusFilter.map(filter => (
+            {statusFilter.map((filter) => (
               <Badge key={filter} variant="secondary" className="text-xs">
                 {capitalizeFirstLetter(filter)}
-                <button onClick={() => handleStatusFilter(filter)} className="ml-1">
+                <button
+                  onClick={() => handleStatusFilter(filter)}
+                  className="ml-1"
+                >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             ))}
-            {planFilter.map(plan => (
+            {planFilter.map((plan) => (
               <Badge key={plan} variant="secondary" className="text-xs">
                 {plan}
                 <button onClick={() => handlePlanFilter(plan)} className="ml-1">
@@ -314,12 +378,14 @@ export default function MembersPage() {
                 </button>
               </Badge>
             ))}
-            <Button variant="ghost" size="sm" onClick={clearFilters}>Clear all</Button>
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Clear all
+            </Button>
           </div>
         )}
-        
+
         <h2 className="text-lg font-semibold mb-4">All members</h2>
-        
+
         <Card className="bg-purple-100 p-4">
           <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
             {!filteredMembers?.length ? (
@@ -332,7 +398,10 @@ export default function MembersPage() {
                   className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
                 >
                   <Avatar className="h-12 w-12">
-                  <AvatarImage src={member.photo_url} alt={member.full_name} />
+                    <AvatarImage
+                      src={member.photo_url}
+                      alt={member.full_name}
+                    />
                     <AvatarFallback>{member.full_name[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
@@ -340,21 +409,28 @@ export default function MembersPage() {
                     <p className="text-sm text-muted-foreground">
                       {member.phone}
                     </p>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {member.email}
+                    </p>
                   </div>
                   <div className="text-right hidden md:block">
-                    <p className="text-sm font-medium">Balance: ₹{member.balance}</p>
-                    <p className="text-xs text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
+                    <p className="text-sm font-medium">
+                      Balance: ₹{member.balance}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Joined:{" "}
+                      {new Date(member.joined_date).toLocaleDateString()}
+                    </p>
                   </div>
                   <div
                     className={`
                     h-2 w-2 rounded-full
                     ${
                       member.status === "active"
-                      ? "bg-green-500"
-                      : member.status === "expired"
-                      ? "bg-red-500"
-                      : "bg-yellow-500"
+                        ? "bg-green-500"
+                        : member.status === "expired"
+                        ? "bg-red-500"
+                        : "bg-yellow-500"
                     }
                     `}
                   />
@@ -378,4 +454,3 @@ export default function MembersPage() {
     </div>
   );
 }
-

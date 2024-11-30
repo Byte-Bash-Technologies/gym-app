@@ -4,8 +4,8 @@ import { json } from "@remix-run/node";
 export const loader = () => {
   return json(
     {
-      short_name: "PWA",
-      name: "Remix PWA",
+      short_name: "SportsDot",
+      name: "SportsDot",
       start_url: "/",
       display: "standalone",
       background_color: "#d3d7dd",

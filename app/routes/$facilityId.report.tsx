@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { useLoaderData, Link, useParams, useNavigate } from "@remix-run/react";
 import {
   Bell,
@@ -9,14 +9,26 @@ import {
   ArrowUp,
   ArrowDown,
   Filter,
-} from 'lucide-react';
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
-import { Area, Line, LineChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
+import {
+  Area,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "~/components/ui/chart";
 import BottomNav from "~/components/BottomNav";
 import { loader } from "./reports.$facilityId.loader";
 
@@ -25,8 +37,9 @@ export { loader };
 export default function ReportPage() {
   const params = useParams();
   const navigate = useNavigate();
-  const { metrics, transactions, transactionStats, income, earningSummary } = useLoaderData<typeof loader>();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { metrics, transactions, transactionStats, income, earningSummary } =
+    useLoaderData<typeof loader>();
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Calculate total amount and percentages for the pie chart
   const totalAmount = metrics.totalReceived + metrics.pendingPayment;
@@ -69,10 +82,10 @@ export default function ReportPage() {
         </div>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <a href="tel:8300861600">
+          <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <a  href={`/${params.facilityId}/settings`}>
+          <a href={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
           </a>
           {/*<Link to={`/${params.facilityId}/settings`}>
@@ -119,13 +132,17 @@ export default function ReportPage() {
         <div className="grid grid-cols-2 gap-4">
           <Card className="p-4">
             <CardContent>
-              <p className="text-blue-500 text-xl font-bold">₹{(metrics.totalReceived ?? 0).toFixed(2)}</p>
+              <p className="text-blue-500 text-xl font-bold">
+                ₹{(metrics.totalReceived ?? 0).toFixed(2)}
+              </p>
               <p className="text-sm text-gray-500">Total received</p>
             </CardContent>
           </Card>
           <Card className="p-4">
             <CardContent>
-              <p className="text-red-500 text-xl font-bold">₹{(metrics.pendingPayment ?? 0).toFixed(2)}</p>
+              <p className="text-red-500 text-xl font-bold">
+                ₹{(metrics.pendingPayment ?? 0).toFixed(2)}
+              </p>
               <p className="text-sm text-gray-500">Pending payment</p>
             </CardContent>
           </Card>
@@ -143,8 +160,18 @@ export default function ReportPage() {
               </CardHeader>
               <CardContent>
                 <div className="relative w-48 h-48 mx-auto mb-4">
-                  <svg viewBox="0 0 100 100" className="transform -rotate-90 w-full h-full">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                  <svg
+                    viewBox="0 0 100 100"
+                    className="transform -rotate-90 w-full h-full"
+                  >
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke="#e2e8f0"
+                      strokeWidth="10"
+                    />
                     <circle
                       cx="50"
                       cy="50"
@@ -172,8 +199,19 @@ export default function ReportPage() {
                       <span className="w-3 h-3 bg-blue-500 rounded-full mr-2" />
                       Total received
                     </span>
-                    <span className={transactionStats.received > 50 ? "text-green-500" : "text-red-500"}>
-                      {(transactionStats.received ?? 0).toFixed(1)}% {transactionStats.received > 50 ? <ArrowUp className="inline h-4 w-4" /> : <ArrowDown className="inline h-4 w-4" />}
+                    <span
+                      className={
+                        transactionStats.received > 50
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }
+                    >
+                      {(transactionStats.received ?? 0).toFixed(1)}%{" "}
+                      {transactionStats.received > 50 ? (
+                        <ArrowUp className="inline h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="inline h-4 w-4" />
+                      )}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -181,8 +219,19 @@ export default function ReportPage() {
                       <span className="w-3 h-3 bg-red-500 rounded-full mr-2" />
                       Total Pending
                     </span>
-                    <span className={transactionStats.pending > 50 ? "text-green-500" : "text-red-500"}>
-                      {(transactionStats.pending ?? 0).toFixed(1)}% {transactionStats.pending > 50 ? <ArrowUp className="inline h-4 w-4" /> : <ArrowDown className="inline h-4 w-4" />}
+                    <span
+                      className={
+                        transactionStats.pending > 50
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }
+                    >
+                      {(transactionStats.pending ?? 0).toFixed(1)}%{" "}
+                      {transactionStats.pending > 50 ? (
+                        <ArrowUp className="inline h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="inline h-4 w-4" />
+                      )}
                     </span>
                   </div>
                 </div>
@@ -200,10 +249,21 @@ export default function ReportPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-3xl font-bold">₹{income.today.toFixed(2)}</span>
-                    <span className={income.percentageChange >= 0 ? "text-green-500" : "text-red-500"}>
-                      {income.percentageChange >= 0 ? <ArrowUp className="inline h-4 w-4" /> : <ArrowDown className="inline h-4 w-4" />}
-                      {" "}
+                    <span className="text-3xl font-bold">
+                      ₹{income.today.toFixed(2)}
+                    </span>
+                    <span
+                      className={
+                        income.percentageChange >= 0
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }
+                    >
+                      {income.percentageChange >= 0 ? (
+                        <ArrowUp className="inline h-4 w-4" />
+                      ) : (
+                        <ArrowDown className="inline h-4 w-4" />
+                      )}{" "}
                       {Math.abs(income.percentageChange).toFixed(1)}%
                     </span>
                   </div>
@@ -212,7 +272,12 @@ export default function ReportPage() {
                   </p>
                   <div className="flex justify-between text-sm">
                     <span>Last week incomes</span>
-                    <span className="font-semibold">₹{earningSummary.reduce((sum, day) => sum + day.amount, 0).toFixed(2)}</span>
+                    <span className="font-semibold">
+                      ₹
+                      {earningSummary
+                        .reduce((sum, day) => sum + day.amount, 0)
+                        .toFixed(2)}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-4">
@@ -232,22 +297,34 @@ export default function ReportPage() {
                           className="h-40 w-full"
                         >
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={earningSummary} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                            <LineChart
+                              data={earningSummary}
+                              margin={{
+                                top: 20,
+                                right: 30,
+                                left: 0,
+                                bottom: 0,
+                              }}
+                            >
                               <XAxis
                                 dataKey="date"
-                                tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}
+                                tickFormatter={(value) =>
+                                  new Date(value).toLocaleDateString("en-US", {
+                                    weekday: "short",
+                                  })
+                                }
                                 tickLine={false}
-                                axisLine={{ stroke: 'black' }}
-                                tick={{ fill: 'black' }}
+                                axisLine={{ stroke: "black" }}
+                                tick={{ fill: "black" }}
                               />
                               <YAxis
                                 tickFormatter={(value) => `₹${value}`}
                                 tickLine={false}
-                                axisLine={{ stroke: 'black' }}
-                                tick={{ fill: 'black' }}
+                                axisLine={{ stroke: "black" }}
+                                tick={{ fill: "black" }}
                                 tickCount={6}
                                 domain={[0, 50000]}
-                                ticks={[0, 10000, 30000, 50000 ]}
+                                ticks={[0, 10000, 30000, 50000]}
                               />
                               <CartesianGrid strokeDasharray="3 3" />
                               <ChartTooltip content={<ChartTooltipContent />} />
@@ -292,7 +369,10 @@ export default function ReportPage() {
                 >
                   <div className="flex items-center space-x-3">
                     <Avatar>
-                      <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${transaction.user}`} alt={transaction.user} />
+                      <AvatarImage
+                        src={`https://api.dicebear.com/6.x/initials/svg?seed=${transaction.user}`}
+                        alt={transaction.user}
+                      />
                       <AvatarFallback>{transaction.user[0]}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -302,8 +382,13 @@ export default function ReportPage() {
                       </p>
                     </div>
                   </div>
-                  <span className={`font-semibold ${transaction.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {transaction.amount > 0 ? '+' : '-'}₹{Math.abs(transaction.amount).toFixed(2)}
+                  <span
+                    className={`font-semibold ${
+                      transaction.amount > 0 ? "text-green-500" : "text-red-500"
+                    }`}
+                  >
+                    {transaction.amount > 0 ? "+" : "-"}₹
+                    {Math.abs(transaction.amount).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -314,4 +399,3 @@ export default function ReportPage() {
     </div>
   );
 }
-

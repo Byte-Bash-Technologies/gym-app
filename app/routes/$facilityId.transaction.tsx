@@ -1,19 +1,17 @@
 import { json, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useParams } from "@remix-run/react";
-import {
-  Bell,
-  Phone,
-  Settings,
-  Search,
-  Filter,
-} from "lucide-react";
+import { Bell, Phone, Settings, Search, Filter } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "~/components/ui/chart";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "~/components/ui/chart";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
 
 interface Transaction {
@@ -36,17 +34,19 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   // Fetch transactions for today
   const { data: transactions, error: transactionError } = await supabase
-    .from('transactions')
-    .select(`
+    .from("transactions")
+    .select(
+      `
       id,
       amount,
       created_at,
       members (id, full_name, email)
-    `)
-    .eq('type', 'payment')
-    .eq('facility_id', facilityId)
-    .gte('created_at', today.toISOString().split('T')[0])
-    .order('created_at', { ascending: false });
+    `
+    )
+    .eq("type", "payment")
+    .eq("facility_id", facilityId)
+    .gte("created_at", today.toISOString().split("T")[0])
+    .order("created_at", { ascending: false });
 
   if (transactionError) {
     console.error("Error fetching transactions:", transactionError);
@@ -59,27 +59,30 @@ export const loader: LoaderFunction = async ({ params }) => {
   // Fetch previous day's income
   const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
   const { data: previousTransactions, error: previousError } = await supabase
-    .from('transactions')
-    .select('amount')
-    .eq('type', 'payment')
-    .eq('facility_id', facilityId)
-    .gte('created_at', yesterday.toISOString().split('T')[0])
-    .lt('created_at', today.toISOString().split('T')[0]);
+    .from("transactions")
+    .select("amount")
+    .eq("type", "payment")
+    .eq("facility_id", facilityId)
+    .gte("created_at", yesterday.toISOString().split("T")[0])
+    .lt("created_at", today.toISOString().split("T")[0]);
 
   if (previousError) {
     console.error("Error fetching previous transactions:", previousError);
     throw new Response("Error fetching previous transactions", { status: 500 });
   }
 
-  const previousIncome = previousTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const previousIncome = previousTransactions.reduce(
+    (sum, t) => sum + t.amount,
+    0
+  );
 
   // Fetch weekly income and daily earnings
   const { data: weeklyTransactions, error: weeklyError } = await supabase
-    .from('transactions')
-    .select('amount, created_at')
-    .eq('type', 'payment')
-    .eq('facility_id', facilityId)
-    .gte('created_at', sevenDaysAgo.toISOString());
+    .from("transactions")
+    .select("amount, created_at")
+    .eq("type", "payment")
+    .eq("facility_id", facilityId)
+    .gte("created_at", sevenDaysAgo.toISOString());
 
   if (weeklyError) {
     console.error("Error fetching weekly transactions:", weeklyError);
@@ -91,40 +94,52 @@ export const loader: LoaderFunction = async ({ params }) => {
   // Calculate daily earnings for the past week
   const dailyEarnings: DailyEarning[] = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = date.toISOString().split("T")[0];
     const amount = weeklyTransactions
-      .filter(t => t.created_at.startsWith(dateString))
+      .filter((t) => t.created_at.startsWith(dateString))
       .reduce((sum, t) => sum + t.amount, 0);
     return { date: dateString, amount };
   }).reverse();
 
   // Fetch total pending balance from members table
   const { data: membersBalance, error: membersBalanceError } = await supabase
-    .from('members')
-    .select('balance')
-    .eq('facility_id', facilityId)
-    .gt('balance', 0);
+    .from("members")
+    .select("balance")
+    .eq("facility_id", facilityId)
+    .gt("balance", 0);
 
   if (membersBalanceError) {
     console.error("Error fetching members balance:", membersBalanceError);
     throw new Response("Error fetching members balance", { status: 500 });
   }
 
-  const totalPendingBalance = membersBalance.reduce((sum, member) => sum + member.balance, 0);
-
+  const totalPendingBalance = membersBalance.reduce(
+    (sum, member) => sum + member.balance,
+    0
+  );
 
   // Calculate stats
   const totalTransactions = transactions.length;
-  const received = Math.round((transactions.filter(t => t.amount > 0).length / totalTransactions) * 100) || 0;
-  const paid = Math.round((transactions.filter(t => t.amount < 0).length / totalTransactions) * 100) || 0;
+  const received =
+    Math.round(
+      (transactions.filter((t) => t.amount > 0).length / totalTransactions) *
+        100
+    ) || 0;
+  const paid =
+    Math.round(
+      (transactions.filter((t) => t.amount < 0).length / totalTransactions) *
+        100
+    ) || 0;
   const pending = 100 - received - paid;
 
   return json({
-    transactions: transactions.map(t => ({
+    transactions: transactions.map((t) => ({
       id: t.id,
       user: t.members.full_name,
       amount: t.amount,
-      timestamp: new Date(t.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      timestamp: new Date(t.created_at).toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+      }),
       avatar: `https://api.dicebear.com/6.x/initials/svg?seed=${t.members.full_name}`,
     })),
     income,
@@ -142,20 +157,26 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 export default function Transactions() {
   const params = useParams();
-  const { transactions, income, previousIncome, weeklyIncome, totalPendingBalance, dailyEarnings } =
-    useLoaderData<{
-      transactions: Transaction[];
-      income: number;
-      previousIncome: number;
-      weeklyIncome: number;
-      totalPendingBalance: number;
-      stats: {
-        received: number;
-        paid: number;
-        pending: number;
-      };
-      dailyEarnings: DailyEarning[];
-    }>();
+  const {
+    transactions,
+    income,
+    previousIncome,
+    weeklyIncome,
+    totalPendingBalance,
+    dailyEarnings,
+  } = useLoaderData<{
+    transactions: Transaction[];
+    income: number;
+    previousIncome: number;
+    weeklyIncome: number;
+    totalPendingBalance: number;
+    stats: {
+      received: number;
+      paid: number;
+      pending: number;
+    };
+    dailyEarnings: DailyEarning[];
+  }>();
 
   // Calculate total amount and percentages
   const totalAmount = income + totalPendingBalance;
@@ -176,10 +197,10 @@ export default function Transactions() {
         </div>
         <div className="flex items-center space-x-4">
           <Bell className="h-6 w-6 text-purple-500" />
-          <a href="tel:8300861600">
+          <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <a  href={`/${params.facilityId}/settings`}>
+          <a href={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
           </a>
           {/*<Link to={`/${params.facilityId}/settings`}>
@@ -205,7 +226,6 @@ export default function Transactions() {
             >
               <Filter className="text-purple-500">✓</Filter>
             </Button>
-            
           </div>
         </div>
       </div>
@@ -293,7 +313,12 @@ export default function Transactions() {
                       variant="secondary"
                       className="ml-2 bg-green-100 text-green-600"
                     >
-                      ↑ {((income - previousIncome) / previousIncome * 100).toFixed(1)}%
+                      ↑{" "}
+                      {(
+                        ((income - previousIncome) / previousIncome) *
+                        100
+                      ).toFixed(1)}
+                      %
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-500">
@@ -326,7 +351,11 @@ export default function Transactions() {
                     <LineChart data={dailyEarnings}>
                       <XAxis
                         dataKey="date"
-                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}
+                        tickFormatter={(value) =>
+                          new Date(value).toLocaleDateString("en-US", {
+                            weekday: "short",
+                          })
+                        }
                       />
                       <YAxis
                         tickFormatter={(value) => `₹${value / 1000}k`}
@@ -380,7 +409,6 @@ export default function Transactions() {
           </CardContent>
         </Card>
       </div>
-
     </div>
   );
 }

@@ -26,12 +26,14 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "robots.txt", "apple-touch-icon.png"],
       manifest: {
+        id: "/",
         name: "Sports Dot",
         short_name: "Sports Dot",
-        description: "Sports Dot Member Management,manage your gym and badminton court members with ease",
+        description: "Sports Dot Member Management, manage your gym and badminton court members with ease",
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",
+        display_override: ["window-controls-overlay"],
         start_url: "/",
         icons: [
           {
@@ -44,8 +46,21 @@ export default defineConfig({
             sizes: "512x512",
             type: "image/png"
           }
-        ]
+        ],
+        // screenshots: [
+        //   {
+        //     src: "/screenshots/screenshot1.png",
+        //     sizes: "1280x720",
+        //     type: "image/png",
+        //     form_factor: "wide"
+        //   },
+        //   {
+        //     src: "/screenshots/screenshot2.png",
+        //     sizes: "720x1280",
+        //     type: "image/png"
+        //   }
+        // ]
       }
-    })
+    })    
   ],
 });

@@ -1,12 +1,31 @@
 import { json, redirect, LoaderFunction } from "@remix-run/node";
 import { Outlet, useLoaderData, useNavigate, Link } from "@remix-run/react";
-import { ArrowLeft, Bell, Phone, SettingsIcon, RefreshCcw, MessageSquare, BarChart, User2, Clock, X, LogOut } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  Phone,
+  SettingsIcon,
+  RefreshCcw,
+  MessageSquare,
+  BarChart,
+  User2,
+  Clock,
+  X,
+  LogOut,
+} from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { supabase } from "~/utils/supabase.client";
-import { createServerClient, parse, serialize } from '@supabase/ssr';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "~/components/ui/dialog";
+import { createServerClient, parse, serialize } from "@supabase/ssr";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "~/components/ui/dialog";
 import { useState } from "react";
 
 export const loader: LoaderFunction = async ({ params, request }) => {
@@ -29,44 +48,46 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     }
   );
 
-  const { data: { user } } = await supabaseClient.auth.getUser();
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser();
 
   if (!user) {
-    return redirect('/login');
+    return redirect("/login");
   }
 
   const { data: userData, error: userError } = await supabaseClient
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
+    .from("users")
+    .select("*")
+    .eq("id", user.id)
     .single();
 
   if (userError) {
-    console.error('Error fetching user data:', userError);
-    return redirect('/login');
+    console.error("Error fetching user data:", userError);
+    return redirect("/login");
   }
 
   const { data: facility, error: facilityError } = await supabaseClient
-    .from('facilities')
-    .select('*')
-    .eq('id', facilityId)
+    .from("facilities")
+    .select("*")
+    .eq("id", facilityId)
     .single();
 
   if (facilityError) {
-    console.error('Error fetching facility data:', facilityError);
-    return redirect('/');
+    console.error("Error fetching facility data:", facilityError);
+    return redirect("/");
   }
 
   const { data: subscription, error: subscriptionError } = await supabaseClient
-    .from('facility_subscriptions')
-    .select('*, subscription_plans(*)')
-    .eq('facility_id', facilityId)
-    .order('created_at', { ascending: false })
+    .from("facility_subscriptions")
+    .select("*, subscription_plans(*)")
+    .eq("facility_id", facilityId)
+    .order("created_at", { ascending: false })
     .limit(1)
     .single();
 
   if (subscriptionError) {
-    console.error('Error fetching subscription data:', subscriptionError);
+    console.error("Error fetching subscription data:", subscriptionError);
   }
 
   return json({ user: userData, facility, subscription });
@@ -82,37 +103,41 @@ export default function Component() {
     try {
       await supabase.auth.signOut();
       localStorage.clear();
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
     }
   };
 
   const getExpirationText = () => {
-    if (!subscription) return 'No active subscription';
+    if (!subscription) return "No active subscription";
     const expirationDate = new Date(subscription.end_date);
     const now = new Date();
     const timeDiff = expirationDate.getTime() - now.getTime();
     const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
     if (daysLeft < 0) {
-      return `Expired ${Math.abs(daysLeft)} day${Math.abs(daysLeft) !== 1 ? 's' : ''} ago`;
+      return `Expired ${Math.abs(daysLeft)} day${
+        Math.abs(daysLeft) !== 1 ? "s" : ""
+      } ago`;
     } else if (daysLeft <= 5) {
-      return `Expiring soon in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+      return `Expiring soon in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
     } else {
-      return `Expiring in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+      return `Expiring in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
     }
   };
 
   const handleWhatsAppContact = () => {
-    const phoneNumber = "918300861600";
-    const message = encodeURIComponent("Hello, I need assistance with my Sportsdot account.");
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+    const phoneNumber = "917010976271";
+    const message = encodeURIComponent(
+      "Hello, I need assistance with my Sportsdot account."
+    );
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
     setIsContactDialogOpen(false);
   };
 
   const handlePhoneContact = () => {
-    window.location.href = "tel:+918300861600";
+    window.location.href = "tel:+917010976271";
     setIsContactDialogOpen(false);
   };
 
@@ -132,7 +157,10 @@ export default function Component() {
         {/* Profile Section */}
         <div className="flex flex-col items-center text-center space-y-2">
           <Avatar className="w-24 h-24">
-            <AvatarImage src={user.avatar_url || "/placeholder.svg"} alt={user.full_name} />
+            <AvatarImage
+              src={user.avatar_url || "/placeholder.svg"}
+              alt={user.full_name}
+            />
             <AvatarFallback>{user.full_name[0]}</AvatarFallback>
           </Avatar>
           <h2 className="text-xl font-bold">{user.full_name}</h2>
@@ -146,7 +174,10 @@ export default function Component() {
           <Card className="p-4 bg-purple-50">
             <div className="flex items-center gap-3 mb-4">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={facility.logo_url || "/placeholder.svg"} alt={facility.name} />
+                <AvatarImage
+                  src={facility.logo_url || "/placeholder.svg"}
+                  alt={facility.name}
+                />
                 <AvatarFallback>{facility.name[0]}</AvatarFallback>
               </Avatar>
               <div>
@@ -157,18 +188,22 @@ export default function Component() {
 
             <div className="space-y-2">
               <h4 className="font-semibold">Current plan</h4>
-              <p className="text-lg">{subscription ? subscription.subscription_plans.name : 'No active plan'}</p>
-                <p
+              <p className="text-lg">
+                {subscription
+                  ? subscription.subscription_plans.name
+                  : "No active plan"}
+              </p>
+              <p
                 className={`text-sm inline-block px-3 py-1 rounded-full ${
-                  getExpirationText().includes('Expiring soon')
-                  ? 'bg-yellow-50 text-yellow-500'
-                  : getExpirationText().includes('Expired')
-                  ? 'bg-red-50 text-red-500'
-                  : 'bg-green-50 text-green-500'
+                  getExpirationText().includes("Expiring soon")
+                    ? "bg-yellow-50 text-yellow-500"
+                    : getExpirationText().includes("Expired")
+                    ? "bg-red-50 text-red-500"
+                    : "bg-green-50 text-green-500"
                 }`}
-                >
+              >
                 • {getExpirationText()}
-                </p>
+              </p>
               <Button variant="ghost" className="text-gray-500 pl-0">
                 <RefreshCcw className="h-4 w-4 mr-2" />
                 Change plan
@@ -200,11 +235,19 @@ export default function Component() {
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Sportsdot</h2>
           <Card className="divide-y">
-            <Button variant="ghost" className="w-full justify-start p-4" onClick={() => setIsContactDialogOpen(true)}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start p-4"
+              onClick={() => setIsContactDialogOpen(true)}
+            >
               <User2 className="h-5 w-5 mr-3 text-purple-500" />
               Contact us
             </Button>
-            <Button variant="ghost" className="w-full justify-start p-4" onClick={() => setIsInfoDialogOpen(true)}>
+            <Button
+              variant="ghost"
+              className="w-full justify-start p-4"
+              onClick={() => setIsInfoDialogOpen(true)}
+            >
               <Clock className="h-5 w-5 mr-3 text-purple-500" />
               Support and Information
             </Button>
@@ -212,7 +255,8 @@ export default function Component() {
         </section>
 
         {/* Logout Button */}
-        <Link to="/logout"
+        <Link
+          to="/logout"
           className="w-full flex items-center justify-center gap-2"
         >
           <LogOut className="h-5 w-5" />
@@ -220,7 +264,7 @@ export default function Component() {
         </Link>
         <Outlet />
       </main>
-    
+
       {/* Contact Us Dialog */}
       <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
         <DialogContent>
@@ -233,7 +277,11 @@ export default function Component() {
               <Button onClick={handleWhatsAppContact} className="w-full">
                 Contact via WhatsApp
               </Button>
-              <Button onClick={handlePhoneContact} variant="outline" className="w-full">
+              <Button
+                onClick={handlePhoneContact}
+                variant="outline"
+                className="w-full"
+              >
                 Call Us
               </Button>
             </div>
@@ -258,13 +306,14 @@ export default function Component() {
           <DialogDescription>
             <div className="space-y-4">
               <p>
-                Welcome to Sportsdot support! We're here to help you manage your fitness facility efficiently.
+                Welcome to Sportsdot support! We're here to help you manage your
+                fitness facility efficiently.
               </p>
               <h3 className="font-semibold">Contact Information:</h3>
               <ul className="list-disc pl-5 space-y-2">
-                <li>Phone: +91 8300861600</li>
+                <li>Phone: +91 7010976271</li>
                 <li>Email: support@sportsdot.com</li>
-                <li>WhatsApp: +91 8300861600</li>
+                <li>WhatsApp: +91 7010976271</li>
               </ul>
               <h3 className="font-semibold">Support Hours:</h3>
               <p>Monday to Friday: 9:00 AM to 6:00 PM IST</p>
