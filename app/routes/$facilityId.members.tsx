@@ -138,6 +138,9 @@ export default function MembersPage() {
     order: "asc" | "desc";
   }>(currentSort);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showJoinedFirst, setShowJoinedFirst] = useState(false);
+  const [showJoinedRecently, setShowJoinedRecently] = useState(false);
+  const [showMembersWithNoPlan, setShowMembersWithNoPlan] = useState(false);
   const navigate = useNavigate();
 
   const debouncedSearch = useCallback(
@@ -175,6 +178,9 @@ export default function MembersPage() {
   const clearFilters = () => {
     setStatusFilter([]);
     setPlanFilter([]);
+    setShowJoinedFirst(false);
+    setShowJoinedRecently(false);
+    setShowMembersWithNoPlan(false);
     setSearchParams(new URLSearchParams());
   };
 
@@ -189,7 +195,7 @@ export default function MembersPage() {
   };
 
   const filteredMembers = useMemo(() => {
-    return members
+    let result = members
       .filter(
         (member) =>
           (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -197,8 +203,22 @@ export default function MembersPage() {
           (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
           (planFilter.length === 0 ||
             member.memberships.some((m) => planFilter.includes(m.plans.name)))
-      )
-      .sort((a, b) => {
+      );
+
+    if (showJoinedRecently) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      result = result.filter(member => new Date(member.joined_date) >= thirtyDaysAgo);
+    }
+
+    if (showMembersWithNoPlan) {
+      result = result.filter(member => member.memberships.length === 0);
+    }
+
+    if (showJoinedFirst) {
+      result.sort((a, b) => new Date(b.joined_date).getTime() - new Date(a.joined_date).getTime());
+    } else {
+      result.sort((a, b) => {
         if (sortOption.by === "name") {
           return sortOption.order === "asc"
             ? a.full_name.localeCompare(b.full_name)
@@ -216,7 +236,10 @@ export default function MembersPage() {
         }
         return 0;
       });
-  }, [members, searchTerm, statusFilter, planFilter, sortOption]);
+    }
+
+    return result;
+  }, [members, searchTerm, statusFilter, planFilter, sortOption, showJoinedFirst, showJoinedRecently, showMembersWithNoPlan]);
 
   useEffect(() => {
     const newParams = new URLSearchParams(searchParams);
@@ -225,8 +248,11 @@ export default function MembersPage() {
     if (planFilter.length) newParams.set("plans", planFilter.join(","));
     newParams.set("sortBy", sortOption.by);
     newParams.set("sortOrder", sortOption.order);
+    newParams.set("joinedFirst", showJoinedFirst.toString());
+    newParams.set("joinedRecently", showJoinedRecently.toString());
+    newParams.set("membersWithNoPlan", showMembersWithNoPlan.toString());
     setSearchParams(newParams, { replace: true });
-  }, [searchTerm, statusFilter, planFilter, sortOption, setSearchParams]);
+  }, [searchTerm, statusFilter, planFilter, sortOption, showJoinedFirst, showJoinedRecently, showMembersWithNoPlan, setSearchParams]);
 
   if (!facility) {
     return <div className="p-4">Facility not found</div>;
@@ -352,11 +378,46 @@ export default function MembersPage() {
                   ))}
                 </div>
               </div>
+              <div>
+                <h4 className="font-medium mb-1">Additional Filters</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <Checkbox
+                      id="joined-first"
+                      checked={showJoinedFirst}
+                      onCheckedChange={(checked) => setShowJoinedFirst(checked === true)}
+                    />
+                    <Label htmlFor="joined-first" className="ml-2">
+                      Joined First
+                    </Label>
+                  </div>
+                  <div className="flex items-center">
+                    <Checkbox
+                      id="joined-recently"
+                      checked={showJoinedRecently}
+                      onCheckedChange={(checked) => setShowJoinedRecently(checked === true)}
+                    />
+                    <Label htmlFor="joined-recently" className="ml-2">
+                      Joined Recently (Last 30 days)
+                    </Label>
+                  </div>
+                  <div className="flex items-center">
+                    <Checkbox
+                      id="no-plan"
+                      checked={showMembersWithNoPlan}
+                      onCheckedChange={(checked) => setShowMembersWithNoPlan(checked === true)}
+                    />
+                    <Label htmlFor="no-plan" className="ml-2">
+                      Members with No Plan
+                    </Label>
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
         )}
 
-        {(statusFilter.length > 0 || planFilter.length > 0) && (
+        {(statusFilter.length > 0 || planFilter.length > 0 || showJoinedFirst || showJoinedRecently || showMembersWithNoPlan) && (
           <div className="flex items-center space-x-2 flex-wrap">
             <span className="text-sm text-gray-500">Filtered by:</span>
             {statusFilter.map((filter) => (
@@ -378,6 +439,30 @@ export default function MembersPage() {
                 </button>
               </Badge>
             ))}
+            {showJoinedFirst && (
+              <Badge variant="secondary" className="text-xs">
+                Joined First
+                <button onClick={() => setShowJoinedFirst(false)} className="ml-1">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {showJoinedRecently && (
+              <Badge variant="secondary" className="text-xs">
+                Joined Recently
+                <button onClick={() => setShowJoinedRecently(false)} className="ml-1">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
+            {showMembersWithNoPlan && (
+              <Badge variant="secondary" className="text-xs">
+                No Plan
+                <button onClick={() => setShowMembersWithNoPlan(false)} className="ml-1">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            )}
             <Button variant="ghost" size="sm" onClick={clearFilters}>
               Clear all
             </Button>

@@ -219,7 +219,7 @@ export default function RenewMembership() {
                 name="discount"
                 type="number"
                 value={discount}
-                onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setDiscount(parseFloat(e.target.value))}
                 className="bg-background text-foreground"
               />
             </div>
@@ -243,7 +243,7 @@ export default function RenewMembership() {
                   name="paidAmount"
                   type="number"
                   value={paidAmount}
-                  onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setPaidAmount(parseFloat(e.target.value))}
                   max={calculateTotal()}
                   className="bg-background text-foreground"
                 />
