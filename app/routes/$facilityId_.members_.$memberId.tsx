@@ -685,7 +685,7 @@ export default function MemberProfile() {
                       id="reminder-message"
                       className="w-full border rounded p-2 h-64"
                       rows={4}
-                      defaultValue={`Hello ${member.full_name},\n\nYou have a pending balance amount of ₹${member.balance}.\n\n Please settle as soon as possible.\n\nThank you,\n+91 7540024044`}
+                      defaultValue={`Hello ${member.full_name},\n\nYou have a pending balance amount of ₹${member.balance}.\n\n Please settle as soon as possible.\n\nThank you,\n\n+91 7540024044`}
                     />
                     <Button onClick={handleSendReminder} className="w-full">
                       Send Reminder

@@ -329,14 +329,14 @@ export default function NewMemberForm() {
         {/* Email */}
         <div className="space-y-2">
           <Label htmlFor="email">
-            Email <span className="text-red-500">*</span>
+            Email 
           </Label>
           <Input
             id="email"
             name="email"
             type="email"
             placeholder="example@gmail.com"
-            required
+            
           />
         </div>
 
@@ -439,13 +439,14 @@ export default function NewMemberForm() {
         </div>
         {/* Photo */}
         <div className="space-y-2">
-          <Label htmlFor="photo">Photo</Label>
-          <label htmlFor="photo" className="block">
+            <Label htmlFor="photo">Photo</Label>
+            <label htmlFor="photo" className="block">
             <Input
               id="photo"
               name="photo"
               type="file"
               accept="image/*"
+              capture="environment"
               className="hidden"
               onChange={handleFileChange}
             />

@@ -53,7 +53,6 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   return json({ member, plans });
 };
-
 export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
   const planId = formData.get("planId") as string;
@@ -89,6 +88,15 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   const currentBalance = memberData.balance || 0;
   const updatedBalance = currentBalance + newBalance;
+
+  // Set all other memberships to expired
+  const { error: updateMembershipsError } = await supabase
+    .from('memberships')
+    .update({ status: 'expired' })
+    .eq('member_id', params.memberId)
+    .neq('status', 'expired');
+
+  if (updateMembershipsError) return json({ error: "Failed to update existing memberships" }, { status: 500 });
 
   const { data: membership, error: membershipError } = await supabase
     .from('memberships')
