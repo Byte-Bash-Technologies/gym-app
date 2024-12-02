@@ -89,12 +89,11 @@ export const action: ActionFunction = async ({ request, params }) => {
   const currentBalance = memberData.balance || 0;
   const updatedBalance = currentBalance + newBalance;
 
-  // Set all other memberships to expired
   const { error: updateMembershipsError } = await supabase
     .from('memberships')
-    .update({ status: 'expired' })
+    .update({ status: 'active' })
     .eq('member_id', params.memberId)
-    .neq('status', 'expired');
+    .neq('status', 'active');
 
   if (updateMembershipsError) return json({ error: "Failed to update existing memberships" }, { status: 500 });
 

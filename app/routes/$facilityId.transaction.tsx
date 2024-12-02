@@ -1,5 +1,12 @@
 import { json, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link, useParams } from "@remix-run/react";
+import {
+  useLoaderData,
+  useSearchParams,
+  useSubmit,
+  Form,
+  Link,
+  useParams,
+} from "@remix-run/react";
 import { Bell, Phone, Settings, Search, Filter } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -13,6 +20,14 @@ import {
   ChartTooltipContent,
 } from "~/components/ui/chart";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { useState, useEffect } from "react";
 
 interface Transaction {
   id: number;
@@ -20,6 +35,7 @@ interface Transaction {
   amount: number;
   timestamp: string;
   avatar: string;
+  plan: string;
 }
 
 interface DailyEarning {
@@ -27,26 +43,80 @@ interface DailyEarning {
   amount: number;
 }
 
-export const loader: LoaderFunction = async ({ params }) => {
-  const facilityId = params.facilityId;
-  const today = new Date();
-  const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+interface Plan {
+  id: string;
+  name: string;
+}
 
-  // Fetch transactions for today
-  const { data: transactions, error: transactionError } = await supabase
+export const loader: LoaderFunction = async ({ params, request }) => {
+  const facilityId = params.facilityId;
+  const url = new URL(request.url);
+  const timelineFilter = url.searchParams.get("timeline") || "today";
+  const planFilter = url.searchParams.get("plan") || "all";
+  const searchTerm = url.searchParams.get("search") || "";
+
+  let startDate, endDate;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  switch (timelineFilter) {
+    case "today":
+      startDate = today;
+      endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      break;
+    case "yesterday":
+      startDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      endDate = today;
+      break;
+    case "thisMonth":
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      break;
+    case "lastMonth":
+      startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+      break;
+    case "last7Days":
+      startDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      endDate = today;
+      break;
+    case "last30Days":
+      startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      endDate = today;
+      break;
+    default:
+      startDate = today;
+      endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+  }
+
+  let query = supabase
     .from("transactions")
     .select(
       `
       id,
       amount,
       created_at,
-      members (id, full_name, email)
+      members (id, full_name, email),
+      memberships (plans (id, name))
     `
     )
     .eq("type", "payment")
     .eq("facility_id", facilityId)
-    .gte("created_at", today.toISOString().split("T")[0])
+    .gte("created_at", startDate.toISOString())
+    .lt("created_at", endDate.toISOString())
     .order("created_at", { ascending: false });
+
+  if (planFilter !== "all") {
+    query = query.eq("memberships.plans.id", planFilter);
+  }
+
+  if (searchTerm) {
+    query = query.or(
+      `members.full_name.ilike.%${searchTerm}%,members.email.ilike.%${searchTerm}%`
+    );
+  }
+
+  const { data: transactions, error: transactionError } = await query;
 
   if (transactionError) {
     console.error("Error fetching transactions:", transactionError);
@@ -56,15 +126,17 @@ export const loader: LoaderFunction = async ({ params }) => {
   // Calculate income
   const income = transactions.reduce((sum, t) => sum + t.amount, 0);
 
-  // Fetch previous day's income
-  const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+  // Fetch previous period's income
+  const previousStartDate = new Date(
+    startDate.getTime() - (endDate.getTime() - startDate.getTime())
+  );
   const { data: previousTransactions, error: previousError } = await supabase
     .from("transactions")
     .select("amount")
     .eq("type", "payment")
     .eq("facility_id", facilityId)
-    .gte("created_at", yesterday.toISOString().split("T")[0])
-    .lt("created_at", today.toISOString().split("T")[0]);
+    .gte("created_at", previousStartDate.toISOString())
+    .lt("created_at", startDate.toISOString());
 
   if (previousError) {
     console.error("Error fetching previous transactions:", previousError);
@@ -76,30 +148,15 @@ export const loader: LoaderFunction = async ({ params }) => {
     0
   );
 
-  // Fetch weekly income and daily earnings
-  const { data: weeklyTransactions, error: weeklyError } = await supabase
-    .from("transactions")
-    .select("amount, created_at")
-    .eq("type", "payment")
-    .eq("facility_id", facilityId)
-    .gte("created_at", sevenDaysAgo.toISOString());
-
-  if (weeklyError) {
-    console.error("Error fetching weekly transactions:", weeklyError);
-    throw new Response("Error fetching weekly transactions", { status: 500 });
-  }
-
-  const weeklyIncome = weeklyTransactions.reduce((sum, t) => sum + t.amount, 0);
-
-  // Calculate daily earnings for the past week
-  const dailyEarnings: DailyEarning[] = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-    const dateString = date.toISOString().split("T")[0];
-    const amount = weeklyTransactions
+  // Calculate daily earnings
+  const dailyEarnings: DailyEarning[] = [];
+  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+    const dateString = d.toISOString().split("T")[0];
+    const amount = transactions
       .filter((t) => t.created_at.startsWith(dateString))
       .reduce((sum, t) => sum + t.amount, 0);
-    return { date: dateString, amount };
-  }).reverse();
+    dailyEarnings.push({ date: dateString, amount });
+  }
 
   // Fetch total pending balance from members table
   const { data: membersBalance, error: membersBalanceError } = await supabase
@@ -118,19 +175,16 @@ export const loader: LoaderFunction = async ({ params }) => {
     0
   );
 
-  // Calculate stats
-  const totalTransactions = transactions.length;
-  const received =
-    Math.round(
-      (transactions.filter((t) => t.amount > 0).length / totalTransactions) *
-        100
-    ) || 0;
-  const paid =
-    Math.round(
-      (transactions.filter((t) => t.amount < 0).length / totalTransactions) *
-        100
-    ) || 0;
-  const pending = 100 - received - paid;
+  // Fetch plans
+  const { data: plans, error: plansError } = await supabase
+    .from("plans")
+    .select("id, name")
+    .eq("facility_id", facilityId);
+
+  if (plansError) {
+    console.error("Error fetching plans:", plansError);
+    throw new Response("Error fetching plans", { status: 500 });
+  }
 
   return json({
     transactions: transactions.map((t) => ({
@@ -141,42 +195,51 @@ export const loader: LoaderFunction = async ({ params }) => {
         timeZone: "Asia/Kolkata",
       }),
       avatar: `https://api.dicebear.com/6.x/initials/svg?seed=${t.members.full_name}`,
+      plan: t.memberships?.plans?.name || "N/A",
     })),
     income,
     previousIncome,
-    weeklyIncome,
     totalPendingBalance,
-    stats: {
-      received,
-      paid,
-      pending,
-    },
     dailyEarnings,
+    plans,
+    timelineFilter,
+    planFilter,
+    searchTerm,
   });
 };
 
 export default function Transactions() {
-  const params = useParams();
   const {
     transactions,
     income,
     previousIncome,
-    weeklyIncome,
     totalPendingBalance,
     dailyEarnings,
+    plans,
+    timelineFilter,
+    planFilter,
+    searchTerm: initialSearchTerm,
   } = useLoaderData<{
     transactions: Transaction[];
     income: number;
     previousIncome: number;
-    weeklyIncome: number;
     totalPendingBalance: number;
-    stats: {
-      received: number;
-      paid: number;
-      pending: number;
-    };
     dailyEarnings: DailyEarning[];
+    plans: Plan[];
+    timelineFilter: string;
+    planFilter: string;
+    searchTerm: string;
   }>();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
+  const submit = useSubmit();
+  const params = useParams();
+
+  useEffect(() => {
+    setSearchTerm(initialSearchTerm);
+  }, [initialSearchTerm]);
 
   // Calculate total amount and percentages
   const totalAmount = income + totalPendingBalance;
@@ -187,6 +250,17 @@ export default function Transactions() {
   const circumference = 2 * Math.PI * 45;
   const receivedDash = (receivedPercentage / 100) * circumference;
   const pendingDash = (pendingPercentage / 100) * circumference;
+
+  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    searchParams.set("search", searchTerm);
+    setSearchParams(searchParams);
+  };
+
+  const handleFilterChange = (key: string, value: string) => {
+    searchParams.set(key, value);
+    setSearchParams(searchParams);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16">
@@ -200,22 +274,19 @@ export default function Transactions() {
           <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <a href={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
-          </a>
-          {/*<Link to={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
-          </Link>*/}
+          <Settings className="h-6 w-6 text-purple-500" />
         </div>
       </header>
 
-      {/* Search */}
+      {/* Search and Filter */}
       <div className="p-4">
-        <div className="relative flex items-center">
+        <form onSubmit={handleSearch} className="relative flex items-center">
           <Input
             type="text"
-            placeholder="Search by name or number"
+            placeholder="Search by name or email"
             className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <div className="absolute right-3 flex space-x-2">
@@ -223,12 +294,69 @@ export default function Transactions() {
               size="icon"
               variant="ghost"
               className="h-8 w-8 text-purple-500"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
             >
-              <Filter className="text-purple-500">✓</Filter>
+              <Filter className="text-purple-500" />
             </Button>
           </div>
-        </div>
+        </form>
       </div>
+
+      {/* Filter options */}
+      {isFilterOpen && (
+        <div className="p-4 bg-white space-y-4">
+          <div>
+            <label
+              htmlFor="timeline"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Timeline
+            </label>
+            <Select
+              name="timeline"
+              defaultValue={timelineFilter}
+              onValueChange={(value) => handleFilterChange("timeline", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select timeline" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
+                <SelectItem value="thisMonth">This Month</SelectItem>
+                <SelectItem value="lastMonth">Last Month</SelectItem>
+                <SelectItem value="last7Days">Last 7 Days</SelectItem>
+                <SelectItem value="last30Days">Last 30 Days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label
+              htmlFor="plan"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Plan
+            </label>
+            <Select
+              name="plan"
+              defaultValue={planFilter}
+              onValueChange={(value) => handleFilterChange("plan", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select plan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Plans</SelectItem>
+                {plans.map((plan) => (
+                  <SelectItem key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="p-4 space-y-4">
@@ -239,7 +367,7 @@ export default function Transactions() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Transactions</CardTitle>
-                <Badge variant="secondary">Today</Badge>
+                <Badge variant="secondary">{timelineFilter}</Badge>
               </div>
             </CardHeader>
             <CardContent>
@@ -301,7 +429,7 @@ export default function Transactions() {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle>Income</CardTitle>
-                <Badge variant="secondary">Today</Badge>
+                <Badge variant="secondary">{timelineFilter}</Badge>
               </div>
             </CardHeader>
             <CardContent>
@@ -322,13 +450,7 @@ export default function Transactions() {
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-500">
-                    Compared to ₹{previousIncome.toFixed(2)} yesterday
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Last week incomes</p>
-                  <p className="text-2xl font-bold">
-                    ₹{weeklyIncome.toFixed(2)}
+                    Compared to ₹{previousIncome.toFixed(2)} in previous period
                   </p>
                 </div>
                 <div>
@@ -359,8 +481,7 @@ export default function Transactions() {
                       />
                       <YAxis
                         tickFormatter={(value) => `₹${value / 1000}k`}
-                        domain={[0, 50000]}
-                        ticks={[0, 10000, 20000, 30000, 40000, 50000]}
+                        domain={[0, "auto"]}
                       />
                       <ChartTooltip content={<ChartTooltipContent />} />
                       <Line
@@ -382,9 +503,10 @@ export default function Transactions() {
         <Card className="bg-purple-50">
           <CardContent className="p-4">
             {transactions.map((transaction: Transaction) => (
-              <div
+              <Link
                 key={transaction.id}
-                className="flex items-center justify-between bg-white p-4 rounded-lg mb-2 last:mb-0"
+                to={`/${params.facilityId}/members/${transaction.id}`}
+                className="flex items-center justify-between bg-white p-4 rounded-lg mb-2 last:mb-0 hover:bg-gray-50 transition-colors duration-150 ease-in-out"
               >
                 <div className="flex items-center space-x-3">
                   <Avatar>
@@ -399,12 +521,13 @@ export default function Transactions() {
                     <p className="text-sm text-gray-500">
                       {transaction.timestamp}
                     </p>
+                    <p className="text-xs text-gray-400">{transaction.plan}</p>
                   </div>
                 </div>
                 <span className="text-green-500 font-medium">
                   +{transaction.amount.toFixed(2)}
                 </span>
-              </div>
+              </Link>
             ))}
           </CardContent>
         </Card>

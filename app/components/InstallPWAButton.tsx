@@ -38,11 +38,11 @@ export default function InstallPWAButton() {
       {isVisible && (
         <button
           onClick={handleInstallClick}
-          className="px-6 py-3 text-white bg-black-500 rounded-lg hover:bg-black-600 active:bg-black-700 focus:outline-none focus:ring focus:ring-black-300"
+          className="fixed top-4 right-4 px-6 py-3 text-white bg-black-500 rounded-lg hover:bg-black-600 active:bg-black-700 focus:outline-none focus:ring focus:ring-black-300 shadow-lg"
         >
           Install App
         </button>
       )}
     </>
-  );
+  );  
 }
