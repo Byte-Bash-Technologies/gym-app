@@ -448,9 +448,9 @@ export default function MemberProfile() {
           <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
-          <Link to="/settings">
+          <a href={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
-          </Link>
+          </a>
         </div>
       </header>
 

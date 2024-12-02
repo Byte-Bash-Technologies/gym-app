@@ -93,6 +93,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     const processedMembers = members.map((member: any) => ({
+      
       ...member,
       status:
         member.memberships[0]?.status === "active"

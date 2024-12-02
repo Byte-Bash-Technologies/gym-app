@@ -306,7 +306,7 @@ export default function Component() {
           <DialogDescription>
             <div className="space-y-4">
               <p>
-                Welcome to Sportsdot support! We're here to help you manage your
+                Welcome to Sportsdot support! We&apos;re here to help you manage your
                 fitness facility efficiently.
               </p>
               <h3 className="font-semibold">Contact Information:</h3>
@@ -319,7 +319,7 @@ export default function Component() {
               <p>Monday to Friday: 9:00 AM to 6:00 PM IST</p>
               <h3 className="font-semibold">FAQs:</h3>
               <ul className="list-disc pl-5 space-y-2">
-                <li>How do I update my gym's information?</li>
+                <li>How do I update my gym&apos;s information?</li>
                 <li>How can I manage memberships?</li>
                 <li>What payment methods are supported?</li>
               </ul>

@@ -435,58 +435,58 @@ export default function Index() {
       </div>
 
       {/* Members with Balance Section */}
-      <div className="p-4">
-        <h2 className="text-lg font-bold mb-4">Members with Balance</h2>
-        <Card>
-          <CardContent>
-            <ul className="divide-y divide-gray-200">
-              {membersWithBalance.length > 0 ? (
-                membersWithBalance.slice(0, 5).map((member) => (
-                  <li
-                    key={member.id}
-                    className="py-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center">
-                      <Avatar className="h-10 w-10 mr-3">
-                        <AvatarImage
-                          src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
-                          alt={member.full_name}
-                        />
-                        <AvatarFallback>{member.full_name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                      <Link to={`/${params.facilityId}/members/${member.id}`} className="font-medium hover:underline">
-                        {member.full_name}
-                        </Link>
-                        <p className="text-sm text-gray-500">
-                          {member.memberships && member.memberships.length > 0
-                            ? `Your plan will expire on ${new Date(member.memberships[0].end_date).toLocaleDateString("en-GB")}`
-                            : "No active membership"}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className="text-red-500">
-                      ₹{member.balance}
-                    </Badge>
-                  </li>
-                ))
-              ) : (
-                <li className="py-4 text-gray-500">No members with balance</li>
-              )}
-            </ul>
-            {membersWithBalance.length > 5 && (
-              <Button
-                variant="link"
-                className="mt-2 w-full flex items-center justify-center"
-                onClick={() => navigate(`/${params.facilityId}/members?filter=withBalance`)}
+<div className="p-4">
+  <h2 className="text-lg font-bold mb-4">Members with Balance</h2>
+  <Card>
+    <CardContent>
+      <ul className="divide-y divide-gray-200">
+        {membersWithBalance.length > 0 ? (
+          membersWithBalance.slice(0, 5).map((member) => (
+            <li key={member.id}>
+              <Link
+                to={`/${params.facilityId}/members/${member.id}`}
+                className="py-4 flex items-center justify-between hover:bg-gray-50 transition-colors duration-150 ease-in-out"
               >
-                View all {membersWithBalance.length} members with balance
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                <div className="flex items-center">
+                  <Avatar className="h-10 w-10 mr-3">
+                    <AvatarImage
+                      src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
+                      alt={member.full_name}
+                    />
+                    <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <span className="font-medium">{member.full_name}</span>
+                    <p className="text-sm text-gray-500">
+                      {member.memberships && member.memberships.length > 0
+                        ? `Your plan will expire on ${new Date(member.memberships[0].end_date).toLocaleDateString("en-GB")}`
+                        : "No active membership"}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="text-red-500">
+                  ₹{member.balance}
+                </Badge>
+              </Link>
+            </li>
+          ))
+        ) : (
+          <li className="py-4 text-gray-500">No members with balance</li>
+        )}
+      </ul>
+      {membersWithBalance.length > 5 && (
+        <Button
+          variant="link"
+          className="mt-2 w-full flex items-center justify-center"
+          onClick={() => navigate(`/${params.facilityId}/members?filter=withBalance`)}
+        >
+          View all {membersWithBalance.length} members with balance
+          <ChevronRight className="h-4 w-4 ml-1" />
+        </Button>
+      )}
+    </CardContent>
+  </Card>
+</div>
     </div>
   );
 }
