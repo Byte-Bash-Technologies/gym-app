@@ -239,7 +239,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${data.revenueData.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
+            ₹{data.revenueData.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">+20.1% from last month</p>
           </CardContent>
@@ -260,7 +260,7 @@ export default function AdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.facilitySubscriptionRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">₹{data.facilitySubscriptionRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">From {data.facilityDetails.length} facilities</p>
           </CardContent>
         </Card>

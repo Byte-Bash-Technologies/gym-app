@@ -270,7 +270,7 @@ export default function Transactions() {
           <h1 className="text-xl font-bold ml-6">Transaction</h1>
         </div>
         <div className="flex items-center space-x-4">
-          <Bell className="h-6 w-6 text-purple-500" />
+          {/* <Bell className="h-6 w-6 text-purple-500" /> */}
           <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>

@@ -94,9 +94,15 @@ export const action: ActionFunction = async ({ request, params }) => {
     .update({ status: 'active' })
     .eq('member_id', params.memberId)
     .neq('status', 'active');
-
+// Update existing memberships to expired
   if (updateMembershipsError) return json({ error: "Failed to update existing memberships" }, { status: 500 });
+  const { error: disableMembershipsError } = await supabase
+    .from('memberships')
+    .update({ is_disabled: true })
+    .eq('member_id', params.memberId)
+    .eq('status', 'active');
 
+  if (disableMembershipsError) return json({ error: "Failed to disable existing memberships" }, { status: 500 });
   const { data: membership, error: membershipError } = await supabase
     .from('memberships')
     .insert({

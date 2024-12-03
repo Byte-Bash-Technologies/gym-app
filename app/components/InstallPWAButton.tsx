@@ -37,8 +37,9 @@ export default function InstallPWAButton() {
     <>
       {isVisible && (
         <button
+          style={{ backgroundColor: '#BBACE9' }}
           onClick={handleInstallClick}
-          className="fixed top-4 right-4 px-6 py-3 text-white bg-black-500 rounded-lg hover:bg-black-600 active:bg-black-700 focus:outline-none focus:ring focus:ring-black-300 shadow-lg"
+          className="fixed top-4 right-4 px-6 py-3 text-white rounded-lg hover:bg-[#BBACE9] active:bg-[#8E76AF] focus:outline-none focus:ring focus:ring-black-300 shadow-lg"
         >
           Install App
         </button>

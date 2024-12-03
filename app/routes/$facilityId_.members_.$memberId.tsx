@@ -1,24 +1,8 @@
-import {
-  json,
-  type LoaderFunction,
-  type ActionFunction,
-} from "@remix-run/node";
+import { json, LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useFetcher, useParams } from "@remix-run/react";
 import { useState } from "react";
-import {
-  ArrowLeft,
-  Bell,
-  Phone,
-  Settings,
-  Download,
-  Pencil,
-  CreditCard,
-  Plus,
-  MessageCircle,
-  Clock,
-} from "lucide-react";
+import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus, MessageCircle, Clock } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { jsPDF } from "jspdf";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -108,6 +92,7 @@ interface LoaderData {
 
 export const loader: LoaderFunction = async ({ params }) => {
   const facilityId = params.facilityId;
+
   const { data: facility, error: facilityError } = await supabase
     .from("facilities")
     .select("name")
@@ -134,6 +119,7 @@ export const loader: LoaderFunction = async ({ params }) => {
       id,
       start_date,
       end_date,
+      is_disabled,
       status,
       plans (
         name,
@@ -147,9 +133,9 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   const now = new Date();
   const activeMembership =
-    memberships?.find((m) => new Date(m.end_date) >= now) || null;
+    memberships?.find((m) => new Date(m.end_date) >= now && m.is_disabled==false) || null;
   const expiredMemberships =
-    memberships?.filter((m) => new Date(m.end_date) < now) || [];
+    memberships?.filter((m) => new Date(m.end_date) < now || m.is_disabled==true) || [];
 
   // Update membership statuses
   if (activeMembership && activeMembership.status !== "active") {
@@ -195,93 +181,6 @@ export const loader: LoaderFunction = async ({ params }) => {
     messageTemplates: messageTemplates ?? [],
   });
 };
-export { ErrorBoundary } from "~/components/CatchErrorBoundary";
-export const action: ActionFunction = async ({ request, params }) => {
-  const formData = await request.formData();
-  const action = formData.get("_action");
-
-  if (action === "updateMember") {
-    const memberId = formData.get("memberId") as string;
-    const updatedFields = {
-      full_name: formData.get("full_name") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      gender: formData.get("gender") as string,
-      date_of_birth: formData.get("date_of_birth") as string,
-      blood_type: formData.get("blood_type") as string,
-      height: parseFloat(formData.get("height") as string),
-      weight: parseFloat(formData.get("weight") as string),
-    };
-
-    const { error } = await supabase
-      .from("members")
-      .update(updatedFields)
-      .eq("id", memberId);
-
-    if (error) {
-      return json(
-        { error: "Failed to update member details" },
-        { status: 400 }
-      );
-    }
-
-    return json({
-      success: true,
-      message: "Member details updated successfully",
-    });
-  } else if (action === "payBalance") {
-    const memberId = formData.get("memberId") as string;
-    const amount = parseFloat(formData.get("amount") as string);
-    const paymentMethod = formData.get("paymentMethod") as string;
-
-    const { data: member, error: memberError } = await supabase
-      .from("members")
-      .select("balance")
-      .eq("id", memberId)
-      .single();
-
-    if (memberError) {
-      return json({ error: "Failed to fetch member balance" }, { status: 400 });
-    }
-
-    if (amount <= 0 || amount > member.balance) {
-      return json({ error: "Invalid payment amount" }, { status: 400 });
-    }
-
-    const newBalance = member.balance - amount;
-
-    const { error: transactionError } = await supabase
-      .from("transactions")
-      .insert({
-        member_id: memberId,
-        amount,
-        facility_id: params.facilityId,
-        type: "payment",
-        payment_method: paymentMethod,
-        status: "completed",
-      });
-
-    if (transactionError) {
-      return json({ error: "Failed to record transaction" }, { status: 500 });
-    }
-
-    const { error: updateError } = await supabase
-      .from("members")
-      .update({ balance: newBalance })
-      .eq("id", memberId);
-
-    if (updateError) {
-      return json(
-        { error: "Failed to update member balance" },
-        { status: 500 }
-      );
-    }
-
-    return json({ success: true, message: "Payment processed successfully" });
-  }
-
-  return json({ error: "Invalid action" }, { status: 400 });
-};
 
 export default function MemberProfile() {
   const {
@@ -296,6 +195,7 @@ export default function MemberProfile() {
   const [isWhatsAppDrawerOpen, setIsWhatsAppDrawerOpen] = useState(false);
   const [isPaymentSheetOpen, setIsPaymentSheetOpen] = useState(false);
   const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const fetcher = useFetcher();
 
   const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -354,84 +254,6 @@ export default function MemberProfile() {
     setIsReminderDialogOpen(false);
     setIsPaymentSheetOpen(false);
   };
-  // const handleDownloadProfile = () => {
-  //   const doc = new jsPDF();
-
-  //   // Add a border
-  //   doc.setDrawColor(0, 0, 0);
-  //   doc.setLineWidth(0.5);
-  //   doc.roundedRect(10, 10, 190, 270, 5, 5);
-
-  //   // Add a logo at the top
-  //   const logo = new Image();
-  //   logo.src = "/favicon.ico";
-  //   doc.addImage(logo, "PNG", 15, 15, 30, 30);
-
-  //   // Gym name, address, and contact information
-  //   doc.setFontSize(20);
-  //   doc.setFont("helvetica", "bold");
-  //   doc.text("Sports Dot", 105, 30, { align: "center" });
-
-  //   doc.setFontSize(10);
-  //   doc.setFont("helvetica", "normal");
-  //   doc.text("123 Fitness Street, FitCity, 456789", 105, 38, {
-  //     align: "center",
-  //   });
-  //   doc.text("Phone: +91 7010976271 | Email: info@sportsdot.com", 105, 43, {
-  //     align: "center",
-  //   });
-
-  //   // Add a horizontal line
-  //   doc.setLineWidth(0.2);
-  //   doc.line(15, 50, 195, 50);
-
-  //   // Date in the top-right corner
-  //   const today = new Date();
-  //   const formattedDate = `Date: ${today
-  //     .getDate()
-  //     .toString()
-  //     .padStart(2, "0")}/${(today.getMonth() + 1)
-  //     .toString()
-  //     .padStart(2, "0")}/${today.getFullYear()}`;
-  //   doc.setFontSize(10);
-  //   doc.text(formattedDate, 190, 20, { align: "right" });
-
-  //   // Member profile section header
-  //   doc.setFontSize(16);
-  //   doc.setFont("helvetica", "bold");
-  //   doc.text("Member Profile", 105, 60, { align: "center" });
-
-  //   // Member details, listed one by one
-  //   const detailsStartY = 70;
-  //   const lineHeight = 15;
-  //   const details = [
-  //     `Name: ${member.full_name}`,
-  //     `Email: ${member.email}`,
-  //     `Phone: ${member.phone}`,
-  //     `Gender: ${member.gender}`,
-  //     `Date of Birth: ${new Date(member.date_of_birth).toLocaleDateString()}`,
-  //     `Blood Type: ${member.blood_type}`,
-  //     `Height: ${member.height} cm`,
-  //     `Weight: ${member.weight} kg`,
-  //   ];
-
-  //   // Add each detail to the PDF
-  //   details.forEach((detail, index) => {
-  //     const textY = detailsStartY + index * lineHeight;
-  //     doc.setFont("helvetica", "normal");
-  //     doc.text(detail, 20, textY);
-  //   });
-
-  //   // Footer for branding
-  //   doc.setFontSize(10);
-  //   doc.setFont("helvetica", "italic");
-  //   doc.text("Generated by Sports Dot Gym Management System", 105, 280, {
-  //     align: "center",
-  //   });
-
-  //   // Save the PDF
-  //   doc.save(`${member.full_name}_profile.pdf`);
-  // };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -463,14 +285,6 @@ export default function MemberProfile() {
         <h2 className="text-xl font-bold">{member.full_name}</h2>
         <p className="text-gray-500">{member.email}</p>
         <p className="text-gray-500">{member.phone}</p>
-        {/* <Button
-          variant="ghost"
-          className="mt-2"
-          onClick={handleDownloadProfile}
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Download Profile
-        </Button> */}
       </div>
 
       {/* Contact Section */}
@@ -699,45 +513,80 @@ export default function MemberProfile() {
       </Card>
 
       {/* Recent Transactions Section */}
-  <Card className="mb-6">
-    <CardHeader>
-      <CardTitle className="text-lg font-bold">
-        Recent Transactions
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      {recentTransactions.length > 0 ? (
-        <ul className="space-y-2">
-          {recentTransactions.map((transaction) => (
-            <li
-              key={transaction.id}
-              className="flex justify-between items-center"
-            >
-              <span className="text-sm w-1/4">
-                {new Date(transaction.created_at).toLocaleDateString()}
-              </span>
-              <span className="text-sm font-medium w-1/4 text-center">
-                {transaction.type}
-              </span>
-              <span
-                className={`text-sm font-bold w-1/4 text-right ${
-                  transaction.type === "payment"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {transaction.type === "payment" ? "-" : "+"} ₹
-                {transaction.amount}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-gray-500">No recent transactions</p>
-      )}
-    </CardContent>
-  </Card>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg font-bold">
+            Recent Transactions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentTransactions.length > 0 ? (
+            <ul className="space-y-2">
+              {recentTransactions.map((transaction) => (
+                <li
+                  key={transaction.id}
+                  className="flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded"
+                  onClick={() => setSelectedTransaction(transaction)}
+                >
+                  <span className="text-sm w-1/4">
+                    {new Date(transaction.created_at).toLocaleDateString()}
+                  </span>
+                  <span className="text-sm font-medium w-1/4 text-center">
+                    {transaction.type}
+                  </span>
+                  <span
+                    className={`text-sm font-bold w-1/4 text-right ${
+                      transaction.type === "payment"
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {transaction.type === "payment" ? "-" : "+"} ₹
+                    {transaction.amount}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500">No recent transactions</p>
+          )}
+        </CardContent>
+      </Card>
 
+      {/* Transaction Details Dialog */}
+      <Dialog open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transaction Details</DialogTitle>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500">Date</p>
+                <p className="font-semibold">{new Date(selectedTransaction.created_at).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Type</p>
+                <p className="font-semibold">{selectedTransaction.type}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Amount</p>
+                <p className="font-semibold">₹{selectedTransaction.amount}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Payment Method</p>
+                <p className="font-semibold">{selectedTransaction.payment_method}</p>
+              </div>
+              <Button
+                onClick={() => window.open(`/invoice/${selectedTransaction.id}`, '_blank')}
+                className="w-full"
+              >
+                View Invoice
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Member Details */}
       <Card>
@@ -910,3 +759,4 @@ export default function MemberProfile() {
     </div>
   );
 }
+

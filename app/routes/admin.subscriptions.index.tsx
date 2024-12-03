@@ -1,5 +1,5 @@
 import { json, LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link } from "@remix-run/react";
+import { useLoaderData, Link, Form } from "@remix-run/react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table";
@@ -56,7 +56,6 @@ export default function SubscriptionList() {
                 <TableHead>Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Duration</TableHead>
-                <TableHead className="hidden md:table-cell">Max Members</TableHead>
                 <TableHead className="hidden md:table-cell">Features</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -70,11 +69,8 @@ export default function SubscriptionList() {
                       <p className="text-sm text-gray-500 hidden md:block">{plan.description}</p>
                     </div>
                   </TableCell>
-                  <TableCell>${plan.price.toFixed(2)}</TableCell>
+                  <TableCell>₹{plan.price.toFixed(2)}</TableCell>
                   <TableCell>{plan.duration_days} days</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {plan.max_members ? plan.max_members : 'Unlimited'}
-                  </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {plan.features.feature.map((feature, index) => (
@@ -91,9 +87,15 @@ export default function SubscriptionList() {
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <Button variant="outline" size="sm" className="text-red-500 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <Form onSubmit={(e) => {
+                        if (!confirm("Are you sure you want to delete this plan?")) {
+                          e.preventDefault();
+                        }
+                        }}>
+                        <Button type="submit" variant="outline" size="sm" className="text-red-500 hover:text-red-700">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        </Form>
                     </div>
                   </TableCell>
                 </TableRow>
