@@ -116,6 +116,7 @@ export default function AdminDashboard() {
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
+    { icon: User, label: "Users", href: "/admin/users" },
     { icon: Building, label: "Facilities", href: "/admin/facilities" },
     {
       icon: CreditCard,

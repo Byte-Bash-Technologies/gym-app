@@ -207,18 +207,18 @@ export default function InvoicePage() {
                   {format(new Date(transaction.membership.start_date), 'MMM d, yyyy')} - {' '}
                   {format(new Date(transaction.membership.end_date), 'MMM d, yyyy')}
                 </TableCell>
-                <TableCell className="text-right">₹{calculations.totalAmount.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{(calculations.totalAmount || 0).toFixed(2)}</TableCell>
               </TableRow>
             </TableBody>
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={2} className="text-right">Total Amount</TableCell>
-                <TableCell className="text-right">₹{calculations.totalAmount.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{(calculations.totalAmount || 0).toFixed(2)}</TableCell>
               </TableRow>
               {calculations.discount > 0 && (
                 <TableRow>
                   <TableCell colSpan={2} className="text-right">Discount</TableCell>
-                  <TableCell className="text-right">-₹{calculations.discount.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">-₹{(calculations.discount || 0).toFixed(2)}</TableCell>
                 </TableRow>
               )}
               <TableRow>

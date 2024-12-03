@@ -80,7 +80,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   // Fetch current member balance
   const { data: memberData, error: memberError } = await supabase
     .from('members')
-    .select('balance')
+    .select('balance, phone')
     .eq('id', params.memberId)
     .single();
 
@@ -94,8 +94,9 @@ export const action: ActionFunction = async ({ request, params }) => {
     .update({ status: 'active' })
     .eq('member_id', params.memberId)
     .neq('status', 'active');
-// Update existing memberships to expired
+
   if (updateMembershipsError) return json({ error: "Failed to update existing memberships" }, { status: 500 });
+
   const { error: disableMembershipsError } = await supabase
     .from('memberships')
     .update({ is_disabled: true })
@@ -103,6 +104,7 @@ export const action: ActionFunction = async ({ request, params }) => {
     .eq('status', 'active');
 
   if (disableMembershipsError) return json({ error: "Failed to disable existing memberships" }, { status: 500 });
+
   const { data: membership, error: membershipError } = await supabase
     .from('memberships')
     .insert({
@@ -117,7 +119,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   if (membershipError) return json({ error: "Failed to create membership" }, { status: 500 });
 
-  const { error: transactionError } = await supabase
+  const { data: transaction, error: transactionError } = await supabase
     .from('transactions')
     .insert({
       membership_id: membership.id,
@@ -127,7 +129,9 @@ export const action: ActionFunction = async ({ request, params }) => {
       type: 'payment',
       payment_method: paymentMethod,
       status: 'completed'
-    });
+    })
+    .select()
+    .single();
 
   if (transactionError) return json({ error: "Failed to record transaction" }, { status: 500 });
 
@@ -138,7 +142,11 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   if (memberUpdateError) return json({ error: "Failed to update member balance" }, { status: 500 });
 
-  return redirect(`/${params.facilityId}/members/${params.memberId}`);
+  // Send WhatsApp message
+  const message = `Dear ${memberData.full_name}, your membership has been successfully renewed. You can view your invoice at ${process.env.APP_URL}/invoice/${transaction.id}`;
+  const whatsappUrl=`https://api.whatsapp.com/send?phone=${memberData.phone}&text=${encodeURIComponent(message)}`;
+
+  return json({ whatsappUrl, redirectUrl: `/${params.facilityId}/members/${params.memberId}` });
 };
 
 export default function RenewMembership() {
@@ -163,6 +171,10 @@ export default function RenewMembership() {
         description: actionData.error,
         variant: "destructive",
       });
+    }
+    if (actionData?.whatsappUrl) {
+      window.open(actionData.whatsappUrl, '_blank');
+      window.location.href = actionData.redirectUrl;
     }
   }, [actionData]);
 

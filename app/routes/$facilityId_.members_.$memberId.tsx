@@ -133,9 +133,9 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   const now = new Date();
   const activeMembership =
-    memberships?.find((m) => new Date(m.end_date) >= now && m.is_disabled==false) || null;
+    memberships?.find((m) => new Date(m.end_date) >= now) || null;
   const expiredMemberships =
-    memberships?.filter((m) => new Date(m.end_date) < now || m.is_disabled==true) || [];
+    memberships?.filter((m) => new Date(m.end_date) < now || m.is_disabled===true) || [];
 
   // Update membership statuses
   if (activeMembership && activeMembership.status !== "active") {
@@ -145,7 +145,7 @@ export const loader: LoaderFunction = async ({ params }) => {
       .eq("id", activeMembership.id);
     activeMembership.status = "active";
   }
-
+  console.log(activeMembership);
   for (const membership of expiredMemberships) {
     if (membership.status !== "expired") {
       await supabase
