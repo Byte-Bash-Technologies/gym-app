@@ -8,18 +8,7 @@ import {
   Outlet,
 } from "@remix-run/react";
 import debounce from "lodash.debounce";
-import {
-  Bell,
-  Phone,
-  Settings,
-  Search,
-  UserPlus,
-  Filter,
-  ChevronDown,
-  X,
-  SortAsc,
-  SortDesc,
-} from "lucide-react";
+import { Bell, Phone, Settings, Search, UserPlus, Filter, ChevronDown, X, SortAsc, SortDesc } from 'lucide-react';
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -75,12 +64,13 @@ export const loader: LoaderFunction = async ({ params, request }) => {
         photo_url, 
         balance,
         joined_date,
-        memberships(status, end_date, plans(name))
+        memberships(id, start_date, end_date, status, is_disabled, plans(name, duration, price))
       `
       )
-      .eq("facility_id", facilityId);
+      .eq("facility_id", facilityId)
+      .order('full_name', { ascending: true });
 
-    if (membersError) throw membersError;
+    if (membersError) throw new Response("Error fetching members", { status: 500 });
 
     const { data: plans, error: plansError } = await supabase
       .from("plans")
@@ -92,16 +82,31 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     const now = new Date();
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const processedMembers = members.map((member: any) => ({
+    const processedMembers = members.map((member: any) => {
+      const sortedMemberships = member.memberships.sort((a: any, b: any) => 
+        new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+      );
+      const mostRecentMembership = sortedMemberships[0];
+      let status = 'expired';
+      let currentPlan = 'No Plan';
       
-      ...member,
-      status:
-        member.memberships[0]?.status === "active"
-          ? new Date(member.memberships[0].end_date) <= sevenDaysFromNow
-            ? "expiring"
-            : "active"
-          : "expired",
-    }));
+      if (mostRecentMembership) {
+        currentPlan = mostRecentMembership.plans?.name || 'Unknown Plan';
+        if (mostRecentMembership.status === "active" && !mostRecentMembership.is_disabled) {
+          if (new Date(mostRecentMembership.end_date) <= sevenDaysFromNow) {
+            status = "expiring";
+          } else {
+            status = "active";
+          }
+        }
+      }
+
+      return {
+        ...member,
+        status,
+        currentPlan
+      };
+    });
 
     return json({
       facility,
@@ -202,8 +207,7 @@ export default function MembersPage() {
           (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             member.phone.includes(searchTerm)) &&
           (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
-          (planFilter.length === 0 ||
-            member.memberships.some((m) => planFilter.includes(m.plans.name)))
+          (planFilter.length === 0 || planFilter.includes(member.currentPlan))
       );
 
     if (showJoinedRecently) {
@@ -213,7 +217,7 @@ export default function MembersPage() {
     }
 
     if (showMembersWithNoPlan) {
-      result = result.filter(member => member.memberships.length === 0);
+      result = result.filter(member => member.currentPlan === 'No Plan');
     }
 
     if (showJoinedFirst) {
@@ -266,7 +270,6 @@ export default function MembersPage() {
           Members - {facility?.name || "Loading..."}
         </h1>
         <div className="flex items-center space-x-4">
-          {/* <Bell className="h-6 w-6 text-purple-500" /> */}
           <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
@@ -481,6 +484,13 @@ export default function MembersPage() {
                 <div
                   key={member.id}
                   onClick={() => handleMemberClick(member.id)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleMemberClick(member.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
                 >
                   <Avatar className="h-12 w-12">
@@ -504,8 +514,10 @@ export default function MembersPage() {
                       Balance: ₹{member.balance}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Joined:{" "}
-                      {new Date(member.joined_date).toLocaleDateString()}
+                      Joined: {new Date(member.joined_date).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Plan: {member.currentPlan}
                     </p>
                   </div>
                   <div
@@ -540,3 +552,4 @@ export default function MembersPage() {
     </div>
   );
 }
+

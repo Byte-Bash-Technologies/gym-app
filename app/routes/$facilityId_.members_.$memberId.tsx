@@ -1,7 +1,7 @@
-import { json, LoaderFunction } from "@remix-run/node";
+import { ActionFunction, json, LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useFetcher, useParams } from "@remix-run/react";
 import { useState } from "react";
-import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus, MessageCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus, MessageCircle, Clock, RefreshCcw } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -181,6 +181,81 @@ export const loader: LoaderFunction = async ({ params }) => {
     messageTemplates: messageTemplates ?? [],
   });
 };
+export { ErrorBoundary} from "~/components/CatchErrorBoundary";
+
+export const action: ActionFunction = async ({ request, params }) => {
+  const formData = await request.formData();
+  const action = formData.get("_action");
+  if (action === "updateMember") {
+    const memberId = formData.get("memberId") as string;
+    const updatedFields = {
+      full_name: formData.get("full_name") as string,
+      email: formData.get("email") as string,
+      phone: formData.get("phone") as string,
+      gender: formData.get("gender") as string,
+      date_of_birth: formData.get("date_of_birth") as string,
+      blood_type: formData.get("blood_type") as string,
+      height: parseFloat(formData.get("height") as string),
+      weight: parseFloat(formData.get("weight") as string),
+    };
+    const { error } = await supabase
+      .from("members")
+      .update(updatedFields)
+      .eq("id", memberId);
+    if (error) {
+      return json(
+        { error: "Failed to update member details" },
+        { status: 400 }
+      );
+    }
+    return json({
+      success: true,
+      message: "Member details updated successfully",
+    });
+  } else if (action === "payBalance") {
+    const memberId = formData.get("memberId") as string;
+    const amount = parseFloat(formData.get("amount") as string);
+    const paymentMethod = formData.get("paymentMethod") as string;
+    const { data: member, error: memberError } = await supabase
+      .from("members")
+      .select("balance")
+      .eq("id", memberId)
+      .single();
+    if (memberError) {
+      return json({ error: "Failed to fetch member balance" }, { status: 400 });
+    }
+    if (amount <= 0 || amount > member.balance) {
+      return json({ error: "Invalid payment amount" }, { status: 400 });
+    }
+    const newBalance = member.balance - amount;
+    const { error: transactionError } = await supabase
+      .from("transactions")
+      .insert({
+        member_id: memberId,
+        amount,
+        facility_id: params.facilityId,
+        type: "payment",
+        payment_method: paymentMethod,
+        status: "completed",
+      });
+    if (transactionError) {
+      return json({ error: "Failed to record transaction" }, { status: 500 });
+    }
+    const { error: updateError } = await supabase
+      .from("members")
+      .update({ balance: newBalance })
+      .eq("id", memberId);
+    if (updateError) {
+      return json(
+        { error: "Failed to update member balance" },
+        { status: 500 }
+      );
+    }
+    return json({ success: true, message: "Payment processed successfully" });
+  }
+  return json({ error: "Invalid action" }, { status: 400 });
+};
+
 
 export default function MemberProfile() {
   const {
@@ -359,8 +434,8 @@ export default function MemberProfile() {
           )}
           <Link to="addplans">
             <Button variant="outline" size="sm" className="mt-4">
-              <Plus className="h-4 w-4 mr-2" />
-              {activeMembership ? "Change Membership" : "Add Membership"}
+              
+              {activeMembership ? (<><RefreshCcw className="h-4 w-4 mr-2" /> Change Membership</>) : (<><Plus className="h-4 w-4 mr-2" /> Add Membership</>)}
             </Button>
           </Link>
         </CardContent>
