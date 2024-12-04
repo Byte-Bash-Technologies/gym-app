@@ -347,7 +347,7 @@ export default function Index() {
                   >
                     <Link
                       to={`/${params.facilityId}/members/${member.id}`}
-                      className="py-4 flex items-center justify-between hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                      className="py-4 flex items-center justify-between w-full hover:bg-gray-50 transition-colors duration-150 ease-in-out"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
@@ -405,7 +405,7 @@ export default function Index() {
                   >
                     <Link
                       to={`/${params.facilityId}/members/${member.id}`}
-                      className="py-4 flex items-center justify-between hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                      className="py-4 flex items-center justify-between w-full hover:bg-gray-50 transition-colors duration-150 ease-in-out"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">

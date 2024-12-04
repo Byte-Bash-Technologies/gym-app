@@ -246,7 +246,10 @@ export default function Component() {
             <Button
               variant="ghost"
               className="w-full justify-start p-4"
-              onClick={() => setIsInfoDialogOpen(true)}
+              onClick={() => {
+                console.log("Hello");
+                setIsInfoDialogOpen(true);
+              }}
             >
               <Clock className="h-5 w-5 mr-3 text-purple-500" />
               Support and Information
@@ -255,13 +258,14 @@ export default function Component() {
         </section>
 
         {/* Logout Button */}
-        <Link
-          to="/logout"
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
           className="w-full flex items-center justify-center gap-2"
         >
           <LogOut className="h-5 w-5" />
           Logout
-        </Link>
+        </Button>
         <Outlet />
       </main>
 

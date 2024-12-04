@@ -1,6 +1,6 @@
 import { ActionFunction, json, LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link, useFetcher, useParams } from "@remix-run/react";
-import { useState } from "react";
+import { useLoaderData,redirect, Link, useFetcher, useParams, useActionData } from "@remix-run/react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus, MessageCircle, Clock, RefreshCcw } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
@@ -145,7 +145,7 @@ export const loader: LoaderFunction = async ({ params }) => {
       .eq("id", activeMembership.id);
     activeMembership.status = "active";
   }
-  console.log(activeMembership);
+  
   for (const membership of expiredMemberships) {
     if (membership.status !== "expired") {
       await supabase
@@ -184,6 +184,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 export { ErrorBoundary} from "~/components/CatchErrorBoundary";
 
 export const action: ActionFunction = async ({ request, params }) => {
+  let whatsappUrl;
   const formData = await request.formData();
   const action = formData.get("_action");
   if (action === "updateMember") {
@@ -218,7 +219,7 @@ export const action: ActionFunction = async ({ request, params }) => {
     const paymentMethod = formData.get("paymentMethod") as string;
     const { data: member, error: memberError } = await supabase
       .from("members")
-      .select("balance")
+      .select("balance, full_name, phone")
       .eq("id", memberId)
       .single();
     if (memberError) {
@@ -251,8 +252,13 @@ export const action: ActionFunction = async ({ request, params }) => {
         { status: 500 }
       );
     }
-    return json({ success: true, message: "Payment processed successfully" });
+    const messageContent = `Hello ${member.full_name}, your payment of ₹${amount} has been successfully processed. Thank you!`;
+    const encodedMessage = encodeURIComponent(messageContent);
+    whatsappUrl=`https://api.whatsapp.com/send?phone=${member.phone}&text=${encodedMessage}`;
+    return redirect(whatsappUrl);
   }
+
+
   return json({ error: "Invalid action" }, { status: 400 });
 };
 
@@ -272,7 +278,12 @@ export default function MemberProfile() {
   const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const fetcher = useFetcher();
-
+  const actionData = useActionData();
+  useEffect(() => {
+    if (actionData?.success && actionData?.whatsappUrl) {
+      window.open(actionData.whatsappUrl, '_blank');
+    }
+  }, [actionData]);
   const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -341,7 +352,7 @@ export default function MemberProfile() {
           <h1 className="text-xl font-bold">Member Profile</h1>
         </div>
         <div className="flex items-center space-x-4">
-          <Bell className="h-6 w-6 text-purple-500" />
+          {/* <Bell className="h-6 w-6 text-purple-500" /> */}
           <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
