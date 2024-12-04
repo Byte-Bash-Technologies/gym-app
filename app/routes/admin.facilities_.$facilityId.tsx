@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Label } from "~/components/ui/label";
 import { supabase } from "~/utils/supabase.server";
-import { CreditCard, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
+import { CreditCard, Calendar, AlertTriangle } from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -83,6 +83,8 @@ export const action: ActionFunction = async ({ request }) => {
   const planId = formData.get('planId') as string;
   const paymentMethod = formData.get('paymentMethod') as string;
 
+  console.log('Action called with:', { facilityId, planId, paymentMethod });
+
   // Get the selected plan details
   const { data: plan, error: planError } = await supabase
     .from('subscription_plans')
@@ -91,7 +93,8 @@ export const action: ActionFunction = async ({ request }) => {
     .single();
 
   if (planError) {
-    return json({ error: 'Error fetching plan details' }, { status: 400 });
+    console.error('Error fetching plan details:', planError);
+    return json({ error: 'Error fetching plan details', details: planError }, { status: 400 });
   }
 
   // Set the current active subscription to expired
@@ -102,7 +105,8 @@ export const action: ActionFunction = async ({ request }) => {
     .eq('status', 'active');
 
   if (updateError) {
-    return json({ error: 'Error updating current subscription' }, { status: 400 });
+    console.error('Error updating current subscription:', updateError);
+    return json({ error: 'Error updating current subscription', details: updateError }, { status: 400 });
   }
 
   // Calculate new start and end dates
@@ -118,14 +122,15 @@ export const action: ActionFunction = async ({ request }) => {
       start_date: startDate.toISOString(),
       end_date: endDate.toISOString(),
       status: 'active',
-      payment_status: 'paid',
-      payment_method: paymentMethod
+      payment_status: 'completed', // Updated payment status
+      amount: plan.price // Add this line to include the plan amount
     })
     .select()
     .single();
 
   if (insertError) {
-    return json({ error: 'Error adding new subscription' }, { status: 400 });
+    console.error('Error adding new subscription:', insertError);
+    return json({ error: 'Error adding new subscription', details: insertError }, { status: 400 });
   }
 
   return json({ success: true, newSubscription });
@@ -151,7 +156,7 @@ export default function FacilityProfile() {
     });
   };
 
-  const handleAddOrChangeMembership = () => {
+  const handleRenewMembership = () => {
     if (selectedPlan && paymentMethod) {
       fetcher.submit(
         { facilityId: facility.id, planId: selectedPlan, paymentMethod },
@@ -161,11 +166,16 @@ export default function FacilityProfile() {
   };
 
   useEffect(() => {
-    if (fetcher.type === 'done' && fetcher.data.success) {
-      setIsChangeSubscriptionOpen(false);
-      setSelectedPlan('');
-      setPaymentMethod('');
-      navigate('.', { replace: true }); // Refresh the page
+    if (fetcher.type === 'done') {
+      if (fetcher.data.success) {
+        setIsChangeSubscriptionOpen(false);
+        setSelectedPlan('');
+        setPaymentMethod('');
+        navigate('.', { replace: true }); // Refresh the page
+      } else {
+        console.error('Error updating subscription:', fetcher.data.error, fetcher.data.details);
+        // You might want to show an error message to the user here
+      }
     }
   }, [fetcher, navigate]);
 
@@ -202,12 +212,12 @@ export default function FacilityProfile() {
             <Dialog open={isChangeSubscriptionOpen} onOpenChange={setIsChangeSubscriptionOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
-                  {hasActiveSubscription ? 'Change Membership' : 'Add Membership'}
+                  {hasActiveSubscription ? 'Change Subscription' : 'Add Subscription'}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>{hasActiveSubscription ? 'Change Membership' : 'Add Membership'}</DialogTitle>
+                  <DialogTitle>{hasActiveSubscription ? 'Change Subscription' : 'Add Subscription'}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -232,6 +242,7 @@ export default function FacilityProfile() {
                         <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
                         <SelectItem value="credit_card">Credit Card</SelectItem>
                         <SelectItem value="debit_card">Debit Card</SelectItem>
                         <SelectItem value="upi">UPI</SelectItem>
@@ -239,7 +250,7 @@ export default function FacilityProfile() {
                     </Select>
                   </div>
                   <Button 
-                    onClick={handleAddOrChangeMembership} 
+                    onClick={handleRenewMembership} 
                     disabled={!selectedPlan || !paymentMethod || fetcher.state === 'submitting'}
                   >
                     {fetcher.state === 'submitting' 
@@ -265,13 +276,13 @@ export default function FacilityProfile() {
                   <li key={index} className="flex items-center">
                     <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
                     <span>
-                      Membership {sub.subscription_plans.name} expired on {formatDate(sub.end_date)}
+                      Subscription {sub.subscription_plans.name} expired {/* on {formatDate(sub.end_date)} */}
                     </span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p>No recent expired memberships</p>
+              <p>No recent expired Subscriptions</p>
             )}
           </CardContent>
         </Card>
@@ -291,7 +302,7 @@ export default function FacilityProfile() {
                 </div>
               </div>
             ) : (
-              <p>No active subscription. Click &apos;Add Membership&apos; to subscribe to a plan.</p>
+              <p>No active subscription. Click &apos;Add Subscription&apos; to subscribe to a plan.</p>
             )}
           </CardContent>
         </Card>

@@ -137,19 +137,19 @@ export default function UsersList() {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-purple-500"
+                className="h-8 w-8"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
-                {/* <Filter className="text-purple-500" /> */}
+                <Filter className="h-5 w-5" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-purple-500"
+                    className="h-8 w-8"
                   >
-                    <ChevronDown className="h-5 w-5 text-purple-500" />
+                    <ChevronDown className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -179,15 +179,15 @@ export default function UsersList() {
 
         <h2 className="text-lg font-semibold mb-4">All Users</h2>
 
-        <Card className="bg-purple-100 p-4">
-          <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
+        <Card className="p-4">
+          <div className="rounded-3xl p-4 space-y-4">
             {!filteredUsers?.length ? (
               <div className="text-center py-4">No users found</div>
             ) : (
               filteredUsers.map((user: User) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0"
+                  className="flex items-center gap-3 border-b border-gray-200 last:border-0 pb-4 last:pb-0"
                 >
                   <Avatar className="h-12 w-12">
                     <AvatarImage
@@ -208,17 +208,15 @@ export default function UsersList() {
                     </p>
                   </div>
                   <div className="flex space-x-2">
-                    {/* <Link to={`/admin/users/${user.id}/edit`}>
-                      <Button variant="outline" size="sm">
-                        <Pencil className="w-4 h-4 mr-1" />
-                        Edit
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to={`/admin/users/${user.id}/edit`}>
+                          <Pencil className="w-4 h-4" />
+                        </Link>
                       </Button>
-                    </Link>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(user)}>
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Delete
-                    </Button> */}
-                  </div>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                 </div>
               ))
             )}
@@ -226,11 +224,11 @@ export default function UsersList() {
         </Card>
       </main>
 
-      {/* <Link to="new" className="fixed right-6 bottom-[7rem]">
-        <Button className="w-14 h-14 rounded-full bg-purple-500 hover:bg-purple-600 text-white shadow-lg">
+      <Link to="new" className="fixed right-6 bottom-[7rem]">
+        <Button className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
-      </Link> */}
+      </Link>
     </div>
   );
 }

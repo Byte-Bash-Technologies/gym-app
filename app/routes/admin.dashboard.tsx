@@ -5,21 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from "recharts";
 import { Users, DollarSign, TrendingUp, Activity, UserPlus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 
@@ -27,16 +12,15 @@ interface DashboardData {
   recentTransactions: Transaction[];
   facilityDetails: Facility[];
   memberStats: MemberStats;
-  revenueData: RevenueData[];
-  membershipDistribution: MembershipDistribution[];
-  facilitySubscriptionRevenue: number;
+  expiredSubscriptions: ExpiredSubscription[];
+  expiringSubscriptions: ExpiringSubscription[];
 }
 
 interface Transaction {
   id: number;
-  amount: number;
+  amount: number | null;
   date: string;
-  memberName: string;
+  facilityName: string;
 }
 
 interface Facility {
@@ -46,147 +30,147 @@ interface Facility {
   totalMembers: number;
   activeMembers: number;
   revenue: number;
+  subscriptionStatus: 'active' | 'expired' | 'none';
 }
 
 interface MemberStats {
-  totalMembers: number;
-  activeMembers: number;
-  newMembersThisMonth: number;
-  expiringMemberships: number;
-  memberGrowth: number;
+  totalUsers: number;
+  activeFacilities: number;
+  totalRevenue: number;
+  expiredFacilities: number;
 }
 
-interface RevenueData {
-  date: string;
-  revenue: number;
+interface ExpiredSubscription {
+  id: number;
+  facilityName: string;
+  expirationDate: string;
 }
 
-interface MembershipDistribution {
-  plan: string;
-  members: number;
+interface ExpiringSubscription {
+  id: number;
+  facilityName: string;
+  expirationDate: string;
 }
 
 export const loader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url);
   const transactionPeriod = url.searchParams.get("transactionPeriod") || "all";
 
-  // Fetch data from Supabase
+  // Fetch total users count
+  const { count: totalUsers } = await supabase
+    .from("users")
+    .select("id", { count: "exact" });
+
+  // Fetch active facilities count
+  const { count: activeFacilities } = await supabase
+    .from("facilities")
+    .select("id", { count: "exact" })
+    .eq("status", "active");
+
+  // Fetch total revenue from facility subscriptions
+  const { data: revenueData } = await supabase
+    .from("facility_subscriptions")
+    .select("amount")
+    .eq("status", "active");
+
+  const totalRevenue = revenueData?.reduce((sum, item) => sum + item.amount, 0) || 0;
+
+  // Fetch expired facilities count
+  const { count: expiredFacilities } = await supabase
+    .from("facilities")
+    .select("id", { count: "exact" })
+    .or("status.eq.inactive,facility_subscriptions.status.eq.expired");
+
+  // Fetch recent transactions from facility subscriptions
   let transactionQuery = supabase
-    .from("transactions")
-    .select("id, amount, created_at, members(full_name)")
-    .order("created_at", { ascending: false });
+    .from("facility_subscriptions")
+    .select("id, amount, start_date, facilities(name)")
+    .order("start_date", { ascending: false });
 
   const now = new Date();
   switch (transactionPeriod) {
     case "today":
-      transactionQuery = transactionQuery.gte("created_at", now.toISOString().split('T')[0]);
+      transactionQuery = transactionQuery.gte("start_date", now.toISOString().split('T')[0]);
       break;
     case "week":
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      transactionQuery = transactionQuery.gte("created_at", oneWeekAgo.toISOString());
+      transactionQuery = transactionQuery.gte("start_date", oneWeekAgo.toISOString());
       break;
     case "month":
       const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      transactionQuery = transactionQuery.gte("created_at", oneMonthAgo.toISOString());
+      transactionQuery = transactionQuery.gte("start_date", oneMonthAgo.toISOString());
       break;
     // "all" case doesn't need any additional filtering
   }
 
-  const { data: transactions } = await transactionQuery.limit(5);
+  const { data: transactions } = await transactionQuery.limit(10);
 
+  // Fetch facility details
   const { data: facilityData } = await supabase
     .from("facilities")
-    .select("id, name, address");
+    .select(`
+      id, 
+      name, 
+      address, 
+      users (id),
+      facility_subscriptions (id, status)
+    `);
 
-  const { count: totalMembers } = await supabase
-    .from("members")
-    .select("id", { count: "exact" });
-
-  const { count: activeMembers } = await supabase
-    .from("members")
-    .select("id", { count: "exact" })
-    .eq("status", "active");
-
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-  const { count: newMembersThisMonth } = await supabase
-    .from("members")
-    .select("id", { count: "exact" })
-    .gte("joined_date", oneMonthAgo.toISOString());
-
-  const oneMonthFromNow = new Date();
-  oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
-
-  const { count: expiringMemberships } = await supabase
-    .from("memberships")
-    .select("id", { count: "exact" })
-    .lt("end_date", oneMonthFromNow.toISOString())
-    .gt("end_date", new Date().toISOString());
-
-  const { count: lastMonthMembers } = await supabase
-    .from("members")
-    .select("id", { count: "exact" })
-    .lt("joined_date", oneMonthAgo.toISOString());
-
-  const memberGrowth = ((totalMembers - lastMonthMembers) / lastMonthMembers) * 100;
-
-  // Fetch revenue data for the past 30 days
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const { data: revenueData } = await supabase
-    .from("transactions")
-    .select("amount, created_at")
-    .gte("created_at", thirtyDaysAgo.toISOString())
-    .order("created_at", { ascending: true });
-
-  // Fetch membership distribution data
-  const { data: membershipData } = await supabase
-    .from("memberships")
-    .select("plans(name)")
-    .eq("status", "active");
-
-  const membershipDistribution = membershipData.reduce((acc, membership) => {
-    const planName = membership.plans.name;
-    acc[planName] = (acc[planName] || 0) + 1;
-    return acc;
-  }, {});
-
-  // Calculate facility subscription revenue (assuming a fixed subscription fee per facility)
-  const facilitySubscriptionFee = 100; // Replace with actual subscription fee
-  const facilitySubscriptionRevenue = facilityData.length * facilitySubscriptionFee;
-
-  // Prepare facility details with mock revenue (replace with actual data in production)
-  const facilityDetails = facilityData.map((facility, index) => ({
-    ...facility,
-    totalMembers: Math.floor(Math.random() * 1000),
-    activeMembers: Math.floor(Math.random() * 800),
-    revenue: Math.floor(Math.random() * 10000),
+  // Prepare facility details
+  const facilityDetails = facilityData?.map((facility) => ({
+    id: facility.id,
+    name: facility.name,
+    address: facility.address,
+    totalMembers: facility.users?.length || 0,
+    activeMembers: facility.users?.filter((user) => user.status === 'active').length || 0,
+    revenue: facility.facility_subscriptions?.reduce((sum, sub) => sum + sub.amount, 0) || 0,
+    subscriptionStatus: facility.facility_subscriptions?.some(sub => sub.status === 'active') 
+      ? 'active' 
+      : facility.facility_subscriptions?.length > 0 ? 'expired' : 'none'
   }));
+
+  // Fetch expired subscriptions
+  const { data: expiredSubscriptions } = await supabase
+    .from("facility_subscriptions")
+    .select("id, end_date, facilities(name)")
+    .lt("end_date", new Date().toISOString())
+    .order("end_date", { ascending: false })
+    .limit(10);
+
+  // Fetch subscriptions expiring in the next 7 days
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const { data: expiringSubscriptions } = await supabase
+    .from("facility_subscriptions")
+    .select("id, end_date, facilities(name)")
+    .gte("end_date", now.toISOString())
+    .lt("end_date", sevenDaysFromNow.toISOString())
+    .order("end_date", { ascending: true })
+    .limit(10);
 
   const dashboardData: DashboardData = {
     recentTransactions: transactions?.map((t) => ({
       id: t.id,
-      amount: t.amount,
-      date: new Date(t.created_at).toLocaleDateString(),
-      memberName: t.members.full_name,
+      amount: typeof t.amount === 'number' ? t.amount : null,
+      date: t.start_date ? new Date(t.start_date).toLocaleDateString() : 'Unknown Date',
+      facilityName: t.facilities?.[0]?.name || 'Unknown Facility',
     })) || [],
-    facilityDetails,
+    facilityDetails: facilityDetails || [],
     memberStats: {
-      totalMembers: totalMembers || 0,
-      activeMembers: activeMembers || 0,
-      newMembersThisMonth: newMembersThisMonth || 0,
-      expiringMemberships: expiringMemberships || 0,
-      memberGrowth,
+      totalUsers: totalUsers || 0,
+      activeFacilities: activeFacilities || 0,
+      totalRevenue,
+      expiredFacilities: expiredFacilities || 0,
     },
-    revenueData: revenueData?.map((r) => ({
-      date: new Date(r.created_at).toLocaleDateString(),
-      revenue: r.amount,
+    expiredSubscriptions: expiredSubscriptions?.map((sub) => ({
+      id: sub.id,
+      facilityName: sub.facilities?.[0]?.name || 'Unknown Facility',
+      expirationDate: new Date(sub.end_date).toLocaleDateString(),
     })) || [],
-    membershipDistribution: Object.entries(membershipDistribution).map(([plan, members]) => ({
-      plan,
-      members,
-    })),
-    facilitySubscriptionRevenue,
+    expiringSubscriptions: expiringSubscriptions?.map((sub) => ({
+      id: sub.id,
+      facilityName: sub.facilities?.[0]?.name || 'Unknown Facility',
+      expirationDate: new Date(sub.end_date).toLocaleDateString(),
+    })) || [],
   };
 
   return json(dashboardData);
@@ -194,7 +178,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export default function AdminDashboard() {
   const data = useLoaderData<DashboardData>();
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
   return (
     <div className="container mx-auto p-4">
@@ -202,34 +185,28 @@ export default function AdminDashboard() {
         <h1 className="text-3xl font-bold">Facility Insights Dashboard</h1>
         <Link to="/signup">
           <Button>
-        <UserPlus className="mr-2 h-4 w-4" />
-        Add User
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add User
           </Button>
         </Link>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.memberStats.totalMembers}</div>
-            <p className={`text-xs ${data.memberStats.memberGrowth >= 0 ? "text-green-500" : "text-red-500"}`}>
-              {data.memberStats.memberGrowth >= 0 ? "+" : ""}{data.memberStats.memberGrowth.toFixed(2)}% from last month
-            </p>
+            <div className="text-2xl font-bold">{data.memberStats.totalUsers}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Members</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Facilities</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.memberStats.activeMembers}</div>
-            <p className="text-xs text-muted-foreground">
-              {data.memberStats.expiringMemberships} expiring soon
-            </p>
+            <div className="text-2xl font-bold">{data.memberStats.activeFacilities}</div>
           </CardContent>
         </Card>
         <Card>
@@ -239,29 +216,17 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-            ₹{data.revenueData.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
+              ₹{data.memberStats.totalRevenue.toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expired Members</CardTitle>
+            <CardTitle className="text-sm font-medium">Expired Facilities</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data.memberStats.newMembersThisMonth}</div>
-            <p className="text-xs text-muted-foreground">+180.1% from last month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Facility Subscription Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{data.facilitySubscriptionRevenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">From {data.facilityDetails.length} facilities</p>
+            <div className="text-2xl font-bold">{data.memberStats.expiredFacilities}</div>
           </CardContent>
         </Card>
       </div>
@@ -269,53 +234,39 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Overview</CardTitle>
+            <CardTitle>Expired Subscriptions</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={data.revenueData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                
-                <Line type="monotone" dataKey="revenue" stroke="#8884d8" fillOpacity={1} fill="url(#colorRevenue)" />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              {data.expiredSubscriptions.map((sub) => (
+                <div key={sub.id} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{sub.facilityName}</p>
+                    <p className="text-sm text-muted-foreground">Expired on: {sub.expirationDate}</p>
+                  </div>
+                  <Badge variant="destructive">Expired</Badge>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Membership Distribution</CardTitle>
+            <CardTitle>Subscriptions Expiring Soon</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={data.membershipDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="members"
-                >
-                  {data.membershipDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              {data.expiringSubscriptions.map((sub) => (
+                <div key={sub.id} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{sub.facilityName}</p>
+                    <p className="text-sm text-muted-foreground">Expires on: {sub.expirationDate}</p>
+                  </div>
+                  <Badge variant="warning">Expiring Soon</Badge>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -341,17 +292,17 @@ export default function AdminDashboard() {
               {data.recentTransactions.map((transaction) => (
                 <div key={transaction.id} className="flex items-center">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={`https://avatar.vercel.sh/${transaction.memberName}.png`} alt={transaction.memberName} />
-                    <AvatarFallback>{transaction.memberName.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={`https://avatar.vercel.sh/${transaction.facilityName}.png`} alt={transaction.facilityName} />
+                    <AvatarFallback>{transaction.facilityName.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium leading-none">{transaction.memberName}</p>
+                    <p className="text-sm font-medium leading-none">{transaction.facilityName}</p>
                     <p className="text-sm text-muted-foreground">
                       {transaction.date}
                     </p>
                   </div>
                   <div className="ml-auto font-medium">
-                    ${transaction.amount.toFixed(2)}
+                    ₹{transaction.amount?.toFixed(2) || 0}
                   </div>
                 </div>
               ))}
@@ -379,7 +330,13 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Revenue:</span>
-                    <Badge variant="secondary">${facility.revenue.toLocaleString()}</Badge>
+                    <Badge variant="secondary">₹{facility.revenue.toLocaleString()}</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>Subscription Status:</span>
+                    <Badge variant={facility.subscriptionStatus === 'active' ? 'success' : facility.subscriptionStatus === 'expired' ? 'warning' : 'destructive'}>
+                      {facility.subscriptionStatus}
+                    </Badge>
                   </div>
                 </div>
               ))}
