@@ -1,11 +1,13 @@
-import { json, LoaderFunction } from "@remix-run/node";
-import { useLoaderData, Link } from "@remix-run/react";
-import { useState } from "react";
+import { json, LoaderFunction, ActionFunction } from "@remix-run/node";
+import { useLoaderData, useNavigate, useFetcher } from "@remix-run/react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { Label } from "~/components/ui/label";
 import { supabase } from "~/utils/supabase.server";
 import { CreditCard, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
 
@@ -14,7 +16,6 @@ interface Subscription {
   name: string;
   price: number;
   duration_days: number;
-  features: { feature: string[] };
 }
 
 interface Facility {
@@ -29,6 +30,7 @@ interface Facility {
     start_date: string;
     end_date: string;
     status: string;
+    payment_status: string;
     subscription_plans: Subscription;
   }[];
 }
@@ -45,12 +47,12 @@ export const loader: LoaderFunction = async ({ params }) => {
         start_date,
         end_date,
         status,
+        payment_status,
         subscription_plans (
           id,
           name,
           price,
-          duration_days,
-          features
+          duration_days
         )
       )
     `)
@@ -65,7 +67,7 @@ export const loader: LoaderFunction = async ({ params }) => {
   // Fetch all available subscription plans
   const { data: allSubscriptions, error: subscriptionError } = await supabase
     .from('subscription_plans')
-    .select('*');
+    .select('id, name, price, duration_days');
 
   if (subscriptionError) {
     console.error('Error fetching subscriptions:', subscriptionError);
@@ -75,31 +77,70 @@ export const loader: LoaderFunction = async ({ params }) => {
   return json({ facility, allSubscriptions });
 };
 
-function SubscriptionList({ subscriptions, onSelect }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void }) {
-  return (
-    <div className="space-y-4">
-      {subscriptions.map((sub) => (
-        <Card key={sub.id} className="cursor-pointer hover:bg-gray-100" onClick={() => onSelect(sub)}>
-          <CardContent className="p-4">
-            <h3 className="font-semibold">{sub.name}</h3>
-            <p>Price: ₹{sub.price} / {sub.duration_days} days</p>
-            <ul className="list-disc list-inside mt-2">
-              {sub.features.feature.map((feature, index) => (
-                <li key={index} className="text-sm">{feature}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const facilityId = formData.get('facilityId') as string;
+  const planId = formData.get('planId') as string;
+  const paymentMethod = formData.get('paymentMethod') as string;
+
+  // Get the selected plan details
+  const { data: plan, error: planError } = await supabase
+    .from('subscription_plans')
+    .select('*')
+    .eq('id', planId)
+    .single();
+
+  if (planError) {
+    return json({ error: 'Error fetching plan details' }, { status: 400 });
+  }
+
+  // Set the current active subscription to expired
+  const { error: updateError } = await supabase
+    .from('facility_subscriptions')
+    .update({ status: 'expired' })
+    .eq('facility_id', facilityId)
+    .eq('status', 'active');
+
+  if (updateError) {
+    return json({ error: 'Error updating current subscription' }, { status: 400 });
+  }
+
+  // Calculate new start and end dates
+  const startDate = new Date();
+  const endDate = new Date(startDate.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+
+  // Add new subscription
+  const { data: newSubscription, error: insertError } = await supabase
+    .from('facility_subscriptions')
+    .insert({
+      facility_id: facilityId,
+      plan_id: planId,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
+      status: 'active',
+      payment_status: 'paid',
+      payment_method: paymentMethod
+    })
+    .select()
+    .single();
+
+  if (insertError) {
+    return json({ error: 'Error adding new subscription' }, { status: 400 });
+  }
+
+  return json({ success: true, newSubscription });
+};
 
 export default function FacilityProfile() {
   const { facility, allSubscriptions } = useLoaderData<{ facility: Facility, allSubscriptions: Subscription[] }>();
   const [isChangeSubscriptionOpen, setIsChangeSubscriptionOpen] = useState(false);
-  const currentSubscription = facility.facility_subscriptions[0]; // Assuming the most recent subscription is first
-  const hasActiveSubscription = currentSubscription && currentSubscription.status === 'active';
+  const [selectedPlan, setSelectedPlan] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('');
+  const fetcher = useFetcher();
+  const navigate = useNavigate();
+
+  const currentSubscription = facility.facility_subscriptions.find(sub => sub.status === 'active');
+  const hasActiveSubscription = !!currentSubscription;
   const expiredSubscriptions = facility.facility_subscriptions.filter(sub => sub.status === 'expired');
 
   const formatDate = (dateString: string) => {
@@ -110,21 +151,26 @@ export default function FacilityProfile() {
     });
   };
 
-  const handleSubscriptionChange = (newSubscription: Subscription) => {
-    // Here you would implement the logic to change the subscription
-    console.log("Changing subscription to:", newSubscription);
-    setIsChangeSubscriptionOpen(false);
+  const handleAddOrChangeMembership = () => {
+    if (selectedPlan && paymentMethod) {
+      fetcher.submit(
+        { facilityId: facility.id, planId: selectedPlan, paymentMethod },
+        { method: 'post' }
+      );
+    }
   };
+
+  useEffect(() => {
+    if (fetcher.type === 'done' && fetcher.data.success) {
+      setIsChangeSubscriptionOpen(false);
+      setSelectedPlan('');
+      setPaymentMethod('');
+      navigate('.', { replace: true }); // Refresh the page
+    }
+  }, [fetcher, navigate]);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Facility Profile</h2>
-        <Link to={`/admin/facilities/${facility.id}/edit`}>
-          <Button>Edit Facility</Button>
-        </Link>
-      </div>
-
       <Card>
         <CardHeader className="flex flex-row items-center gap-4">
           <Avatar className="h-20 w-20">
@@ -163,10 +209,44 @@ export default function FacilityProfile() {
                 <DialogHeader>
                   <DialogTitle>{hasActiveSubscription ? 'Change Membership' : 'Add Membership'}</DialogTitle>
                 </DialogHeader>
-                <SubscriptionList 
-                  subscriptions={allSubscriptions} 
-                  onSelect={handleSubscriptionChange} 
-                />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="plan">Select Plan</Label>
+                    <Select onValueChange={setSelectedPlan} value={selectedPlan}>
+                      <SelectTrigger id="plan">
+                        <SelectValue placeholder="Select a plan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allSubscriptions.map((sub) => (
+                          <SelectItem key={sub.id} value={sub.id}>
+                            {sub.name} - ₹{sub.price} / {sub.duration_days} days
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentMethod">Payment Method</Label>
+                    <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                      <SelectTrigger id="paymentMethod">
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="credit_card">Credit Card</SelectItem>
+                        <SelectItem value="debit_card">Debit Card</SelectItem>
+                        <SelectItem value="upi">UPI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button 
+                    onClick={handleAddOrChangeMembership} 
+                    disabled={!selectedPlan || !paymentMethod || fetcher.state === 'submitting'}
+                  >
+                    {fetcher.state === 'submitting' 
+                      ? 'Processing...' 
+                      : hasActiveSubscription ? 'Change Membership' : 'Add Membership'}
+                  </Button>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
@@ -206,17 +286,8 @@ export default function FacilityProfile() {
                   <h3 className="font-semibold">Current Plan: {currentSubscription.subscription_plans.name}</h3>
                   <p>Price: ₹{currentSubscription.subscription_plans.price} / {currentSubscription.subscription_plans.duration_days} days</p>
                   <p>Status: <Badge variant="success">{currentSubscription.status}</Badge></p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Features:</h4>
-                  <ul className="list-disc list-inside">
-                    {currentSubscription.subscription_plans.features.feature.map((feature, index) => (
-                      <li key={index} className="flex items-center">
-                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+                  <p>Start Date: {formatDate(currentSubscription.start_date)}</p>
+                  <p>End Date: {formatDate(currentSubscription.end_date)}</p>
                 </div>
               </div>
             ) : (
@@ -228,4 +299,3 @@ export default function FacilityProfile() {
     </div>
   );
 }
-
