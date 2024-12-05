@@ -71,7 +71,7 @@ export default function UsersList() {
     by: string;
     order: "asc" | "desc";
   }>(currentSort);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // const [isFilterOpen, setIsFilterOpen] = useState(false);
   const navigate = useNavigate();
   const submit = useSubmit();
 
@@ -134,14 +134,14 @@ export default function UsersList() {
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <div className="absolute right-3 flex space-x-2">
-              <Button
+              {/* <Button
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
                 <Filter className="h-5 w-5" />
-              </Button>
+              </Button> */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -224,7 +224,7 @@ export default function UsersList() {
         </Card>
       </main>
 
-      <Link to="new" className="fixed right-6 bottom-[7rem]">
+      <Link to="/signup" className="fixed right-6 bottom-[7rem]">
         <Button className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>

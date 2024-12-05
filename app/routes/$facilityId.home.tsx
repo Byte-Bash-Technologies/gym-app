@@ -335,7 +335,7 @@ export default function Index() {
 
       {/* Expired Members Section */}
       <div className="p-4">
-        <h2 className="text-lg font-bold mb-4">Expired Memberships</h2>
+        <h2 className="text-lg font-bold mb-2">Expired Memberships</h2>
         <Card>
           <CardContent>
             <ul className="divide-y divide-gray-200">

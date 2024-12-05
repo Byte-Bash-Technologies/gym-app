@@ -108,7 +108,7 @@ export default function ReportPage() {
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <div className="absolute right-3 flex space-x-2">
-              <Button
+              {/* <Button
                 size="icon"
                 variant="ghost"
                 className="h-8 w-8 text-purple-500"
@@ -123,7 +123,7 @@ export default function ReportPage() {
                 onClick={handleDownloadClick}
               >
                 <Download className="h-5 w-5 text-purple-500" />
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -363,34 +363,39 @@ export default function ReportPage() {
           <CardContent className="p-4">
             <div>
               {transactions.map((transaction) => (
-                <div
-                  key={transaction.id}
-                  className="flex items-center justify-between bg-purple-100 p-4 rounded-lg mb-2 last:mb-0"
-                >
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <AvatarImage
-                        src={`https://api.dicebear.com/6.x/initials/svg?seed=${transaction.user}`}
-                        alt={transaction.user}
-                      />
-                      <AvatarFallback>{transaction.user[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-semibold">{transaction.user}</p>
-                      <p className="text-sm text-gray-500">
-                        {transaction.timestamp}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={`font-semibold ${
-                      transaction.amount > 0 ? "text-green-500" : "text-red-500"
-                    }`}
-                  >
-                    {transaction.amount > 0 ? "+" : "-"}₹
-                    {Math.abs(transaction.amount).toFixed(2)}
-                  </span>
+          <Link
+          key={transaction.id}
+          to={`/${params.facilityId}/members/${transaction.id}`}
+            className="block"
+          >
+            <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg mb-2 last:mb-2">
+              <div className="flex items-center space-x-3">
+                <Avatar>
+            <AvatarImage
+              src={`https://api.dicebear.com/6.x/initials/svg?seed=${transaction.user}`}
+              alt={transaction.user}
+            />
+            <AvatarFallback>{transaction.user[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+            <p className="font-semibold">{transaction.user}</p>
+            <p className="text-sm text-gray-500">
+              {transaction.timestamp}
+            </p>
                 </div>
+              </div>
+              <span
+                className={`font-semibold ${
+            transaction.amount > 0
+              ? "text-green-500"
+              : "text-red-500"
+                }`}
+              >
+                {transaction.amount > 0 ? "+" : "-"}₹
+                {Math.abs(transaction.amount).toFixed(2)}
+              </span>
+            </div>
+          </Link>
               ))}
             </div>
           </CardContent>
