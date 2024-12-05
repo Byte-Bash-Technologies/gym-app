@@ -17,6 +17,7 @@ interface Facility {
   facility_subscriptions: {
     status: string;
   }[];
+  status?: string;
 }
 
 export const loader: LoaderFunction = async () => {
@@ -30,7 +31,25 @@ export const loader: LoaderFunction = async () => {
     return json({ facilities: [] });
   }
 
-  return json({ facilities });
+    // Update facility status based on subscription
+  const updatedFacilities = facilities.map((facility) => ({
+    ...facility,
+    status: facility.facility_subscriptions.some(sub => sub.status === 'active') ? 'active' : 'expired'
+  }));
+
+  // Update the status in the database
+  for (const facility of updatedFacilities) {
+    const { error: updateError } = await supabase
+      .from('facilities')
+      .update({ status: facility.status })
+      .eq('id', facility.id);
+
+    if (updateError) {
+      console.error(`Error updating status for facility ${facility.id}:`, updateError);
+    }
+  }
+
+  return json({ facilities: updatedFacilities });
 };
 
 export const action: ActionFunction = async ({ request }) => {

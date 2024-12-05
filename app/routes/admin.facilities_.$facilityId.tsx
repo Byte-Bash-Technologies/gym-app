@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Label } from "~/components/ui/label";
 import { supabase } from "~/utils/supabase.server";
-import { CreditCard, Calendar, AlertTriangle } from 'lucide-react';
+import { CreditCard, Calendar, AlertTriangle, Plus, RefreshCcw } from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -212,7 +212,7 @@ export default function FacilityProfile() {
             <Dialog open={isChangeSubscriptionOpen} onOpenChange={setIsChangeSubscriptionOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
-                  {hasActiveSubscription ? 'Change Subscription' : 'Add Subscription'}
+                  {hasActiveSubscription ? (<><RefreshCcw className="h-4 w-4 mr-2" /> Change Subscription</>) : (<><Plus className="h-4 w-4 mr-2" /> Add Subscription</>)}
                 </Button>
               </DialogTrigger>
               <DialogContent>
