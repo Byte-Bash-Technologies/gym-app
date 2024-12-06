@@ -2,6 +2,7 @@ import { vitePlugin as remix } from "@remix-run/dev";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { VitePWA } from "vite-plugin-pwa";
+import { netlifyPlugin } from "@netlify/remix-adapter/plugin";
 
 declare module "@remix-run/node" {
   interface Future {
@@ -22,6 +23,7 @@ export default defineConfig({
       },
     }),
     tsconfigPaths(),
+    netlifyPlugin(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "robots.txt", "apple-touch-icon.png"],
