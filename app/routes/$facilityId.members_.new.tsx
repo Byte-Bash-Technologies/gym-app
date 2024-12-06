@@ -43,7 +43,6 @@ export const loader: LoaderFunction = async ({ params }) => {
 
 export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
-  console.log("Form Data:", formData);
   const full_name = formData.get("full_name") as string;
   const email = formData.get("email") as string;
   const phone = formData.get("phone") as string;
@@ -76,7 +75,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   if (photo.size > 0) {
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("member-photos")
-      .upload(`${admission_no}.jpg`, photo, {
+      .upload(`Avatars/${admission_no}.jpg`, photo, {
         cacheControl: "3600",
         upsert: false,
       });
@@ -88,7 +87,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 
     photoUrl = supabase.storage
       .from("member-photos")
-      .getPublicUrl(`${admission_no}.jpg`).data.publicUrl;
+      .getPublicUrl(`Avatars/${admission_no}.jpg`).data.publicUrl;
   }
 
   // If a plan is selected, create a membership and process payment

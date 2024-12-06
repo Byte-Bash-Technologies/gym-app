@@ -13,15 +13,15 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   const facilityId = params.facilityId;
   const { data: facility, error: facilityError } = await supabase
-  .from('facilities')
-  .select('name')
-  .eq('id', facilityId)
-  .single();
+    .from('facilities')
+    .select('name')
+    .eq('id', facilityId)
+    .single();
 
-if (facilityError) {
-  throw new Response("Facility not found", { status: 404 });
-}
-  
+  if (facilityError) {
+    throw new Response("Facility not found", { status: 404 });
+  }
+
   const { data, error } = await supabase
     .from('facility_subscriptions')
     .select('end_date')
@@ -30,7 +30,7 @@ if (facilityError) {
     .limit(1)
     .single();
 
-  if (error) {
+  if (error || !data) {
     console.error('Error fetching subscription data:', error);
     return json({ facilityId, endDate: null });
   }
@@ -50,7 +50,7 @@ export default function FacilityLayout() {
     { icon: FileText, label: 'Reports', href: `/${params.facilityId}/reports` },
   ];
 
-  const isSubscriptionExpired = endDate ? new Date(endDate) < new Date() : false;
+  const isSubscriptionExpired = !endDate || new Date(endDate) < new Date();
 
   const NavLinks = ({ isMobile = false }) => (
     <>
