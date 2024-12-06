@@ -8,7 +8,7 @@
     "dev": "remix vite:dev",
     "preview": "remix preview",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-    "start": "remix-serve ./build/server/index.js",
+    "start": "netlify serve",
     "typecheck": "tsc",
     "format": "prettier --write 'routes/**/*.{js,ts,jsx,tsx}'"
   },
