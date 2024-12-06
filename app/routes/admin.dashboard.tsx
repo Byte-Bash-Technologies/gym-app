@@ -110,7 +110,8 @@ export const loader: LoaderFunction = async ({ request }) => {
       address,
       phone,
       email
-    `);
+    `)
+    .limit(5);
 
   // Fetch expired subscriptions
   const { data: expiredSubscriptions } = await supabase

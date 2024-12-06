@@ -61,9 +61,9 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 interface UserProfileProps {
   user: {
-    avatar_url: string;
-    full_name: string;
-    email: string;
+    avatar_url: string | null;
+    full_name: string | null;
+    email: string | null;
   };
 }
 
@@ -72,7 +72,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user }) => (
     <div className="flex items-center space-x-4 p-4 bg-gray-100 rounded-lg">
       <Avatar>
         <AvatarImage src={user.avatar_url} alt={user.full_name} />
-        <AvatarFallback>{user.full_name.charAt(0)}</AvatarFallback>
+        <AvatarFallback>{user.full_name?.charAt(0)}</AvatarFallback>
       </Avatar>
       <div>
         <p className="text-sm font-medium">{user.full_name}</p>

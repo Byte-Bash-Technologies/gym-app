@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { generateMembershipPDF } from "~/utils/pdf-generator.server";
+
 
 export const loader: LoaderFunction = async ({ params }) => {
   const { data: facility } = await supabase
@@ -160,7 +160,6 @@ export const action: ActionFunction = async ({ request, params }) => {
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
-    console.log("Transaction ID:", transactionID);
     // Create transaction record
     const { data: transaction, error: transactionError } = await supabase
       .from("transactions")

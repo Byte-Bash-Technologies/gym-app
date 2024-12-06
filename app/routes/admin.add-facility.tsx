@@ -100,7 +100,7 @@ export const action = async ({ request }) => {
     const fileExt = logo.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
-      .from('member-photos')
+      .from('facility-logos')
       .upload(fileName, logo, {
         cacheControl: '3600',
         upsert: false,
@@ -111,7 +111,7 @@ export const action = async ({ request }) => {
     }
 
     const { data: { publicUrl } } = supabaseClient.storage
-      .from('member-photos')
+      .from('facility-logos')
       .getPublicUrl(fileName);
 
     logoUrl = publicUrl;

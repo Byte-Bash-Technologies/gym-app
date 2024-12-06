@@ -16,7 +16,6 @@ export const action: ActionFunction = async ({ request }) => {
   const description = formData.get('description') as string;
   const price = parseFloat(formData.get('price') as string);
   const duration_days = parseInt(formData.get('duration_days') as string, 10);
-  const max_members = formData.get('max_members') ? parseInt(formData.get('max_members') as string, 10) : null;
   const features = formData.get('features') as string;
 
   const featuresArray = features.split(',').map(feature => feature.trim());
@@ -28,7 +27,6 @@ export const action: ActionFunction = async ({ request }) => {
       description,
       price,
       duration_days,
-      max_members,
       features: { feature: featuresArray }
     });
 
@@ -68,10 +66,6 @@ export default function NewSubscriptionPlan() {
             <div className="space-y-2">
               <Label htmlFor="duration_days">Duration (days)</Label>
               <Input id="duration_days" name="duration_days" type="number" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="max_members">Max Members (leave blank for unlimited)</Label>
-              <Input id="max_members" name="max_members" type="number" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="features">Features (comma-separated)</Label>

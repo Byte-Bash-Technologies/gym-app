@@ -1,4 +1,4 @@
-import { json, redirect, type LoaderFunction, type ActionFunction } from "@remix-run/node";
+import { json, type LoaderFunction, type ActionFunction } from "@remix-run/node";
 import { useLoaderData, useActionData, Form, Link, useParams } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { ArrowLeft, CreditCard } from 'lucide-react'
