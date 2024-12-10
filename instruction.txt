@@ -1,0 +1,2 @@
+docker build -t my-dev-container .
+docker run -it --rm -v $(pwd):/workspace -p 5173:5173 my-dev-container

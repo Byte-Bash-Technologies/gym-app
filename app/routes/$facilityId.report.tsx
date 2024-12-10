@@ -29,7 +29,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "~/components/ui/chart";
-import BottomNav from "~/components/BottomNav";
 import { loader } from "./reports.$facilityId.loader";
 
 export { loader };

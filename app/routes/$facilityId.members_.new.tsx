@@ -443,8 +443,6 @@ export default function NewMemberForm() {
               id="photo"
               name="photo"
               type="file"
-              accept="image/*"
-              capture="environment"
               className="hidden"
               onChange={handleFileChange}
             />

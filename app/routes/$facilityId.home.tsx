@@ -13,6 +13,7 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { supabase } from "~/utils/supabase.server";
 import { createServerClient, parse } from "@supabase/ssr";
+import { getAuthenticatedUser } from "~/utils/currentUser";
 
 interface Gym {
   id: string;
@@ -40,24 +41,7 @@ interface Member {
 }
 
 export const loader: LoaderFunction = async ({ params, request }) => {
-  const supabaseAuth = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (key) => parse(request.headers.get("Cookie") || "")[key],
-        set: () => {},
-        remove: () => {},
-      },
-    }
-  );
-  const {
-    data: { user },
-  } = await supabaseAuth.auth.getUser();
-
-  if (!user) {
-    return redirect("/login");
-  }
+  const user = await getAuthenticatedUser(request);
 
   const facilityId = params.facilityId;
 
@@ -426,7 +410,7 @@ export default function Index() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="warning">Expiring Soon</Badge>
+                      <Badge variant="secondary">Expiring Soon</Badge>
                     </Link>
                   </li>
                 ))
