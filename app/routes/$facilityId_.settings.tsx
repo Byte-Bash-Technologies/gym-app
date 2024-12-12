@@ -1,32 +1,19 @@
 import { json, redirect, LoaderFunction } from "@remix-run/node";
-import { Outlet, useLoaderData, useNavigate, Link } from "@remix-run/react";
-import {
-  ArrowLeft,
-  Bell,
-  Phone,
-  SettingsIcon,
-  RefreshCcw,
-  MessageSquare,
-  BarChart,
-  User2,
-  Clock,
-  X,
-  LogOut,
-} from "lucide-react";
+import { Outlet, useLoaderData, useNavigate, Link, Form } from "@remix-run/react";
+import { ArrowLeft, RefreshCcw, MessageSquare, BarChart, User2, Clock, X, LogOut } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
-import { supabase } from "~/utils/supabase.client";
 import { createServerClient, parse, serialize } from "@supabase/ssr";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "~/components/ui/dialog";
-import { useState } from "react";
+import { supabase } from "~/utils/supabase.client";
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const { facilityId } = params;
@@ -93,21 +80,40 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   return json({ user: userData, facility, subscription });
 };
 
+export const action = async ({ request }) => {
+  const formData = await request.formData();
+  const action = formData.get("action");
+  const response = new Response();
+
+  const supabaseClient = createServerClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (key) => parse(request.headers.get("Cookie") || "")[key],
+        set: (key, value, options) => {
+          response.headers.append("Set-Cookie", serialize(key, value, options));
+        },
+        remove: (key, options) => {
+          response.headers.append("Set-Cookie", serialize(key, "", options));
+        },
+      },
+    }
+  );
+  if (action === "logout") {
+   supabaseClient.auth.signOut();
+   return redirect("/login");
+  }
+
+  return null;
+};
+
 export default function Component() {
   const { user, facility, subscription } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      localStorage.clear();
-      navigate("/login", { replace: true });
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
-  };
+  const [isChangePlanDialogOpen, setIsChangePlanDialogOpen] = useState(false);
 
   const getExpirationText = () => {
     if (!subscription) return "No active subscription";
@@ -143,7 +149,6 @@ export default function Component() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Link to={`/${facility.id}/home`}>
@@ -154,7 +159,6 @@ export default function Component() {
       </header>
 
       <main className="p-4 space-y-6">
-        {/* Profile Section */}
         <div className="flex flex-col items-center text-center space-y-2">
           <Avatar className="w-24 h-24">
             <AvatarImage
@@ -168,7 +172,6 @@ export default function Component() {
           <p className="text-gray-500">{user.phone}</p>
         </div>
 
-        {/* Your Gym Section */}
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Your Gym</h2>
           <Card className="p-4 bg-purple-50">
@@ -204,7 +207,11 @@ export default function Component() {
               >
                 • {getExpirationText()}
               </p>
-              <Button variant="ghost" className="text-gray-500 pl-0">
+              <Button
+                variant="ghost"
+                className="text-gray-500 pl-0"
+                onClick={() => setIsChangePlanDialogOpen(true)}
+              >
                 <RefreshCcw className="h-4 w-4 mr-2" />
                 Change plan
               </Button>
@@ -212,7 +219,6 @@ export default function Component() {
           </Card>
         </section>
 
-        {/* Manage Gym Section */}
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Manage Gym</h2>
           <Card className="divide-y">
@@ -231,7 +237,6 @@ export default function Component() {
           </Card>
         </section>
 
-        {/* Sportsdot Section */}
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Sportsdot</h2>
           <Card className="divide-y">
@@ -246,10 +251,7 @@ export default function Component() {
             <Button
               variant="ghost"
               className="w-full justify-start p-4"
-              onClick={() => {
-                console.log("Hello");
-                setIsInfoDialogOpen(true);
-              }}
+              onClick={() => setIsInfoDialogOpen(true)}
             >
               <Clock className="h-5 w-5 mr-3 text-purple-500" />
               Support and Information
@@ -257,19 +259,20 @@ export default function Component() {
           </Card>
         </section>
 
-        {/* Logout Button */}
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
-          className="w-full flex items-center justify-center gap-2"
-        >
-          <LogOut className="h-5 w-5" />
-          Logout
-        </Button>
+        <Form method="post">
+          <input type="hidden" name="action" value="logout" />
+          <Button
+            type="submit"
+            variant="ghost"
+            className="w-full flex items-center justify-center gap-2"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </Button>
+        </Form>
         <Outlet />
       </main>
 
-      {/* Contact Us Dialog */}
       <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -293,19 +296,11 @@ export default function Component() {
         </DialogContent>
       </Dialog>
 
-      {/* Support and Information Dialog */}
       <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Support and Information</DialogTitle>
-            <Button
-              variant="ghost"
-              className="absolute right-4 top-4"
-              onClick={() => setIsInfoDialogOpen(false)}
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
+            
           </DialogHeader>
           <DialogDescription>
             <div className="space-y-4">
@@ -338,6 +333,62 @@ export default function Component() {
           </DialogDescription>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Plan</DialogTitle>
+            
+          </DialogHeader>
+          <DialogDescription>
+            <div className="space-y-4">
+              <p>Select a new plan for your gym:</p>
+              <ul className="space-y-2">
+                <li>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => {
+                      // Handle plan selection
+                      setIsChangePlanDialogOpen(false);
+                    }}
+                  >
+                    Basic Plan
+                    <span className="font-bold">$9.99/month</span>
+                  </Button>
+                </li>
+                <li>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => {
+                      // Handle plan selection
+                      setIsChangePlanDialogOpen(false);
+                    }}
+                  >
+                    Pro Plan
+                    <span className="font-bold">$19.99/month</span>
+                  </Button>
+                </li>
+                <li>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => {
+                      // Handle plan selection
+                      setIsChangePlanDialogOpen(false);
+                    }}
+                  >
+                    Enterprise Plan
+                    <span className="font-bold">$49.99/month</span>
+                  </Button>
+                </li>
+              </ul>
+            </div>
+          </DialogDescription>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

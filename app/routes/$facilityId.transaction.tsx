@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { useState, useEffect } from "react";
+import { getAuthenticatedUser } from "~/utils/currentUser";
 
 interface Transaction {
   id: number;
@@ -50,6 +51,7 @@ interface Plan {
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const facilityId = params.facilityId;
+  const user = await getAuthenticatedUser(request);
   const url = new URL(request.url);
   const timelineFilter = url.searchParams.get("timeline") || "today";
   const planFilter = url.searchParams.get("plan") || "all";

@@ -41,15 +41,14 @@ interface Member {
 }
 
 export const loader: LoaderFunction = async ({ params, request }) => {
-  const user = await getAuthenticatedUser(request);
+
 
   const facilityId = params.facilityId;
 
   // Fetch gyms
   const { data: gyms, error: gymsError } = await supabase
     .from("facilities")
-    .select("id, name")
-    .eq("user_id", user.id);
+    .select("id, name");
 
   if (gymsError) throw new Error("Failed to fetch gyms");
 

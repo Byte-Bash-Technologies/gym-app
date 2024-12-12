@@ -157,6 +157,7 @@ export default function RenewMembership() {
   const [isFullPayment, setIsFullPayment] = useState(true);
   const [discount, setDiscount] = useState(0);
   const [paidAmount, setPaidAmount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (selectedPlan) {
@@ -171,6 +172,7 @@ export default function RenewMembership() {
         description: actionData.error,
         variant: "destructive",
       });
+      setIsLoading(false);
     }
     if (actionData?.whatsappUrl) {
       window.open(actionData.whatsappUrl, '_blank');
@@ -291,9 +293,10 @@ export default function RenewMembership() {
               </Select>
             </div>
 
-            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            disabled={isLoading}>
               <CreditCard className="w-4 h-4 mr-2" />
-              Renew Membership
+              "{isLoading ? "Renewing Membership..." : "Renew Membership"}
             </Button>
           </Form>
         </CardContent>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { json, redirect } from "@remix-run/node";
 import { useActionData, Form, Link } from "@remix-run/react";
 import { createServerClient, parse, serialize } from "@supabase/ssr";
@@ -37,6 +37,7 @@ export const action = async ({ request }) => {
 
   if (error) {
     return json({ error: error.message });
+
   }
 
   if (data?.user) {
@@ -51,7 +52,12 @@ export const action = async ({ request }) => {
 export default function Login() {
   const actionData = useActionData();
   const [isLoading, setIsLoading] = useState(false);
-
+  useEffect(() => {
+    // Reset loading state if there's an error
+    if (actionData?.error) {
+      setIsLoading(false);
+    }
+  }, [actionData]);
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-purple-100 flex flex-col items-center px-4 py-8">
       <div className="w-full max-w-sm space-y-8">
@@ -84,8 +90,9 @@ export default function Login() {
               >
                 <span className="block sm:inline">{actionData.error}</span>
               </div>
+              
             )}
-
+  
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email / number</Label>

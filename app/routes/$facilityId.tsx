@@ -8,14 +8,16 @@ import BottomNav from '~/components/BottomNav';
 import { LoaderFunction } from '@remix-run/node';
 import { supabase } from '~/utils/supabase.server';
 import { SubscriptionExpiredMessage } from '~/components/SubscriptionExpiredMessage';
+import { getAuthenticatedUser } from '~/utils/currentUser';
 
-export const loader: LoaderFunction = async ({ params }) => {
-
+export const loader: LoaderFunction = async ({ params,request }) => {
+  const user = await getAuthenticatedUser(request);
   const facilityId = params.facilityId;
   const { data: facility, error: facilityError } = await supabase
     .from('facilities')
     .select('name')
     .eq('id', facilityId)
+    .eq("user_id", user.id)
     .single();
 
   if (facilityError) {
@@ -37,7 +39,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   return json({ facilityId, endDate: data?.end_date });
 };
-
+export { ErrorBoundary} from "~/components/CatchErrorBoundary";
 export default function FacilityLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const params = useParams();
