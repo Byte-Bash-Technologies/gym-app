@@ -8,6 +8,7 @@ import { Label } from '~/components/ui/label';
 import { Checkbox } from '~/components/ui/checkbox';
 import { supabase } from "~/utils/supabase.server";
 import iconImage from '~/assets/sportsdot-favicon-64-01.svg';
+import { ImagePlus } from 'lucide-react';
 
 export const loader: LoaderFunction = async ({ request }) => {
   const response = new Response();
@@ -53,6 +54,8 @@ export const action: ActionFunction = async ({ request }) => {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const fullName = formData.get('fullName') as string;
+  const phoneNumber = formData.get('phoneNumber') as string;
+  const photo = formData.get('photo') as File;
   const isAdmin = formData.get('isAdmin') === 'on';
 
   // Check if the current user is an admin
@@ -82,6 +85,27 @@ export const action: ActionFunction = async ({ request }) => {
   }
 
   if (authData.user) {
+    let photoUrl = null;
+
+    // Upload photo if provided
+    if (photo && photo.size > 0) {
+      const fileExt = photo.name.split('.').pop();
+      const fileName = `${authData.user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('member-photos')
+        .upload(`user-profile/${fileName}`, photo);
+
+      if (uploadError) {
+        return json({ error: 'Failed to upload photo' });
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('member-photos')
+        .getPublicUrl(`user-profile/${fileName}`);
+
+      photoUrl = publicUrl;
+    }
+
     // Create a corresponding entry in public.users
     const { error: profileError } = await supabase
       .from('users')
@@ -89,14 +113,19 @@ export const action: ActionFunction = async ({ request }) => {
         id: authData.user.id, 
         email: authData.user.email, 
         full_name: fullName,
+        phone: phoneNumber,
+        avatar_url: photoUrl,
         is_admin: isAdmin
       });
 
     if (profileError) {
       return json({ error: 'Failed to create user profile' });
+      
     }
 
-    return redirect('/admin/dashboard');
+    return redirect('/admin/users', {
+      headers: response.headers,
+    });
   }
 
   return json({ error: 'An unexpected error occurred' });
@@ -106,6 +135,20 @@ export default function Signup() {
   const actionData = useActionData();
   const { isCurrentUserAdmin } = useLoaderData<{ isCurrentUserAdmin: boolean }>();
   const [isLoading, setIsLoading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setPreview(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-purple-100 flex flex-col items-center px-4 py-8">
@@ -121,7 +164,7 @@ export default function Signup() {
         <div className="space-y-6">
           <h2 className="text-2xl font-medium text-center text-purple-600">Sign Up</h2>
           
-          <Form method="post" onSubmit={() => setIsLoading(true)} className="space-y-6">
+          <Form method="post" onSubmit={() => setIsLoading(true)} className="space-y-6" encType="multipart/form-data">
             {actionData?.error && (
               <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
                 <span className="block sm:inline">{actionData.error}</span>
@@ -160,6 +203,44 @@ export default function Signup() {
                   className="h-12 bg-white rounded-2xl"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  placeholder="Phone Number"
+                  className="h-12 bg-white rounded-2xl"
+                  required
+                />
+              </div>
+              {/* Photo */}
+              <div className="space-y-2">
+                <Label htmlFor="photo">Photo</Label>
+                <label htmlFor="photo" className="block">
+                  <Input
+                    id="photo"
+                    name="photo"
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
+                    {preview ? (
+                      <img
+                        src={preview}
+                        alt="Selected"
+                        className="h-32 w-32 object-cover mb-2"
+                      />
+                    ) : (
+                      <>
+                        <ImagePlus className="h-8 w-8 mb-2" />
+                        <span>Upload photo</span>
+                      </>
+                    )}
+                  </div>
+                </label>
               </div>
               {isCurrentUserAdmin && (
                 <div className="flex items-center space-x-2">

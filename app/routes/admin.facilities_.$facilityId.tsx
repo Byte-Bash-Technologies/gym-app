@@ -276,7 +276,7 @@ export default function FacilityProfile() {
                   <li key={index} className="flex items-center">
                     <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
                     <span>
-                      Subscription {sub.subscription_plans.name} expired {/* on {formatDate(sub.end_date)} */}
+                      Subscription {sub.subscription_plans.name} expired on {formatDate(sub.end_date)}
                     </span>
                   </li>
                 ))}

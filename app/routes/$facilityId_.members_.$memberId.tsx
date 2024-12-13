@@ -38,6 +38,7 @@ import {
 } from "~/components/ui/select";
 import { supabase } from "~/utils/supabase.server";
 import { toast } from "~/hooks/use-toast";
+import FacilityLayout from "./$facilityId";
 
 interface Member {
   id: string;
@@ -95,7 +96,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   const { data: facility, error: facilityError } = await supabase
     .from("facilities")
-    .select("name")
+    .select("name,phone")
     .eq("id", facilityId)
     .single();
 
@@ -175,6 +176,7 @@ export const loader: LoaderFunction = async ({ params }) => {
 
   return json({
     member,
+    facility,
     activeMembership,
     expiredMemberships,
     recentTransactions: transactions ?? [],
@@ -266,6 +268,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 export default function MemberProfile() {
   const {
     member,
+    facility,
     activeMembership,
     expiredMemberships,
     recentTransactions,
@@ -485,7 +488,7 @@ export default function MemberProfile() {
                       {membership.plans?.duration || "N/A"} days
                     </p>
                   </div>
-                  <Badge variant="secondary">{membership.status}</Badge>
+                  <Badge variant="destructive">{membership.status}</Badge>
                 </div>
               ))}
             </div>
@@ -585,7 +588,7 @@ export default function MemberProfile() {
                       id="reminder-message"
                       className="w-full border rounded p-2 h-64"
                       rows={4}
-                      defaultValue={`Hello ${member.full_name},\n\nYou have a pending balance amount of ₹${member.balance}.\n\n Please settle as soon as possible.\n\nThank you,\n\n+91 7540024044`}
+                      defaultValue={`Hello ${member.full_name},\n\nYou have a pending balance amount of ₹${member.balance}.\n\n Please settle as soon as possible.\n\nThank you,\n${facility.name}\n${facility.phone}`}
                     />
                     <Button onClick={handleSendReminder} className="w-full">
                       Send Reminder

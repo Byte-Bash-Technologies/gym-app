@@ -1,6 +1,6 @@
 import { json, redirect, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useParams, useNavigate } from "@remix-run/react";
-import { Bell, Phone, Settings, ChevronDown, ChevronRight } from "lucide-react";
+import { Bell, Phone, Settings, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { supabase } from "~/utils/supabase.server";
-import { createServerClient, parse } from "@supabase/ssr";
 import { getAuthenticatedUser } from "~/utils/currentUser";
 
 interface Gym {
@@ -36,19 +35,19 @@ interface Birthday {
 interface Member {
   id: number;
   full_name: string;
-  memberships: { status: string; end_date: string }[];
+  memberships: { status: string; end_date: string; plans: { name: string } }[];
   balance: number;
 }
 
 export const loader: LoaderFunction = async ({ params, request }) => {
-
-
+  const user = await getAuthenticatedUser(request);
   const facilityId = params.facilityId;
 
   // Fetch gyms
   const { data: gyms, error: gymsError } = await supabase
     .from("facilities")
-    .select("id, name");
+    .select("id, name")
+    .eq("user_id", user.id);
 
   if (gymsError) throw new Error("Failed to fetch gyms");
 
@@ -69,9 +68,14 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       id,
       full_name,
       balance,
+      joined_date,
       memberships (
+        id,
+        start_date,
+        end_date,
         status,
-        end_date
+        is_disabled,
+        plans (name, duration, price)
       )
     `
     )
@@ -80,7 +84,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   if (membersError) throw new Error("Failed to fetch members and memberships");
 
   const now = new Date();
-  const tenDaysFromNow = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const statsData: Stats = {
     activeMembers: 0,
@@ -93,46 +97,43 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   const expiringSoonMembers: Member[] = [];
   const membersWithBalance: Member[] = [];
 
-  members.forEach((member) => {
+  const processedMembers = members.map((member: any) => {
     if (member.balance > 0) {
       membersWithBalance.push(member);
     }
 
-    if (member.memberships && member.memberships.length > 0) {
-      let hasActiveMembership = false;
-      let isExpiringSoon = false;
-      let allMembershipsExpired = true;
-
-      member.memberships.forEach((membership) => {
-        const endDate = new Date(membership.end_date);
-        if (endDate > now) {
-          allMembershipsExpired = false;
-          if (membership.status === "active") {
-            hasActiveMembership = true;
-            if (endDate <= tenDaysFromNow) {
-              isExpiringSoon = true;
-            }
-          }
-        }
-      });
-
-      if (hasActiveMembership) {
-        statsData.activeMembers++;
-        if (isExpiringSoon) {
+    const sortedMemberships = member.memberships.sort((a: any, b: any) => 
+      new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+    );
+    const mostRecentMembership = sortedMemberships[0];
+    let status = 'expired';
+    let currentPlan = 'No Plan';
+    
+    if (mostRecentMembership) {
+      currentPlan = mostRecentMembership.plans?.name || 'Unknown Plan';
+      if (mostRecentMembership.status === "active" && !mostRecentMembership.is_disabled) {
+        if (new Date(mostRecentMembership.end_date) <= sevenDaysFromNow) {
+          status = "expiring";
           statsData.expiringSoon++;
           expiringSoonMembers.push(member);
+        } else {
+          status = "active";
+          statsData.activeMembers++;
         }
-      }
-
-      if (allMembershipsExpired) {
+      } else {
         statsData.expiredMembers++;
         expiredMembers.push(member);
       }
     } else {
-      // If a member has no memberships, consider them expired
       statsData.expiredMembers++;
       expiredMembers.push(member);
     }
+
+    return {
+      ...member,
+      status,
+      currentPlan
+    };
   });
 
   // Fetch birthdays
@@ -238,7 +239,6 @@ export default function Index() {
           </DropdownMenu>
         </div>
         <div className="flex items-center space-x-4">
-          {/* <Bell className="h-6 w-6 text-purple-500" /> */}
           <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-purple-500" />
           </a>
@@ -318,7 +318,7 @@ export default function Index() {
 
       {/* Expired Members Section */}
       <div className="p-4">
-        <h2 className="text-lg font-bold mb-2">Expired Memberships</h2>
+        <h4 className="text-lg font-bold mb-2">Expired Memberships</h4>
         <Card>
           <CardContent>
             <ul className="divide-y divide-gray-200">
@@ -353,7 +353,7 @@ export default function Index() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="destructive">Expired</Badge>
+                      <Badge variant="secondary" className="text-red-500">Expired</Badge>
                     </Link>
                   </li>
                 ))
@@ -409,7 +409,7 @@ export default function Index() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="secondary">Expiring Soon</Badge>
+                      <Badge variant="secondary" className="text-yellow-500">Expiring Soon</Badge>
                     </Link>
                   </li>
                 ))
@@ -458,16 +458,9 @@ export default function Index() {
                           <span className="font-medium">
                             {member.full_name}
                           </span>
-                          <p className="text-sm text-gray-500">
-                            {member.memberships && member.memberships.length > 0
-                              ? `Your plan will expire on ${new Date(
-                                  member.memberships[0].end_date
-                                ).toLocaleDateString("en-GB")}`
-                              : "No active membership"}
-                          </p>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="text-red-500">
+                      <Badge variant="outline" className="text-red-500">
                         ₹{member.balance}
                       </Badge>
                     </Link>
@@ -495,3 +488,4 @@ export default function Index() {
     </div>
   );
 }
+

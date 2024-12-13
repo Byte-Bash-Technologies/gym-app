@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useActionData, useNavigation, Form } from "@remix-run/react";
+import { useLoaderData, useActionData, useNavigation, Form, useSubmit } from "@remix-run/react";
 import { createServerClient, parse, serialize } from '@supabase/ssr';
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "~/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
-import { AlertCircle, Loader2, Upload, ImagePlus } from 'lucide-react';
+import { AlertCircle, Loader2, Upload, ImagePlus, Search } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { supabase } from "~/utils/supabase.server";
 
@@ -44,17 +44,19 @@ export const loader = async ({ request }) => {
     return redirect('/');
   }
 
-  const { data: users, error: usersError } = await supabase
+  const { data: recentUsers, error: recentUsersError } = await supabase
     .from('users')
     .select('id, full_name, phone')
-    .eq('is_admin', false);
+    .eq('is_admin', false)
+    .order('created_at', { ascending: false })
+    .limit(5);
 
-  if (usersError) {
-    console.error('Error fetching users:', usersError);
+  if (recentUsersError) {
+    console.error('Error fetching recent users:', recentUsersError);
     return redirect('/');
   }
 
-  return json({ isCurrentUserAdmin: userData.is_admin, users });
+  return json({ isCurrentUserAdmin: userData.is_admin, recentUsers });
 };
 
 export const action = async ({ request }) => {
@@ -80,6 +82,8 @@ export const action = async ({ request }) => {
   const type = formData.get('type') as string;
   const userId = formData.get('user_id') as string;
   const logo = formData.get('logo') as File;
+  const phone = formData.get('phone') as string;
+  const address = formData.get('address') as string;
 
   if (!user) {
     return json({ error: 'You must be logged in to add facilities' }, { status: 401 });
@@ -119,7 +123,7 @@ export const action = async ({ request }) => {
 
   const { error: insertError } = await supabaseClient
     .from('facilities')
-    .insert({ name, type, user_id: userId, logo_url: logoUrl });
+    .insert({ name, type, user_id: userId, logo_url: logoUrl, phone, address });
 
   if (insertError) {
     console.error('Error inserting facility:', insertError);
@@ -130,12 +134,38 @@ export const action = async ({ request }) => {
 };
 
 export default function AddFacility() {
-  const { isCurrentUserAdmin, users } = useLoaderData<typeof loader>();
+  const { isCurrentUserAdmin, recentUsers } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const submit = useSubmit();
+
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (searchTerm.length > 2) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('id, full_name, phone')
+          .eq('is_admin', false)
+          .or(`full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+          .limit(5);
+
+        if (error) {
+          console.error('Error searching users:', error);
+        } else {
+          setSearchResults(data);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    };
+
+    searchUsers();
+  }, [searchTerm]);
 
   if (!isCurrentUserAdmin) {
     return (
@@ -166,6 +196,11 @@ export default function AddFacility() {
     }
   };
 
+  const handleUserSelect = (userId: string) => {
+    setSelectedUser(userId);
+    submit({ user_id: userId }, { method: "post" });
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="max-w-md mx-auto">
@@ -192,20 +227,59 @@ export default function AddFacility() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="user_id">Assign User</Label>
-              <Select name="user_id" value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a user" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.full_name} ({user.phone})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input type="tel" name="phone" id="phone" required />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input type="text" name="address" id="address" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user_search">Assign User</Label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  id="user_search"
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              </div>
+              {searchResults.length > 0 && (
+                <ul className="mt-2 border rounded-md divide-y">
+                  {searchResults.map((user: any) => (
+                    <li
+                      key={user.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => handleUserSelect(user.id)}
+                    >
+                      {user.full_name} ({user.phone})
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {searchResults.length === 0 && searchTerm.length > 2 && (
+                <p className="text-sm text-gray-500 mt-2">No users found</p>
+              )}
+              {searchTerm.length <= 2 && (
+                <div className="mt-2">
+                  <h3 className="text-sm font-medium mb-1">Recent Users:</h3>
+                  <ul className="border rounded-md divide-y">
+                    {recentUsers.map((user: any) => (
+                      <li
+                        key={user.id}
+                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => handleUserSelect(user.id)}
+                      >
+                        {user.full_name} ({user.phone})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <input type="hidden" name="user_id" value={selectedUser} />
             <div className="space-y-2">
               <Label htmlFor="logo">Facility Logo</Label>
               <label htmlFor="logo" className="block">

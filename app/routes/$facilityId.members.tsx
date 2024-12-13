@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   useLoaderData,
   useSearchParams,
@@ -7,8 +6,9 @@ import {
   Link,
   Outlet,
 } from "@remix-run/react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import debounce from "lodash.debounce";
-import { Bell, Phone, Settings, Search, UserPlus, Filter, ChevronDown, X, SortAsc, SortDesc } from 'lucide-react';
+import { Phone, Settings, Search, UserPlus, Filter, ChevronDown, X, SortAsc, SortDesc } from 'lucide-react';
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -18,7 +18,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
 } from "~/components/ui/dropdown-menu";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "~/components/ui/label";
