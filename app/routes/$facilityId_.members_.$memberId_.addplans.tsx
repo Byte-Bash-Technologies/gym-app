@@ -211,7 +211,7 @@ export default function RenewMembership() {
             <p className="text-sm text-muted-foreground">Current Balance: ₹{member.balance.toFixed(2)}</p>
           </div>
 
-          <Form method="post" className="space-y-4">
+          <Form method="post" onSubmit={() => setIsLoading(true)} className="space-y-4">
             <div>
               <Label htmlFor="planId" className="text-foreground">Select Plan</Label>
               <Select 
