@@ -5,6 +5,7 @@ import { supabase } from '~/utils/supabase.server';
 import { Button } from '~/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group';
 import { Label } from '~/components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent } from '~/components/ui/card';
 
 export const loader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url);
@@ -31,14 +32,16 @@ export const loader: LoaderFunction = async ({ request }) => {
 };
 
 const plans = [
-  { id: 'basic', name: 'Basic Plan', price: '₹999/month' },
-  { id: 'standard', name: 'Standard Plan', price: '₹1,999/month' },
-  { id: 'premium', name: 'Premium Plan', price: '₹2,999/month' },
+  { id: 'bronze', name: 'Bronze', price: '₹499', duration: '30 days' },
+  { id: 'silver', name: 'Silver', price: '₹1299', duration: '90 days' },
+  { id: 'gold', name: 'Gold', price: '₹2499', duration: '180 days' },
+  { id: 'platinum', name: 'Platinum', price: '₹3499', duration: '270 days' },
+  { id: 'diamond', name: 'Diamond', price: '₹4499', duration: '365 days' },
 ];
 
 export default function RenewSubscription() {
   const { currentPlan, facilityId } = useLoaderData<typeof loader>();
-  const [selectedPlan, setSelectedPlan] = useState(currentPlan || 'basic');
+  const [selectedPlan, setSelectedPlan] = useState(currentPlan || 'bronze');
 
   useEffect(() => {
     if (currentPlan) {
@@ -54,25 +57,34 @@ export default function RenewSubscription() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Renew Subscription</h1>
-      <Form onSubmit={handleSubmit} className="space-y-6">
-        <RadioGroup value={selectedPlan} onValueChange={setSelectedPlan}>
-          {plans.map((plan) => (
-            <div key={plan.id} className="flex items-center space-x-2">
-              <RadioGroupItem value={plan.id} id={plan.id} />
-              <Label htmlFor={plan.id} className="flex justify-between w-full">
-                <span>{plan.name}</span>
-                <span>{plan.price}</span>
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
-        <Button type="submit" className="w-full">
-          Renew Subscription
-        </Button>
-      </Form>
+    <div className="container mx-auto px-4 py-8 max-w-md">
+      <h1 className="text-2xl font-bold mb-6 text-center">Renew Subscription</h1>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Select a Plan</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form onSubmit={handleSubmit} className="space-y-6">
+            <RadioGroup value={selectedPlan} onValueChange={setSelectedPlan} className="space-y-2">
+              {plans.map((plan) => (
+                <div key={plan.id} className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-gray-50">
+                  <RadioGroupItem value={plan.id} id={plan.id} />
+                  <Label htmlFor={plan.id} className="flex justify-between w-full cursor-pointer">
+                    <span className="font-medium">{plan.name}</span>
+                    <span className="text-gray-600">
+                      {plan.price}
+                      <span className="text-xs text-gray-400"> / {plan.duration}</span>
+                    </span>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+            <Button type="submit" className="w-full">
+              Renew Subscription
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 import { json, type LoaderFunction, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate } from "@remix-run/react";
-import { Dumbbell, VibrateIcon as Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing } from 'lucide-react';
+import { Dumbbell, Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Badge } from "~/components/ui/badge";
@@ -14,7 +14,7 @@ interface Facility {
   type: string;
   members: number;
   revenue?: number;
-  lastBilling?: string;
+  subcription_end_date?: string | null;
 }
 
 interface LoaderData {
@@ -43,9 +43,15 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   const { data: facilities, error } = await supabase
     .from('facilities')
-    .select('*')
+    .select(`
+      *,
+      facility_subscriptions (
+        end_date
+      )
+    `)
     .eq('user_id', user.id);
-  const {data:userName} = await supabase
+
+  const { data: userName } = await supabase
     .from('users')
     .select('full_name')
     .eq('id', user.id)
@@ -54,7 +60,12 @@ export const loader: LoaderFunction = async ({ request }) => {
     return json({ error: error.message });
   }
 
-  return json({ facilities, userName: userName[0].full_name });
+  const processedFacilities = facilities.map(facility => ({
+    ...facility,
+    subscription_end_date: facility.facility_subscriptions[0]?.end_date || null
+  }));
+
+  return json({ facilities: processedFacilities, userName: userName[0].full_name });
 };
 
 export default function Dashboard() {
@@ -139,8 +150,9 @@ function FacilityGrid({ facilities }: { facilities: Facility[] }) {
               <div className="flex items-center text-sm">
                 <Calendar className="h-4 w-4 mr-2 text-primary" />
                 <span>
-                  Last billed:{" "}
-                  {new Date(facility.lastBilling).toLocaleDateString()}
+                  {facility.subcription_end_date
+                    ? `Subscription ends: ${new Date(facility.subcription_end_date).toLocaleDateString()}`
+                    : "No active subscription"}
                 </span>
               </div>
             </div>

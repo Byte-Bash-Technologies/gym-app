@@ -4,23 +4,12 @@ interface SubscriptionExpiredMessageProps {
   facilityId: string;
 }
 
-export function SubscriptionExpiredMessage({
-  facilityName,
-  facilityType,
-  facilityId,
-}: SubscriptionExpiredMessageProps) {
+export function SubscriptionExpiredMessage({ facilityName, facilityType, facilityId }: SubscriptionExpiredMessageProps) {
   const handleRenewSubscription = () => {
-<<<<<<< HEAD
     const phoneNumber = "+91 8300861600"; //7010976271
-    const message = encodeURIComponent(
-      `Hello Benston,\n\nI would like to renew my subscription for the ${facilityType} facility, ${facilityName}.\n\n Facility subscription link: https://app.sportsdot.in/${facilityId}/renew-subscription`
-    );
+    const message = encodeURIComponent(`Hello Benston,\n\nI would like to renew my subscription for the ${facilityType} facility, specifically for ${facilityName}.
+      \n\nFacility subscription link: https://app.sportsdot.in/${facilityId}/renew-subscription`);
     window.open(`https://wa.me/${phoneNumber}?text=${message}`);
-=======
-    const phoneNumber = "917010976271";
-    const message = encodeURIComponent("Hello, I would like to renew my subscription for the fitness center management system.");
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
->>>>>>> origin/main
   };
 
   return (
