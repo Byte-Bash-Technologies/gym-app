@@ -1,22 +1,27 @@
-import { useState } from 'react';
-import { Outlet, Link, useParams, useLocation, json, useLoaderData } from '@remix-run/react';
-import { Home, Users, FileText, Menu } from 'lucide-react';
-import { Button } from '~/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '~/components/ui/sheet';
-import { cn } from '~/lib/utils';
-import BottomNav from '~/components/BottomNav';
-import { LoaderFunction } from '@remix-run/node';
-import { supabase } from '~/utils/supabase.server';
-import { SubscriptionExpiredMessage } from '~/components/SubscriptionExpiredMessage';
-import { getAuthenticatedUser } from '~/utils/currentUser';
+import { useState } from "react";
+import {
+  Outlet,
+  Link,
+  useParams,
+  useLocation,
+  json,
+  useLoaderData,
+} from "@remix-run/react";
+import { Home, Users, FileText } from "lucide-react";
+import { cn } from "~/lib/utils";
+import BottomNav from "~/components/BottomNav";
+import { LoaderFunction } from "@remix-run/node";
+import { supabase } from "~/utils/supabase.server";
+import { SubscriptionExpiredMessage } from "~/components/SubscriptionExpiredMessage";
+import { getAuthenticatedUser } from "~/utils/currentUser";
 
-export const loader: LoaderFunction = async ({ params,request }) => {
+export const loader: LoaderFunction = async ({ params, request }) => {
   const user = await getAuthenticatedUser(request);
   const facilityId = params.facilityId;
   const { data: facility, error: facilityError } = await supabase
-    .from('facilities')
-    .select('name')
-    .eq('id', facilityId)
+    .from("facilities")
+    .select("name, type")
+    .eq("id", facilityId)
     .eq("user_id", user.id)
     .single();
 
@@ -25,31 +30,37 @@ export const loader: LoaderFunction = async ({ params,request }) => {
   }
 
   const { data, error } = await supabase
-    .from('facility_subscriptions')
-    .select('end_date')
-    .eq('facility_id', facilityId)
-    .order('created_at', { ascending: false })
+    .from("facility_subscriptions")
+    .select("end_date")
+    .eq("facility_id", facilityId)
+    .order("created_at", { ascending: false })
     .limit(1)
     .single();
 
   if (error || !data) {
-    console.error('Error fetching subscription data:', error);
+    console.error("Error fetching subscription data:", error);
     return json({ facilityId, endDate: null });
   }
 
-  return json({ facilityId, endDate: data?.end_date });
+  return json({
+    facilityId,
+    endDate: data?.end_date,
+    facilityName: facility.name,
+    facilityType: facility.type,
+  });
 };
-export { ErrorBoundary} from "~/components/CatchErrorBoundary";
+export { ErrorBoundary } from "~/components/CatchErrorBoundary";
 export default function FacilityLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const params = useParams();
   const location = useLocation();
-  const { facilityId, endDate } = useLoaderData<typeof loader>();
+  const { endDate, facilityName, facilityType } =
+    useLoaderData<typeof loader>();
 
   const navItems = [
-    { icon: Home, label: 'Home', href: `/${params.facilityId}/home` },
-    { icon: Users, label: 'Members', href: `/${params.facilityId}/members` },
-    { icon: FileText, label: 'Reports', href: `/${params.facilityId}/reports` },
+    { icon: Home, label: "Home", href: `/${params.facilityId}/home` },
+    { icon: Users, label: "Members", href: `/${params.facilityId}/members` },
+    { icon: FileText, label: "Reports", href: `/${params.facilityId}/reports` },
   ];
 
   const isSubscriptionExpired = !endDate || new Date(endDate) < new Date();
@@ -78,12 +89,18 @@ export default function FacilityLayout() {
 
   return (
     <div className="flex flex-col min-h-screen">
-
       <main className="flex-grow container mx-auto">
-        {isSubscriptionExpired ? <SubscriptionExpiredMessage /> : <Outlet />}
+        {isSubscriptionExpired ? (
+          <SubscriptionExpiredMessage
+            facilityName={facilityName}
+            facilityType={facilityType}
+            facilityId={params.facilityId ?? ""}
+          />
+        ) : (
+          <Outlet />
+        )}
       </main>
       <BottomNav />
     </div>
   );
 }
-

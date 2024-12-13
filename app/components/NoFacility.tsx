@@ -23,7 +23,7 @@ export default function NoFacilitiesFound() {
         </div>
         
         <p className="text-muted-foreground">
-          Don't sweat it! Our facilities are just on a quick break to recharge. They'll be back stronger than ever!
+          Don&apos;t sweat it! Our facilities are just on a quick break to recharge. They&apos;ll be back stronger than ever!
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">
