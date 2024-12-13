@@ -1,6 +1,6 @@
 export function SubscriptionExpiredMessage() {
   const handleRenewSubscription = () => {
-    const phoneNumber = "7010976271";
+    const phoneNumber = "917010976271";
     const message = encodeURIComponent("Hello, I would like to renew my subscription for the fitness center management system.");
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
   };
