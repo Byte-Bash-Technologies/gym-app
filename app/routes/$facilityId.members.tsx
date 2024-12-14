@@ -265,8 +265,8 @@ export default function MembersPage() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-20 relative">
-        <header className="bg-white dark:bg-gray-800 p-4 flex items-center justify-between">
+      <div className="min-h-screen bg-gray-100 dark:bg-[#0d0e10] pb-20 relative">
+        <header className="bg-white dark:bg-black p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold ml-6 dark:text-white">
             Members - {facility?.name || "Loading..."}
           </h1>
@@ -287,7 +287,7 @@ export default function MembersPage() {
               <Input
                 type="text"
                 placeholder="Search by name or number"
-                className="pl-10 pr-20 py-2 w-full bg-white dark:bg-gray-700 dark:text-white rounded-full"
+                className="pl-10 pr-20 py-2 w-full bg-white dark:bg-black dark:text-white rounded-full"
                 onChange={handleSearch}
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -477,8 +477,8 @@ export default function MembersPage() {
 
           <h2 className="text-lg font-semibold mb-4 dark:text-white">All members</h2>
 
-          <Card className="bg-purple-100 dark:bg-purple-900 p-4">
-            <div className="bg-purple-100 dark:bg-purple-900 rounded-3xl p-4 space-y-4">
+          <Card className="bg-purple-100 dark:bg-[#191021] p-4">
+            <div className="bg-purple-100 dark:bg-[#191021] rounded-3xl p-4 space-y-4">
               {!filteredMembers?.length ? (
                 <div className="text-center py-4 dark:text-white">No members found</div>
               ) : (
@@ -493,7 +493,7 @@ export default function MembersPage() {
                     }}
                     role="button"
                     tabIndex={0}
-                    className="flex items-center gap-3 border-b border-purple-200 dark:border-purple-700 last:border-0 pb-4 last:pb-0 cursor-pointer"
+                    className="flex items-center gap-3 border-b border-purple-200 dark:border-[#302838] last:border-0 pb-4 last:pb-0 cursor-pointer"
                   >
                     <Avatar className="h-12 w-12">
                       <AvatarImage
@@ -547,7 +547,7 @@ export default function MembersPage() {
         </main>
 
         <Link to="new" className="fixed right-6 bottom-[7rem]">
-          <Button className="w-14 h-14 rounded-full bg-purple-500 hover:bg-purple-600 text-white dark:bg-purple-600 dark:hover:bg-purple-700 shadow-lg">
+          <Button className="w-14 h-14 rounded-full bg-purple-500 hover:bg-purple-600 text-white dark:bg-[#a755f7] dark:hover:bg-purple-700 shadow-lg">
             <UserPlus className="h-6 w-6" />
           </Button>
         </Link>
