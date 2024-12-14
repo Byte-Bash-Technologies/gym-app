@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "~/components/ui/dialog";
-import { supabase } from "~/utils/supabase.client";
+import { ActionFunction } from "@remix-run/node";
+
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const { facilityId } = params;
@@ -80,7 +81,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   return json({ user: userData, facility, subscription });
 };
 
-export const action = async ({ request }) => {
+export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const action = formData.get("action");
   const response = new Response();

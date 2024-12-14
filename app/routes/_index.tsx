@@ -65,7 +65,7 @@ export const loader: LoaderFunction = async ({ request }) => {
     subscription_end_date: facility.facility_subscriptions[0]?.end_date || null
   }));
 
-  return json({ facilities: processedFacilities, userName: userName[0].full_name });
+  return json({ facilities: processedFacilities, userName: userName?.[0]?.full_name || '' });
 };
 
 export default function Dashboard() {
