@@ -24,6 +24,7 @@ import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 import { json, type LoaderFunction } from "@remix-run/node";
 import { supabase } from "~/utils/supabase.server";
+import { ThemeProvider, ThemeToggle } from "~/components/theme-provider";
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const facilityId = params.facilityId;
@@ -263,292 +264,295 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-20 relative">
-      <header className="bg-white p-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold ml-6">
-          Members - {facility?.name || "Loading..."}
-        </h1>
-        <div className="flex items-center space-x-4">
-          <a href="tel:7010976271">
-            <Phone className="h-6 w-6 text-purple-500" />
-          </a>
-          <a href={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
-          </a>
-        </div>
-      </header>
+    <ThemeProvider>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-20 relative">
+        <header className="bg-white dark:bg-gray-800 p-4 flex items-center justify-between">
+          <h1 className="text-xl font-bold ml-6 dark:text-white">
+            Members - {facility?.name || "Loading..."}
+          </h1>
+          <div className="flex items-center space-x-4">
+            <a href="tel:7010976271">
+              <Phone className="h-6 w-6 text-purple-500 dark:text-purple-400" />
+            </a>
+            <a href={`/${params.facilityId}/settings`}>
+              <Settings className="h-6 w-6 text-purple-500 dark:text-purple-400" />
+            </a>
+            <ThemeToggle />
+          </div>
+        </header>
 
-      <main className="p-4 space-y-4">
-        <div className="p-4">
-          <div className="relative flex items-center">
-            <Input
-              type="text"
-              placeholder="Search by name or number"
-              className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
-              onChange={handleSearch}
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <div className="absolute right-3 flex space-x-2">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-purple-500"
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-              >
-                <Filter className="text-purple-500" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-purple-500"
-                  >
-                    <ChevronDown className="h-5 w-5 text-purple-500" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => handleSortChange("name")}>
-                    Sort by Name{" "}
-                    {sortOption.by === "name" &&
-                      (sortOption.order === "asc" ? (
-                        <SortAsc className="ml-2 h-4 w-4" />
-                      ) : (
-                        <SortDesc className="ml-2 h-4 w-4" />
-                      ))}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleSortChange("joined")}>
-                    Sort by Join Date{" "}
-                    {sortOption.by === "joined" &&
-                      (sortOption.order === "asc" ? (
-                        <SortAsc className="ml-2 h-4 w-4" />
-                      ) : (
-                        <SortDesc className="ml-2 h-4 w-4" />
-                      ))}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => handleSortChange("balance")}
-                  >
-                    Sort by Balance{" "}
-                    {sortOption.by === "balance" &&
-                      (sortOption.order === "asc" ? (
-                        <SortAsc className="ml-2 h-4 w-4" />
-                      ) : (
-                        <SortDesc className="ml-2 h-4 w-4" />
-                      ))}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        <main className="p-4 space-y-4">
+          <div className="p-4">
+            <div className="relative flex items-center">
+              <Input
+                type="text"
+                placeholder="Search by name or number"
+                className="pl-10 pr-20 py-2 w-full bg-white dark:bg-gray-700 dark:text-white rounded-full"
+                onChange={handleSearch}
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <div className="absolute right-3 flex space-x-2">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-purple-500"
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                >
+                  <Filter className="text-purple-500" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-purple-500"
+                    >
+                      <ChevronDown className="h-5 w-5 text-purple-500" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => handleSortChange("name")}>
+                      Sort by Name{" "}
+                      {sortOption.by === "name" &&
+                        (sortOption.order === "asc" ? (
+                          <SortAsc className="ml-2 h-4 w-4" />
+                        ) : (
+                          <SortDesc className="ml-2 h-4 w-4" />
+                        ))}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSortChange("joined")}>
+                      Sort by Join Date{" "}
+                      {sortOption.by === "joined" &&
+                        (sortOption.order === "asc" ? (
+                          <SortAsc className="ml-2 h-4 w-4" />
+                        ) : (
+                          <SortDesc className="ml-2 h-4 w-4" />
+                        ))}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => handleSortChange("balance")}
+                    >
+                      Sort by Balance{" "}
+                      {sortOption.by === "balance" &&
+                        (sortOption.order === "asc" ? (
+                          <SortAsc className="ml-2 h-4 w-4" />
+                        ) : (
+                          <SortDesc className="ml-2 h-4 w-4" />
+                        ))}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
-        </div>
 
-        {isFilterOpen && (
-          <Card className="p-4 bg-white">
-            <h3 className="font-semibold mb-2">Filters</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-1">Status</h4>
-                <div className="space-y-2">
-                  {["active", "expired", "expiring"].map((status) => (
-                    <div key={status} className="flex items-center">
+          {isFilterOpen && (
+            <Card className="p-4 bg-white dark:bg-gray-800 dark:text-white">
+              <h3 className="font-semibold mb-2">Filters</h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-1">Status</h4>
+                  <div className="space-y-2">
+                    {["active", "expired", "expiring"].map((status) => (
+                      <div key={status} className="flex items-center">
+                        <Checkbox
+                          id={status}
+                          checked={statusFilter.includes(status)}
+                          onCheckedChange={() => handleStatusFilter(status)}
+                        />
+                        <Label htmlFor={status} className="ml-2">
+                          {capitalizeFirstLetter(status)}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">Plans</h4>
+                  <div className="space-y-2">
+                    {plans.map((plan: { id: string; name: string }) => (
+                      <div key={plan.id} className="flex items-center">
+                        <Checkbox
+                          id={`plan-${plan.id}`}
+                          checked={planFilter.includes(plan.name)}
+                          onCheckedChange={() => handlePlanFilter(plan.name)}
+                        />
+                        <Label htmlFor={`plan-${plan.id}`} className="ml-2">
+                          {plan.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">Additional Filters</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center">
                       <Checkbox
-                        id={status}
-                        checked={statusFilter.includes(status)}
-                        onCheckedChange={() => handleStatusFilter(status)}
+                        id="joined-first"
+                        checked={showJoinedFirst}
+                        onCheckedChange={(checked) => setShowJoinedFirst(checked === true)}
                       />
-                      <Label htmlFor={status} className="ml-2">
-                        {capitalizeFirstLetter(status)}
+                      <Label htmlFor="joined-first" className="ml-2">
+                        Joined First
                       </Label>
                     </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-medium mb-1">Plans</h4>
-                <div className="space-y-2">
-                  {plans.map((plan: { id: string; name: string }) => (
-                    <div key={plan.id} className="flex items-center">
+                    <div className="flex items-center">
                       <Checkbox
-                        id={`plan-${plan.id}`}
-                        checked={planFilter.includes(plan.name)}
-                        onCheckedChange={() => handlePlanFilter(plan.name)}
+                        id="joined-recently"
+                        checked={showJoinedRecently}
+                        onCheckedChange={(checked) => setShowJoinedRecently(checked === true)}
                       />
-                      <Label htmlFor={`plan-${plan.id}`} className="ml-2">
-                        {plan.name}
+                      <Label htmlFor="joined-recently" className="ml-2">
+                        Joined Recently (Last 30 days)
                       </Label>
                     </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4 className="font-medium mb-1">Additional Filters</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="joined-first"
-                      checked={showJoinedFirst}
-                      onCheckedChange={(checked) => setShowJoinedFirst(checked === true)}
-                    />
-                    <Label htmlFor="joined-first" className="ml-2">
-                      Joined First
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="joined-recently"
-                      checked={showJoinedRecently}
-                      onCheckedChange={(checked) => setShowJoinedRecently(checked === true)}
-                    />
-                    <Label htmlFor="joined-recently" className="ml-2">
-                      Joined Recently (Last 30 days)
-                    </Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Checkbox
-                      id="no-plan"
-                      checked={showMembersWithNoPlan}
-                      onCheckedChange={(checked) => setShowMembersWithNoPlan(checked === true)}
-                    />
-                    <Label htmlFor="no-plan" className="ml-2">
-                      Members with No Plan
-                    </Label>
+                    <div className="flex items-center">
+                      <Checkbox
+                        id="no-plan"
+                        checked={showMembersWithNoPlan}
+                        onCheckedChange={(checked) => setShowMembersWithNoPlan(checked === true)}
+                      />
+                      <Label htmlFor="no-plan" className="ml-2">
+                        Members with No Plan
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </div>
+            </Card>
+          )}
+
+          {(statusFilter.length > 0 || planFilter.length > 0 || showJoinedFirst || showJoinedRecently || showMembersWithNoPlan) && (
+            <div className="flex items-center space-x-2 flex-wrap">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Filtered by:</span>
+              {statusFilter.map((filter) => (
+                <Badge key={filter} variant="secondary" className="text-xs">
+                  {capitalizeFirstLetter(filter)}
+                  <button
+                    onClick={() => handleStatusFilter(filter)}
+                    className="ml-1"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {planFilter.map((plan) => (
+                <Badge key={plan} variant="secondary" className="text-xs">
+                  {plan}
+                  <button onClick={() => handlePlanFilter(plan)} className="ml-1">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {showJoinedFirst && (
+                <Badge variant="secondary" className="text-xs">
+                  Joined First
+                  <button onClick={() => setShowJoinedFirst(false)} className="ml-1">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {showJoinedRecently && (
+                <Badge variant="secondary" className="text-xs">
+                  Joined Recently
+                  <button onClick={() => setShowJoinedRecently(false)} className="ml-1">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              {showMembersWithNoPlan && (
+                <Badge variant="secondary" className="text-xs">
+                  No Plan
+                  <button onClick={() => setShowMembersWithNoPlan(false)} className="ml-1">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear all
+              </Button>
+            </div>
+          )}
+
+          <h2 className="text-lg font-semibold mb-4 dark:text-white">All members</h2>
+
+          <Card className="bg-purple-100 dark:bg-purple-900 p-4">
+            <div className="bg-purple-100 dark:bg-purple-900 rounded-3xl p-4 space-y-4">
+              {!filteredMembers?.length ? (
+                <div className="text-center py-4 dark:text-white">No members found</div>
+              ) : (
+                filteredMembers.map((member: any) => (
+                  <div
+                    key={member.id}
+                    onClick={() => handleMemberClick(member.id)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleMemberClick(member.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    className="flex items-center gap-3 border-b border-purple-200 dark:border-purple-700 last:border-0 pb-4 last:pb-0 cursor-pointer"
+                  >
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage
+                        src={member.photo_url}
+                        alt={member.full_name}
+                      />
+                      <AvatarFallback>{member.full_name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h3 className="font-semibold dark:text-white">{member.full_name}</h3>
+                      <p className="text-sm text-muted-foreground dark:text-gray-300">
+                        {member.phone}
+                      </p>
+                      <p className="text-sm text-muted-foreground dark:text-gray-300">
+                        {member.email}
+                      </p>
+                    </div>
+                    <div className="text-right hidden md:block">
+                      <p className="text-sm font-medium dark:text-white">
+                        Balance: ₹{member.balance}
+                      </p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-300">
+                        Joined: {new Date(member.joined_date).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground dark:text-gray-300">
+                        Plan: {member.currentPlan}
+                      </p>
+                    </div>
+                    <div
+                      className={`
+                      h-2 w-2 rounded-full
+                      ${
+                        member.status === "active"
+                          ? "bg-green-500"
+                          : member.status === "expired"
+                          ? "bg-red-500"
+                          : "bg-yellow-500"
+                      }
+                      `}
+                    />
+                    <span className="hidden md:inline dark:text-white">
+                      {capitalizeFirstLetter(member.status)}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </Card>
-        )}
 
-        {(statusFilter.length > 0 || planFilter.length > 0 || showJoinedFirst || showJoinedRecently || showMembersWithNoPlan) && (
-          <div className="flex items-center space-x-2 flex-wrap">
-            <span className="text-sm text-gray-500">Filtered by:</span>
-            {statusFilter.map((filter) => (
-              <Badge key={filter} variant="secondary" className="text-xs">
-                {capitalizeFirstLetter(filter)}
-                <button
-                  onClick={() => handleStatusFilter(filter)}
-                  className="ml-1"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            {planFilter.map((plan) => (
-              <Badge key={plan} variant="secondary" className="text-xs">
-                {plan}
-                <button onClick={() => handlePlanFilter(plan)} className="ml-1">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            {showJoinedFirst && (
-              <Badge variant="secondary" className="text-xs">
-                Joined First
-                <button onClick={() => setShowJoinedFirst(false)} className="ml-1">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {showJoinedRecently && (
-              <Badge variant="secondary" className="text-xs">
-                Joined Recently
-                <button onClick={() => setShowJoinedRecently(false)} className="ml-1">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            {showMembersWithNoPlan && (
-              <Badge variant="secondary" className="text-xs">
-                No Plan
-                <button onClick={() => setShowMembersWithNoPlan(false)} className="ml-1">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            )}
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              Clear all
-            </Button>
-          </div>
-        )}
+          <Outlet />
+        </main>
 
-        <h2 className="text-lg font-semibold mb-4">All members</h2>
-
-        <Card className="bg-purple-100 p-4">
-          <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
-            {!filteredMembers?.length ? (
-              <div className="text-center py-4">No members found</div>
-            ) : (
-              filteredMembers.map((member: any) => (
-                <div
-                  key={member.id}
-                  onClick={() => handleMemberClick(member.id)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      handleMemberClick(member.id);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
-                >
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage
-                      src={member.photo_url}
-                      alt={member.full_name}
-                    />
-                    <AvatarFallback>{member.full_name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{member.full_name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {member.phone}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {member.email}
-                    </p>
-                  </div>
-                  <div className="text-right hidden md:block">
-                    <p className="text-sm font-medium">
-                      Balance: ₹{member.balance}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Joined: {new Date(member.joined_date).toLocaleDateString()}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Plan: {member.currentPlan}
-                    </p>
-                  </div>
-                  <div
-                    className={`
-                    h-2 w-2 rounded-full
-                    ${
-                      member.status === "active"
-                        ? "bg-green-500"
-                        : member.status === "expired"
-                        ? "bg-red-500"
-                        : "bg-yellow-500"
-                    }
-                    `}
-                  />
-                  <span className="hidden md:inline">
-                    {capitalizeFirstLetter(member.status)}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-
-        <Outlet />
-      </main>
-
-      <Link to="new" className="fixed right-6 bottom-[7rem]">
-        <Button className="w-14 h-14 rounded-full bg-purple-500 hover:bg-purple-600 text-white shadow-lg">
-          <UserPlus className="h-6 w-6" />
-        </Button>
-      </Link>
-    </div>
+        <Link to="new" className="fixed right-6 bottom-[7rem]">
+          <Button className="w-14 h-14 rounded-full bg-purple-500 hover:bg-purple-600 text-white dark:bg-purple-600 dark:hover:bg-purple-700 shadow-lg">
+            <UserPlus className="h-6 w-6" />
+          </Button>
+        </Link>
+      </div>
+    </ThemeProvider>
   );
 }
 
