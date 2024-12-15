@@ -221,7 +221,7 @@ export const action: ActionFunction = async ({ request, params }) => {
     //const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here: ${pdfUrl}`;
     const message = `Welcome to our gym, ${full_name}! ${
       plan_id ? "Your membership plan has been activated." : ""
-    } Download your membership details here: https://${process.env.APP_URL!}/${
+    } Download your membership details here: https://${process.env.APP_URL!}/invoice/${
       transactionID?.data?.id || ""
     }`;
     whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(
