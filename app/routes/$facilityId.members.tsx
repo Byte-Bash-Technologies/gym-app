@@ -277,7 +277,7 @@ export default function MembersPage() {
             <a href={`/${params.facilityId}/settings`}>
               <Settings className="h-6 w-6 text-purple-500 dark:text-purple-400" />
             </a>
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
           </div>
         </header>
 

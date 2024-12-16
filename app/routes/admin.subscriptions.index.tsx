@@ -14,7 +14,7 @@ interface SubscriptionPlan {
   price: number;
   duration_days: number;
   max_members: number | null;
-  features: { feature: string[] };
+  // features: { feature: string[] };
 }
 
 export const loader: LoaderFunction = async () => {
@@ -56,7 +56,7 @@ export default function SubscriptionList() {
                 <TableHead>Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Duration</TableHead>
-                <TableHead className="hidden md:table-cell">Features</TableHead>
+                {/* <TableHead className="hidden md:table-cell">Features</TableHead> */}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -71,7 +71,7 @@ export default function SubscriptionList() {
                   </TableCell>
                   <TableCell>₹{plan.price.toFixed(2)}</TableCell>
                   <TableCell>{plan.duration_days} days</TableCell>
-                  <TableCell className="hidden md:table-cell">
+                  {/* <TableCell className="hidden md:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {plan.features.feature.map((feature, index) => (
                         <Badge key={index} variant="secondary">
@@ -79,7 +79,7 @@ export default function SubscriptionList() {
                         </Badge>
                       ))}
                     </div>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     <div className="flex space-x-2">
                       <Link to={`${plan.id}/edit`}>

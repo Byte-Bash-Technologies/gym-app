@@ -6,7 +6,7 @@ interface SubscriptionExpiredMessageProps {
 
 export function SubscriptionExpiredMessage({ facilityName, facilityType, facilityId }: SubscriptionExpiredMessageProps) {
   const handleRenewSubscription = () => {
-    const phoneNumber = "+91 8300861600"; //7010976271
+    const phoneNumber = "+91 7010976271";
     const message = encodeURIComponent(`Hello Benston,\n\nI would like to renew my subscription for the ${facilityType} facility, specifically for ${facilityName}.
       \n\nFacility subscription link: https://app.sportsdot.in/${facilityId}/renew-subscription`);
     window.open(`https://wa.me/${phoneNumber}?text=${message}`);

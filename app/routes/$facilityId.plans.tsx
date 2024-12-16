@@ -4,8 +4,8 @@ import {
   type LoaderFunction,
   type ActionFunction,
 } from "@remix-run/node";
-import { useLoaderData, useActionData, Form } from "@remix-run/react";
-import { useState, useTransition } from "react";
+import { useLoaderData, useActionData, Form, useNavigate, Link, useParams } from "@remix-run/react";
+import { useState, useTransition, useEffect } from "react";
 import { supabase } from "~/utils/supabase.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog";
 import { toast } from "~/hooks/use-toast";
+import { ArrowLeft } from "lucide-react";
 
 interface Plan {
   id: string;
@@ -49,7 +50,6 @@ export const action: ActionFunction = async ({ request, params }) => {
   const formData = await request.formData();
   const action = formData.get("_action");
 
-
   switch (action) {
     case "create":
     case "update": {
@@ -69,7 +69,7 @@ export const action: ActionFunction = async ({ request, params }) => {
         const id = formData.get("id") as string;
         const { error } = await supabase
           .from("plans")
-          .update({ name, duration, price, description, facility_id: facilityId })
+          .update({ name, duration, price, description, facility_id: params.facilityId })
           .eq("id", id);
 
         if (error)
@@ -93,10 +93,19 @@ export const action: ActionFunction = async ({ request, params }) => {
 };
 
 export default function Plans() {
-  const { plans } = useLoaderData<{ plans: Plan[] }>();
+  const { plans, facilityId } = useLoaderData<{ plans: Plan[], facilityId: string }>();
   const actionData = useActionData();
   const transition = useTransition();
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const navigate = useNavigate();
+  const params = useParams();
+
+  useEffect(() => {
+    if (transition.state === "loading" && actionData?.error === undefined) {
+      setIsDialogOpen(false);
+    }
+  }, [transition.state, actionData]);
 
   if (actionData?.error) {
     toast({
@@ -109,8 +118,12 @@ export default function Plans() {
   return (
     <div className="space-y-4 p-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Plans</h2>
-        <Dialog>
+      <Link to={`/${params.facilityId}/settings`} className="flex items-center space-x-2">
+        <ArrowLeft className="h-6 w-6 cursor-pointer" />
+        <h2 className="text-2xl font-bold">Settings</h2>
+      </Link>
+      <h2 className="text-2xl font-bold">Plans</h2>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>Add New Plan</Button>
           </DialogTrigger>
@@ -118,11 +131,11 @@ export default function Plans() {
             <DialogHeader>
               <DialogTitle>Add New Plan</DialogTitle>
             </DialogHeader>
-            <PlanForm />
+            <PlanForm onSuccess={() => setIsDialogOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto max-h-[calc(100vh-200px)]">
         {plans.map((plan) => (
           <Card key={plan.id}>
             <CardHeader>
@@ -147,7 +160,7 @@ export default function Plans() {
                     <DialogHeader>
                       <DialogTitle>Edit Plan</DialogTitle>
                     </DialogHeader>
-                    <PlanForm plan={editingPlan} />
+                    <PlanForm plan={editingPlan} onSuccess={() => navigate(".", { replace: true })} />
                   </DialogContent>
                 </Dialog>
                 <Form method="post" style={{ display: "inline" }}>
@@ -178,12 +191,16 @@ export default function Plans() {
   );
 }
 
-function PlanForm({ plan = null }: { plan?: Plan | null }) {
+function PlanForm({ plan = null, onSuccess }: { plan?: Plan | null, onSuccess?: () => void }) {
   const transition = useTransition();
   const isSubmitting = transition.state === "submitting";
 
   return (
-    <Form method="post" className="space-y-4">
+    <Form method="post" className="space-y-4" onSubmit={() => {
+      if (onSuccess) {
+        setTimeout(onSuccess, 0);
+      }
+    }}>
       <input type="hidden" name="id" value={plan?.id} />
       <div>
         <Label htmlFor="name">Name</Label>

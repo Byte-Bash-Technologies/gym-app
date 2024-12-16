@@ -16,9 +16,9 @@ export const action: ActionFunction = async ({ request }) => {
   const description = formData.get('description') as string;
   const price = parseFloat(formData.get('price') as string);
   const duration_days = parseInt(formData.get('duration_days') as string, 10);
-  const features = formData.get('features') as string;
+  // const features = formData.get('features') as string;
 
-  const featuresArray = features.split(',').map(feature => feature.trim());
+  // const featuresArray = features.split(',').map(feature => feature.trim());
 
   const { error } = await supabase
     .from('subscription_plans')
@@ -27,14 +27,14 @@ export const action: ActionFunction = async ({ request }) => {
       description,
       price,
       duration_days,
-      features: { feature: featuresArray }
+      // features: { feature: featuresArray }
     });
 
   if (error) {
     return json({ error: error.message });
   }
 
-  return redirect('/admin/subscriptions');
+  return redirect('/admin/subscriptions/index');
 };
 
 export default function NewSubscriptionPlan() {
@@ -67,10 +67,10 @@ export default function NewSubscriptionPlan() {
               <Label htmlFor="duration_days">Duration (days)</Label>
               <Input id="duration_days" name="duration_days" type="number" required />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="features">Features (comma-separated)</Label>
               <Input id="features" name="features" required />
-            </div>
+            </div> */}
             {actionData?.error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />

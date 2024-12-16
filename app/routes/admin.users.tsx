@@ -213,9 +213,9 @@ export default function UsersList() {
                           <Pencil className="w-4 h-4" />
                         </Link>
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user)}>
+                      {/* <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user)}>
                         <Trash2 className="w-4 h-4" />
-                      </Button>
+                      </Button> */}
                     </div>
                 </div>
               ))

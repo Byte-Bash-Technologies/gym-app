@@ -355,7 +355,7 @@ export default function Component() {
                     }}
                   >
                     Basic Plan
-                    <span className="font-bold">$9.99/month</span>
+                    <span className="font-bold">₹499.00/1-month</span>
                   </Button>
                 </li>
                 <li>
@@ -368,7 +368,7 @@ export default function Component() {
                     }}
                   >
                     Pro Plan
-                    <span className="font-bold">$19.99/month</span>
+                    <span className="font-bold">₹2499.00/3-month</span>
                   </Button>
                 </li>
                 <li>
@@ -381,7 +381,7 @@ export default function Component() {
                     }}
                   >
                     Enterprise Plan
-                    <span className="font-bold">$49.99/month</span>
+                    <span className="font-bold">₹4499.00/1-year</span>
                   </Button>
                 </li>
               </ul>

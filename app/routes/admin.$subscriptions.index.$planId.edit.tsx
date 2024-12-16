@@ -14,7 +14,7 @@ interface SubscriptionPlan {
   description: string;
   price: number;
   duration_days: number;
-  features: { feature: string[] };
+  // features: { feature: string[] };
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
@@ -41,7 +41,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   updates.duration_days = parseInt(updates.duration_days as string);
   
   // Convert features string to array
-  updates.features = { feature: (updates.features as string).split(',').map(f => f.trim()) };
+  // updates.features = { feature: (updates.features as string).split(',').map(f => f.trim()) };
 
   const { error } = await supabase
     .from('subscription_plans')
@@ -59,7 +59,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 export default function EditSubscriptionPlan() {
   const { plan } = useLoaderData<{ plan: SubscriptionPlan }>();
   const actionData = useActionData();
-  const [features, setFeatures] = useState(plan.features.feature.join(', '));
+  // const [features, setFeatures] = useState(plan.features.feature.join(', '));
 
   return (
     <div className="space-y-6">
@@ -85,7 +85,7 @@ export default function EditSubscriptionPlan() {
               <Label htmlFor="duration_days">Duration (days)</Label>
               <Input type="number" id="duration_days" name="duration_days" defaultValue={plan.duration_days} required />
             </div>
-            <div>
+            {/* <div>
               <Label htmlFor="features">Features (comma-separated)</Label>
               <Input 
                 type="text" 
@@ -95,7 +95,7 @@ export default function EditSubscriptionPlan() {
                 onChange={(e) => setFeatures(e.target.value)}
                 required 
               />
-            </div>
+            </div> */}
             <Button type="submit">Update Plan</Button>
           </Form>
           {actionData?.error && (
