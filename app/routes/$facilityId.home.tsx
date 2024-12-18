@@ -17,6 +17,7 @@ import { getAuthenticatedUser } from "~/utils/currentUser";
 interface Gym {
   id: string;
   name: string;
+  logo_url: string;
 }
 
 interface Stats {
@@ -54,7 +55,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   // Fetch current gym
   const { data: currentGym, error: currentGymError } = await supabase
     .from("facilities")
-    .select("id, name")
+    .select("id, name, logo_url")
     .eq("id", facilityId)
     .single();
 
@@ -140,7 +141,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   const today = now.toISOString().split("T")[0];
   const { data: birthdays, error: birthdaysError } = await supabase
     .from("members")
-    .select("id, full_name, date_of_birth")
+    .select("id, full_name,photo_url, date_of_birth")
     .eq("facility_id", facilityId);
 
   if (birthdaysError) throw new Error("Failed to fetch birthdays");
@@ -157,7 +158,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     birthdays: todayBirthdays.map((b) => ({
       id: b.id,
       name: b.full_name,
-      avatar: `https://api.dicebear.com/6.x/initials/svg?seed=${b.full_name}`,
+      avatar:b.photo_url,
     })),
     expiredMembers,
     expiringSoonMembers,
@@ -212,7 +213,7 @@ export default function Index() {
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Avatar className="h-10 w-10">
-            <AvatarImage alt={currentGym.name} />
+            <AvatarImage src={currentGym.logo_url} alt={currentGym.name} />
             <AvatarFallback>{currentGym.name[0]}</AvatarFallback>
           </Avatar>
           <DropdownMenu>
@@ -240,10 +241,10 @@ export default function Index() {
         </div>
         <div className="flex items-center space-x-4">
           <a href="tel:7010976271">
-            <Phone className="h-6 w-6 text-purple-500" />
+            <Phone className="h-6 w-6 text-purple-400" />
           </a>
           <a href={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
+            <Settings className="h-6 w-6 text-purple-400" />
           </a>
         </div>
       </header>
@@ -251,21 +252,21 @@ export default function Index() {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4 p-4">
         <Card
-          className="bg-white shadow-sm cursor-pointer"
+          className="bg-white shadow-md cursor-pointer border-none"
           onClick={() => handleStatClick("active")}
         >
-          <CardContent className="p-4">
+          <CardContent className="p-4 flex justify-between gap-2 items-center">
             <p className="text-gray-600">Active members</p>
             <p className="text-4xl font-bold text-green-500">
               {stats.activeMembers}
             </p>
           </CardContent>
         </Card>
-        <Card
-          className="bg-white shadow-sm cursor-pointer"
+        <Card 
+          className="bg-white shadow-md border-none cursor-pointer"
           onClick={() => handleStatClick("expiring")}
         >
-          <CardContent className="p-4">
+          <CardContent className="p-4 flex justify-between gap-2 items-center">
             <p className="text-gray-600">Expiring soon</p>
             <p className="text-4xl font-bold text-yellow-500">
               {stats.expiringSoon}
@@ -273,10 +274,10 @@ export default function Index() {
           </CardContent>
         </Card>
         <Card
-          className="bg-white shadow-sm cursor-pointer"
+          className="bg-white shadow-md border-none cursor-pointer"
           onClick={() => handleStatClick("expired")}
         >
-          <CardContent className="p-4">
+          <CardContent className="p-4 flex justify-between gap-2 items-center">
             <p className="text-gray-600">Expired members</p>
             <p className="text-4xl font-bold text-red-500">
               {stats.expiredMembers}
@@ -284,10 +285,10 @@ export default function Index() {
           </CardContent>
         </Card>
         <Card
-          className="bg-white shadow-sm cursor-pointer"
+          className="bg-white shadow-md border-none cursor-pointer"
           onClick={() => handleStatClick("all")}
         >
-          <CardContent className="p-4">
+          <CardContent className="p-4 flex justify-between gap-2 items-center">
             <p className="text-gray-600">Total members</p>
             <p className="text-4xl font-bold text-blue-500">
               {stats.totalMembers}
@@ -318,10 +319,10 @@ export default function Index() {
 
       {/* Expired Members Section */}
       <div className="p-4">
-        <h4 className="text-lg font-bold mb-2">Expired Memberships</h4>
-        <Card>
+        <h4 className="text-lg font-bold mb-6">Expired Memberships</h4>
+        <Card className=" shadow-md border-none">
           <CardContent>
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-purple-200">
               {expiredMembers.length > 0 ? (
                 expiredMembers.slice(0, 5).map((member) => (
                   <li
@@ -335,7 +336,7 @@ export default function Index() {
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
                           <AvatarImage
-                            src={`https://api.dicebear.com/6.x/initials/svg?seed=${member.full_name}`}
+                            src={`https://api.dicebear.com/9.x/dylan/svg?seed=${member.full_name}`}
                             alt={member.full_name}
                           />
                           <AvatarFallback>{member.full_name[0]}</AvatarFallback>
@@ -377,7 +378,7 @@ export default function Index() {
       {/* Expiring Soon Section */}
       <div className="p-4">
         <h2 className="text-lg font-bold mb-4">Memberships Expiring Soon</h2>
-        <Card>
+        <Card className=" shadow-md border-none">
           <CardContent>
             <ul className="divide-y divide-gray-200">
               {expiringSoonMembers.length > 0 ? (
@@ -436,7 +437,7 @@ export default function Index() {
       {/* Members with Balance Section */}
       <div className="p-4">
         <h2 className="text-lg font-bold mb-4">Members with Balance</h2>
-        <Card>
+        <Card className=" shadow-md border-none">
           <CardContent>
             <ul className="divide-y divide-gray-200">
               {membersWithBalance.length > 0 ? (
