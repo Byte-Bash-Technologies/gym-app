@@ -7,19 +7,14 @@ import {
   Link,
   useParams,
 } from "@remix-run/react";
-import { Bell, Phone, Settings, Search, Filter } from "lucide-react";
+import { Bell, Phone, Settings, Search, Filter, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { supabase } from "~/utils/supabase.server";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "~/components/ui/chart";
-import { Line, LineChart, XAxis, YAxis } from "recharts";
+import { LineChart, XAxis, YAxis } from "recharts";
 import {
   Select,
   SelectContent,
@@ -29,6 +24,7 @@ import {
 } from "~/components/ui/select";
 import { useState, useEffect } from "react";
 import { getAuthenticatedUser } from "~/utils/currentUser";
+import { Area, AreaChart, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface Transaction {
   id: number;
@@ -86,6 +82,10 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
       endDate = today;
       break;
+    case "allTime":
+      startDate = new Date(0); // Beginning of time
+      endDate = new Date(); // Current date and time
+      break;
     default:
       startDate = today;
       endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000);
@@ -129,9 +129,9 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   const income = transactions.reduce((sum, t) => sum + t.amount, 0);
 
   // Fetch previous period's income
-  const previousStartDate = new Date(
-    startDate.getTime() - (endDate.getTime() - startDate.getTime())
-  );
+  const previousStartDate = timelineFilter === "allTime"
+    ? new Date(0)
+    : new Date(startDate.getTime() - (endDate.getTime() - startDate.getTime()));
   const { data: previousTransactions, error: previousError } = await supabase
     .from("transactions")
     .select("amount")
@@ -150,14 +150,29 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     0
   );
 
-  // Calculate daily earnings
+  // Calculate daily/hourly earnings
   const dailyEarnings: DailyEarning[] = [];
-  for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
-    const dateString = d.toISOString().split("T")[0];
-    const amount = transactions
-      .filter((t) => t.created_at.startsWith(dateString))
-      .reduce((sum, t) => sum + t.amount, 0);
-    dailyEarnings.push({ date: dateString, amount });
+  if (timelineFilter === "today" || timelineFilter === "yesterday") {
+    for (let h = 0; h < 24; h++) {
+      const date = new Date(startDate);
+      date.setHours(h, 0, 0, 0);
+      const dateString = date.toISOString();
+      const amount = transactions
+        .filter((t) => {
+          const transactionDate = new Date(t.created_at);
+          return transactionDate.getHours() === h;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
+      dailyEarnings.push({ date: dateString, amount });
+    }
+  } else {
+    for (let d = new Date(startDate); d < endDate; d.setDate(d.getDate() + 1)) {
+      const dateString = d.toISOString().split("T")[0];
+      const amount = transactions
+        .filter((t) => t.created_at.startsWith(dateString))
+        .reduce((sum, t) => sum + t.amount, 0);
+      dailyEarnings.push({ date: dateString, amount });
+    }
   }
 
   // Fetch total pending balance from members table
@@ -329,6 +344,7 @@ export default function Transactions() {
                 <SelectItem value="lastMonth">Last Month</SelectItem>
                 <SelectItem value="last7Days">Last 7 Days</SelectItem>
                 <SelectItem value="last30Days">Last 30 Days</SelectItem>
+                <SelectItem value="allTime">All Time</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -463,38 +479,68 @@ export default function Transactions() {
                 </div>
                 <div className="pt-4">
                   <h4 className="text-sm font-medium mb-2">Earning Summary</h4>
-                  <ChartContainer
-                    config={{
-                      amount: {
-                        label: "Amount",
-                        color: "hsl(216, 20%, 80%)",
-                      },
-                    }}
-                    className="h-[300px] w-full"
-                  >
-                    <LineChart data={dailyEarnings}>
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(value) =>
-                          new Date(value).toLocaleDateString("en-US", {
-                            weekday: "short",
-                          })
-                        }
+                  <div className="flex items-center space-x-2 mb-2">
+                    {dailyEarnings[dailyEarnings.length - 1].amount > dailyEarnings[0].amount ? (
+                      <>
+                        <TrendingUp className="text-green-500" />
+                        <span className="text-green-500 font-medium">Upward Trend</span>
+                      </>
+                    ) : (
+                      <>
+                        <TrendingDown className="text-red-500" />
+                        <span className="text-red-500 font-medium">Downward Trend</span>
+                      </>
+                    )}
+                  </div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={dailyEarnings}>
+                      <defs>
+                        <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={(value) => {
+                          const date = new Date(value);
+                          if (timelineFilter === "today" || timelineFilter === "yesterday") {
+                            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          }
+                          return date.toLocaleDateString("en-US", { weekday: "short" });
+                        }}
                       />
-                      <YAxis
+                      <YAxis 
                         tickFormatter={(value) => `₹${value / 1000}k`}
-                        domain={[0, "auto"]}
+                        domain={[0, 'auto']}
                       />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Line
-                        type="monotone"
-                        dataKey="amount"
-                        stroke="var(--color-amount)"
-                        strokeWidth={2}
-                        dot={{ r: 4, fill: "var(--color-amount)" }}
+                      <Tooltip 
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const date = new Date(label);
+                            const dateString = timelineFilter === "today" || timelineFilter === "yesterday"
+                              ? date.toLocaleString([], { hour: '2-digit', minute: '2-digit' })
+                              : date.toLocaleDateString();
+                            return (
+                              <div className="bg-white p-2 border rounded shadow">
+                                <p className="text-sm">{dateString}</p>
+                                <p className="text-sm font-bold">₹{payload[0].value.toFixed(2)}</p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
                       />
-                    </LineChart>
-                  </ChartContainer>
+                      <Area 
+                        type="monotone" 
+                        dataKey="amount" 
+                        stroke="#8884d8" 
+                        fillOpacity={1} 
+                        fill="url(#colorAmount)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             </CardContent>
@@ -537,3 +583,4 @@ export default function Transactions() {
     </div>
   );
 }
+

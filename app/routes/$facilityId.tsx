@@ -18,17 +18,20 @@ import { getAuthenticatedUser } from "~/utils/currentUser";
 export const loader: LoaderFunction = async ({ params, request }) => {
   const user = await getAuthenticatedUser(request);
   const facilityId = params.facilityId;
-  const { data: facility, error: facilityError } = await supabase
-    .from("facilities")
-    .select("name, type")
-    .eq("id", facilityId)
-    .eq("user_id", user.id)
-    .single();
+  
+  const userId = user.id;
 
+  
+  const { data: facilities, error:facilityError } = await supabase
+    .rpc('get_facilities_by_user_and_id', { input_facility_id: facilityId, input_user_id: userId });
+  
+  const facility = facilities?.[0];
   if (facilityError) {
-    throw new Response("Facility not found", { status: 404 });
-  }
-
+  console.error("Error fetching facility data:", facilityError);
+  throw new Response("Facility not found", { status: 404 });
+} else {
+  console.log('Fetched facility:', facility);
+}
   const { data, error } = await supabase
     .from("facility_subscriptions")
     .select("end_date")

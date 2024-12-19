@@ -1,6 +1,6 @@
 import { json, redirect, LoaderFunction } from "@remix-run/node";
 import { Outlet, useLoaderData, useNavigate, Link, Form } from "@remix-run/react";
-import { ArrowLeft, RefreshCcw, MessageSquare, BarChart, User2, Clock, X, LogOut } from 'lucide-react';
+import { ArrowLeft, RefreshCcw, MessageSquare, BarChart, User2, Clock, X, LogOut, UserCog } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
@@ -233,6 +233,12 @@ export default function Component() {
               <Button variant="ghost" className="w-full justify-start p-4">
                 <BarChart className="h-5 w-5 mr-3 text-purple-500" />
                 Plans
+              </Button>
+            </Link>
+            <Link to={`/${facility.id}/trainers`} className="block">
+              <Button variant="ghost" className="w-full justify-start p-4">
+                <UserCog className="h-5 w-5 mr-3 text-purple-500" />
+                Manage Trainers
               </Button>
             </Link>
           </Card>

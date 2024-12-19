@@ -1,6 +1,6 @@
 import { json, type LoaderFunction, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate } from "@remix-run/react";
-import { Dumbbell, VibrateIcon as Volleyball, Users, Calendar, ChevronRight, CodeIcon as ChartColumnIncreasing, Settings, Plus, Send, X } from 'lucide-react';
+import { Dumbbell, VibrateIcon as Volleyball, Users, Calendar, ChevronRight, CodeIcon as ChartColumnIncreasing, Settings, Plus, UserCog } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { createServerClient, parse } from '@supabase/ssr';
@@ -25,6 +25,7 @@ interface Facility {
   members: number;
   revenue?: number;
   subscription_end_date?: string | null;
+  is_owner: boolean;
 }
 
 interface LoaderData {
@@ -51,6 +52,21 @@ export const loader: LoaderFunction = async ({ request }) => {
     return redirect('/login');
   }
 
+  // Fetch both owned and assigned facilities
+  const userId = user.id;
+  // Step 1: Fetch facility IDs from facility_trainers
+  const { data: trainerFacilities, error: trainerError } = await supabase
+    .from('facility_trainers')
+    .select('facility_id')
+    .eq('user_id', userId);
+  
+  if (trainerError) {
+    console.error('Error fetching trainer facilities:', trainerError);
+  }
+
+  const facilityIds = trainerFacilities ? trainerFacilities.map(trainer => trainer.facility_id) : [];
+
+  // Step 2: Fetch facilities with the specified user ID or the trainer facility IDs
   const { data: facilities, error } = await supabase
     .from('facilities')
     .select(`
@@ -59,12 +75,17 @@ export const loader: LoaderFunction = async ({ request }) => {
         end_date
       )
     `)
-    .eq('user_id', user.id);
+    .or(`user_id.eq.${userId},id.in.(${facilityIds.join(',')})`);
+
+  if (error) {
+    console.error('Error fetching facilities:', error);
+  }
 
   const { data: userName } = await supabase
     .from('users')
     .select('full_name')
     .eq('id', user.id)
+    .single();
 
   if (error) {
     return json({ error: error.message });
@@ -72,10 +93,14 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   const processedFacilities = facilities.map(facility => ({
     ...facility,
-    subscription_end_date: facility.facility_subscriptions[0]?.end_date || null
+    subscription_end_date: facility.facility_subscriptions[0]?.end_date || null,
+    is_owner: facility.user_id === user.id
   }));
 
-  return json({ facilities: processedFacilities, userName: userName[0].full_name });
+  return json({ 
+    facilities: processedFacilities, 
+    userName: userName?.full_name || ''
+  });
 };
 
 export default function Dashboard() {
@@ -111,11 +136,11 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto p-4 space-y-6">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-2xl font-bold">Welcome, {userName}</h2>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Facility
               </Button>
@@ -134,11 +159,9 @@ export default function Dashboard() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
                 <Button onClick={handleSendMessage}>
-                  <Send className="h-4 w-4 mr-2" />
                   Send Message
                 </Button>
               </DialogFooter>
@@ -188,7 +211,22 @@ function FacilityCard({ facility }: { facility: Facility }) {
     >
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">{facility.name}</CardTitle>
+          <div className="space-y-1">
+            <CardTitle className="text-lg">{facility.name}</CardTitle>
+            <Badge variant={facility.is_owner ? "default" : "secondary"} className="text-xs">
+              {facility.is_owner ? (
+                <>
+                  <UserCog className="h-3 w-3 mr-1" />
+                  Owner
+                </>
+              ) : (
+                <>
+                  <Users className="h-3 w-3 mr-1" />
+                  Trainer
+                </>
+              )}
+            </Badge>
+          </div>
           <Badge
             variant={facility.type === "gym" ? "default" : "secondary"}
             className="text-xs"
@@ -208,10 +246,12 @@ function FacilityCard({ facility }: { facility: Facility }) {
             <Users className="h-4 w-4 mr-2 text-primary" />
             <span>{facility.members} members</span>
           </div>
-          <div className="flex items-center text-sm">
-            <ChartColumnIncreasing className="h-4 w-4 mr-2 text-primary" />
-            <span>₹{(facility.revenue || 1000).toLocaleString()} revenue</span>
-          </div>
+          {facility.is_owner && (
+            <div className="flex items-center text-sm">
+              <ChartColumnIncreasing className="h-4 w-4 mr-2 text-primary" />
+              <span>₹{(facility.revenue || 1000).toLocaleString()} revenue</span>
+            </div>
+          )}
           <div className="flex items-center text-sm">
             <Calendar className="h-4 w-4 mr-2 text-primary" />
             <span>
