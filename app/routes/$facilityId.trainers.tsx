@@ -1,8 +1,8 @@
 import { json, LoaderFunction, ActionFunction, redirect } from "@remix-run/node";
-import { useLoaderData, Form } from "@remix-run/react";
+import { useLoaderData, Form, useActionData, useNavigate, Link } from "@remix-run/react";
 import { supabase } from "~/utils/supabase.server";
 import { getAuthenticatedUser } from "~/utils/currentUser";
-import { UserPlus2, UserX2 } from 'lucide-react';
+import { UserPlus2, UserX2, AlertCircle } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -17,9 +17,11 @@ import { Button } from "~/components/ui/button";
 import { Card } from "~/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "~/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
-import { createServerClient } from "@supabase/ssr"; // Assuming this is the correct import for creating the Supabase client
-import { parse, serialize } from "cookie"; // Assuming cookie parsing and serialization is needed
-import { useState } from "react";
+import { createServerClient } from "@supabase/ssr";
+import { parse, serialize } from "cookie";
+import { useToast } from "~/hooks/use-toast";
+import { Alert, AlertDescription } from "~/components/ui/alert";
+import { useState, useEffect } from "react";
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const user = await getAuthenticatedUser(request);
@@ -33,7 +35,6 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     .from("facilities")
     .select("*")
     .eq("id", facilityId)
-    .eq("user_id", user.id)
     .single();
 
   if (error || facility.user_id !== user.id) {
@@ -93,18 +94,21 @@ export const action: ActionFunction = async ({ request }) => {
     const facilityId = formData.get("facilityId");
 
     // First, find the user by email
-    const { data: userData, error: userError } = await supabaseClient
+    const { data: userData, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("email", trainerEmail)
       .single();
 
     if (userError) {
-      return json({ error: "User not found" }, { status: 404 });
+      return json({ 
+        error: "No user found with this email. Please verify the email or ",
+        action: "add-trainer" 
+      }, { status: 404 });
     }
 
     // Then, add the trainer to facility_trainers
-    const { error: assignError } = await supabaseClient
+    const { error: assignError } = await supabase
       .from("facility_trainers")
       .insert([
         {
@@ -114,10 +118,17 @@ export const action: ActionFunction = async ({ request }) => {
       ]);
 
     if (assignError) {
-      return json({ error: "Failed to assign trainer" }, { status: 500 });
+      return json({ 
+        error: "Failed to assign trainer. Please try again.", 
+        action: "add-trainer" 
+      }, { status: 500 });
     }
 
-    return json({ success: true });
+    return json({ 
+      success: true, 
+      message: "Trainer added successfully",
+      action: "add-trainer" 
+    });
   }
 
   if (action === "remove-trainer") {
@@ -141,8 +152,30 @@ export const action: ActionFunction = async ({ request }) => {
 
 export default function FacilitySettings() {
   const { facility, trainers } = useLoaderData<typeof loader>();
+  const actionData = useActionData();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
   const [isAddTrainerDialogOpen, setIsAddTrainerDialogOpen] = useState(false);
   const [trainerEmail, setTrainerEmail] = useState("");
+
+  // Handle action responses
+  useEffect(() => {
+    if (actionData?.action === "add-trainer") {
+      if (actionData.success) {
+        toast({
+          title: "Success",
+          description: actionData.message,
+          duration: 3000,
+        });
+        setIsAddTrainerDialogOpen(false);
+        setTrainerEmail("");
+      } else {
+        // Handle errors appropriately, e.g., display an error message
+        console.error("Error adding trainer:", actionData.error);
+      }
+    }
+  }, [actionData, toast]);
 
   return (
     <div className="container mx-auto p-4">
@@ -226,6 +259,14 @@ export default function FacilitySettings() {
             <Form method="post" className="space-y-4">
               <input type="hidden" name="action" value="add-trainer" />
               <input type="hidden" name="facilityId" value={facility.id} />
+              
+              {actionData?.action === "add-trainer" && actionData.error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{actionData.error} <Link to="/signup" className="underline">invite</Link> them to create an account.</AlertDescription>
+                </Alert>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="trainerEmail">Trainer Email</Label>
                 <Input
@@ -238,14 +279,30 @@ export default function FacilitySettings() {
                   required
                 />
               </div>
+              
               <DialogDescription className="text-sm text-gray-500">
                 Enter the email address of the trainer you want to add. They must have a Sportsdot account.
+                <div className=" space-x-1">
+              <span className="text-sm text-gray-600">
+                Don't have an account?
+              </span>
+              <Link
+                to="/signup"
+                className="text-sm font-medium text-purple-600 hover:text-purple-500"
+              >
+                create one
+              </Link>
+            </div>
               </DialogDescription>
+
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setIsAddTrainerDialogOpen(false)}
+                  onClick={() => {
+                    setIsAddTrainerDialogOpen(false);
+                    setTrainerEmail("");
+                  }}
                 >
                   Cancel
                 </Button>

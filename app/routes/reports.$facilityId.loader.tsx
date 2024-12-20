@@ -1,8 +1,19 @@
 import { json, type LoaderFunction } from "@remix-run/node";
+import { getAuthenticatedUser } from "~/utils/currentUser";
 import { supabase } from "~/utils/supabase.server";
 
-export const loader: LoaderFunction = async ({ params }) => {
+export const loader: LoaderFunction = async ({ params,request }) => {
+  const user = await getAuthenticatedUser(request);
   const facilityId = params.facilityId;
+  const { data: facility, error: facilityError } = await supabase
+  .from("facilities")
+  .select("name")
+  .eq("id", facilityId)
+  .eq("user_id", user.id)
+  .single();
+if (facilityError) {
+  throw new Response("No access", { status: 409 });
+}
 
   if (!facilityId) {
     throw new Error("Facility ID is required");

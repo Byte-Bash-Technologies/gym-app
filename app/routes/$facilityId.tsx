@@ -29,9 +29,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   if (facilityError) {
   console.error("Error fetching facility data:", facilityError);
   throw new Response("Facility not found", { status: 404 });
-} else {
-  console.log('Fetched facility:', facility);
-}
+} 
   const { data, error } = await supabase
     .from("facility_subscriptions")
     .select("end_date")

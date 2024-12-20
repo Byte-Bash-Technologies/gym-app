@@ -4,6 +4,7 @@ import {
   } from "@remix-run/react";
 import NoUsersFound from "./NoUserFound";
 import NoFacility from "./NoFacility";
+import NoTrainerAccess from "./NoAccessTrainer";
   
   export function ErrorBoundary() {
     const error = useRouteError();
@@ -19,6 +20,11 @@ import NoFacility from "./NoFacility";
                 <NoFacility />
             );
         }
+        else if (error.status === 409) {
+          return (
+              <NoTrainerAccess />
+          );
+      }
         else{
           <div>
           <h1>

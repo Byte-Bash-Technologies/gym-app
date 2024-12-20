@@ -53,6 +53,16 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   const planFilter = url.searchParams.get("plan") || "all";
   const searchTerm = url.searchParams.get("search") || "";
 
+  const { data: facility, error: facilityError } = await supabase
+    .from("facilities")
+    .select("name")
+    .eq("id", facilityId)
+    .eq("user_id", user.id)
+    .single();
+  if (facilityError) {
+    throw new Response("No access", { status: 409 });
+  }
+
   let startDate, endDate;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -224,7 +234,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     searchTerm,
   });
 };
-
+export { ErrorBoundary } from "~/components/CatchErrorBoundary";
 export default function Transactions() {
   const {
     transactions,
