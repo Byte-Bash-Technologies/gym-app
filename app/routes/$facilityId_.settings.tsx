@@ -179,7 +179,7 @@ export default function Component() {
             <div className="flex items-center gap-3 mb-4">
               <Avatar className="h-12 w-12">
                 <AvatarImage
-                  src={facility.logo_url || "/placeholder.svg"}
+                  src={facility.logo_url || `https://api.dicebear.com/9.x/identicon/svg/${facility.name}`}
                   alt={facility.name}
                 />
                 <AvatarFallback>{facility.name[0]}</AvatarFallback>

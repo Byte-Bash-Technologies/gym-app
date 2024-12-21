@@ -123,7 +123,7 @@ export default function Dashboard() {
       <header className="bg-card text-card-foreground p-4 sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold">Facility Dashboard</h1>
-          <div className="flex items-center gap-2">
+          {/*<div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
@@ -131,7 +131,7 @@ export default function Dashboard() {
             >
               <Settings className="h-5 w-5" />
             </Button>
-          </div>
+          </div>*/}
         </div>
       </header>
 

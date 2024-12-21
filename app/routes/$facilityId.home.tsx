@@ -213,7 +213,7 @@ export default function Index() {
       <header className="bg-white p-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={currentGym.logo_url} alt={currentGym.name} />
+            <AvatarImage src={currentGym.logo_url || `https://api.dicebear.com/9.x/identicon/svg/${currentGym.name[0]}`} alt={currentGym.name} />
             <AvatarFallback>{currentGym.name[0]}</AvatarFallback>
           </Avatar>
           <DropdownMenu>
