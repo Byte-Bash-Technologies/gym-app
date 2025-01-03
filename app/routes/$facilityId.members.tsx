@@ -319,7 +319,7 @@ export default function MembersPage() {
           Members - {facility?.name || "Loading..."}
         </h1>
         <div className="flex items-center space-x-4">
-          <Bell className="h-6 w-6 text-[#886fa6]" />
+          {/* <Bell className="h-6 w-6 text-[#886fa6]" /> */}
           <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-[#886fa6]" />
           </a>

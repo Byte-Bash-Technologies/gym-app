@@ -24,6 +24,16 @@ export const links: LinksFunction = () => [
   },
 ];
 
+// Prevent theme flicker
+const themeScript = `
+  let theme = window.localStorage.getItem('theme')
+  if (!theme) {
+    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  document.documentElement.classList.add(theme)
+  document.body.classList.add(theme)
+`;
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -37,6 +47,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {children}
         <InstallPWAButton />
         <ScrollRestoration />
@@ -48,7 +59,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <ThemeProvider>
+    <ThemeProvider defaultTheme="system" attribute="class">
       <Outlet />
     </ThemeProvider>
   );

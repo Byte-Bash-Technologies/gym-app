@@ -119,8 +119,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="bg-card text-card-foreground p-4 sticky top-0 z-10 shadow-sm">
+    <div className="min-h-screen bg-background dark:bg-[#212237] text-foreground">
+      <header className="bg-card text-card-foreground p-4 sticky top-0 z-10 shadow-sm dark:bg-[#212237]">
         <div className="container mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold">Facility Dashboard</h1>
           {/*<div className="flex items-center gap-2">
