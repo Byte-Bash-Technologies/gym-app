@@ -213,7 +213,7 @@ export default function FacilitySettings() {
                       <TableCell className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarImage
-                            src={trainer.users.avatar_url || "/placeholder.svg"}
+                            src={trainer.users.avatar_url || "https://api.dicebear.com/v2/avatars/seed.svg"}
                             alt={trainer.users.full_name}
                           />
                           <AvatarFallback>

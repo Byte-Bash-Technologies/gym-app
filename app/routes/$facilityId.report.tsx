@@ -75,17 +75,17 @@ export default function ReportPage() {
   return (
     <div className="min-h-screen bg-gray-100 pb-16">
       {/* Header */}
-      <header className="bg-white p-4 flex items-center justify-between">
+      <header className="bg-background p-4 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-xl font-bold ml-6">Report</h1>
         </div>
         <div className="flex items-center space-x-4">
           {/* <Bell className="h-6 w-6 text-purple-500" /> */}
           <a href="tel:7010976271">
-            <Phone className="h-6 w-6 text-purple-500" />
+            <Phone className="h-6 w-6 text-[#886fa6]" />
           </a>
           <a href={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
+            <Settings className="h-6 w-6 text-[#886fa6]" />
           </a>
           {/*<Link to={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-purple-500" />
@@ -94,14 +94,14 @@ export default function ReportPage() {
       </header>
 
       {/* Main Content */}
-      <main className="p-4 space-y-4">
+      <main className="p-4 space-y-4 dark:bg-[#212237]">
         {/* Search */}
         <div className="p-4">
           <div className="relative flex items-center">
             <Input
               type="text"
               placeholder="Search by name or number"
-              className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
+              className="pl-10 pr-20 py-2 w-full bg-background rounded-full"
               value={searchTerm}
               onChange={handleSearch}
             />
@@ -364,11 +364,11 @@ export default function ReportPage() {
               {transactions.map((transaction) => (
           <Link
           key={transaction.id}
-          to={`/${params.facilityId}/members/${transaction.id}`}
+          to={`/${params.facilityId}/members/${transaction.member_id}`}
             className="block"
           >
-            <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg mb-2 last:mb-2">
-              <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-between bg-background p-2 hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl mb-2 last:mb-2 ">
+              <div className="flex items-center space-x-2">
                 <Avatar>
             <AvatarImage
               src={`https://api.dicebear.com/6.x/initials/svg?seed=${transaction.user}`}

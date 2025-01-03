@@ -116,7 +116,7 @@ export default function Plans() {
   }
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4 dark:bg-[#212237]">
       <div className="flex justify-between items-center">
       <Link to={`/${params.facilityId}/settings`} className="flex items-center space-x-2">
         <ArrowLeft className="h-6 w-6 cursor-pointer" />

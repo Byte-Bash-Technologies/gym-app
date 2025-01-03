@@ -121,11 +121,11 @@ function PlanFilterQueue({ plans, selectedPlans, onPlanSelect }: {
               flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap
               transition-all duration-200 snap-start
               ${isSelected 
-                ? 'bg-purple-500 text-white shadow-lg scale-105' 
-                : 'bg-white dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-gray-700'}
+                ? 'bg-[#886fa6] text-white shadow-lg scale-105' 
+                : 'bg-white dark:bg-[#212237] hover:bg-[#f0ebff] dark:hover:bg-[#212237]/70'}
             `}
           >
-            <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-purple-500'}`} />
+            <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-[#886fa6]'}`} />
             <span className="text-sm font-medium">{plan.name}</span>
           </button>
         )
@@ -156,8 +156,8 @@ function StatusFilterQueue({ selectedStatuses, onStatusSelect }: {
               flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap
               transition-all duration-200 snap-start
               ${isSelected 
-                ? 'bg-purple-500 text-white shadow-lg scale-105' 
-                : 'bg-white dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-gray-700'}
+                ? 'bg-[#886fa6] text-white shadow-lg scale-105' 
+                : 'bg-white dark:bg-[#212237] hover:bg-[#f0ebff] dark:hover:bg-[#212237]/70'}
             `}
           >
             <div className={`w-2 h-2 rounded-full ${status.color}`} />
@@ -313,29 +313,29 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-20 relative">
-      <header className="bg-white p-4 flex items-center justify-between">
+    <div className="min-h-screen pb-20 relative">
+      <header className="bg-background p-4 flex items-center justify-between">
         <h1 className="text-xl font-bold ml-6">
           Members - {facility?.name || "Loading..."}
         </h1>
         <div className="flex items-center space-x-4">
-          <Bell className="h-6 w-6 text-purple-500" />
+          <Bell className="h-6 w-6 text-[#886fa6]" />
           <a href="tel:7010976271">
-            <Phone className="h-6 w-6 text-purple-500" />
+            <Phone className="h-6 w-6 text-[#886fa6]" />
           </a>
           <a href={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
+            <Settings className="h-6 w-6 text-[#886fa6]" />
           </a>
         </div>
       </header>
 
-      <main className="p-4 space-y-4">
+      <main className="p-4 space-y-4 dark:bg-[#212237]">
         <div className="p-4">
           <div className="relative flex items-center">
             <Input
               type="text"
               placeholder="Search by name or number"
-              className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
+              className="pl-10 pr-20 py-2 w-full bg-white dark:bg-background rounded-full"
               onChange={handleSearch}
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -343,19 +343,19 @@ export default function MembersPage() {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-purple-500"
+                className="h-8 w-8 text-[#886fa6]"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
-                <Filter className="text-purple-500" />
+                <Filter className="text-[#886fa6]" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-purple-500"
+                    className="h-8 w-8 text-[#886fa6]"
                   >
-                    <ChevronDown className="h-5 w-5 text-purple-500" />
+                    <ChevronDown className="h-5 w-5 text-[#886fa6]" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -395,7 +395,7 @@ export default function MembersPage() {
         </div>
 
         {isFilterOpen && (
-          <Card className="p-4 bg-white dark:bg-gray-800 dark:text-white">
+          <Card className="p-4 bg-background  dark:text-white">
             <div className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2">Status</h4>
@@ -421,7 +421,7 @@ export default function MembersPage() {
                     variant={showJoinedFirst ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowJoinedFirst(!showJoinedFirst)}
-                    className={showJoinedFirst ? "bg-purple-500" : ""}
+                    className={showJoinedFirst ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}
                   >
                     Joined First
                   </Button>
@@ -429,7 +429,7 @@ export default function MembersPage() {
                     variant={showJoinedRecently ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowJoinedRecently(!showJoinedRecently)}
-                    className={showJoinedRecently ? "bg-purple-500" : ""}
+                    className={showJoinedRecently ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}
                   >
                     Recent Members
                   </Button>
@@ -437,7 +437,7 @@ export default function MembersPage() {
                     variant={showMembersWithNoPlan ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowMembersWithNoPlan(!showMembersWithNoPlan)}
-                    className={showMembersWithNoPlan ? "bg-purple-500" : ""}
+                    className={showMembersWithNoPlan ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}
                   >
                     No Plan
                   </Button>
@@ -451,7 +451,7 @@ export default function MembersPage() {
           <div className="flex items-center space-x-2 flex-wrap">
             <span className="text-sm text-gray-500">Filtered by:</span>
             {statusFilter.map((filter) => (
-              <Badge key={filter} variant="secondary" className="text-xs">
+              <Badge key={filter} variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 {capitalizeFirstLetter(filter)}
                 <button
                   onClick={() => handleStatusFilter(filter)}
@@ -462,7 +462,7 @@ export default function MembersPage() {
               </Badge>
             ))}
             {planFilter.map((plan) => (
-              <Badge key={plan} variant="secondary" className="text-xs">
+              <Badge key={plan} variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 {plan}
                 <button onClick={() => handlePlanFilter(plan)} className="ml-1">
                   <X className="h-3 w-3" />
@@ -470,7 +470,7 @@ export default function MembersPage() {
               </Badge>
             ))}
             {showJoinedFirst && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 Joined First
                 <button onClick={() => setShowJoinedFirst(false)} className="ml-1">
                   <X className="h-3 w-3" />
@@ -478,7 +478,7 @@ export default function MembersPage() {
               </Badge>
             )}
             {showJoinedRecently && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 Joined Recently
                 <button onClick={() => setShowJoinedRecently(false)} className="ml-1">
                   <X className="h-3 w-3" />
@@ -486,7 +486,7 @@ export default function MembersPage() {
               </Badge>
             )}
             {showMembersWithNoPlan && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 No Plan
                 <button onClick={() => setShowMembersWithNoPlan(false)} className="ml-1">
                   <X className="h-3 w-3" />
@@ -501,8 +501,8 @@ export default function MembersPage() {
 
         <h2 className="text-lg font-semibold mb-4">All members</h2>
 
-        <Card className="bg-purple-100 p-4">
-          <div className="bg-purple-100 rounded-3xl p-4 space-y-4">
+        <Card className="bg-[#f0ebff] dark:bg-background p-4">
+          <div className="bg-[#f0ebff] dark:bg-background rounded-3xl p-4 space-y-4">
             {!filteredMembers?.length ? (
               <div className="text-center py-4">No members found</div>
             ) : (
@@ -510,7 +510,7 @@ export default function MembersPage() {
                 <div
                   key={member.id}
                   onClick={() => handleMemberClick(member.id)}
-                  className="flex items-center gap-3 border-b border-purple-200 last:border-0 pb-4 last:pb-0 cursor-pointer"
+                  className="flex items-center gap-3 border-b border-[#886fa6]/20 last:border-0 pb-4 last:pb-0 cursor-pointer hover:bg-white/50 dark:hover:bg-[#212237]/50 rounded-lg p-2 transition-colors"
                 >
                   <Avatar className="h-12 w-12">
                     <AvatarImage
@@ -562,10 +562,11 @@ export default function MembersPage() {
       </main>
 
       <Link to="new" className="fixed right-6 bottom-[7rem]">
-        <Button className="w-14 h-14 rounded-full bg-purple-500 hover:bg-purple-600 text-white shadow-lg">
+        <Button className="w-14 h-14 rounded-full bg-[#886fa6] hover:bg-[#886fa6]/90 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>
     </div>
   );
 }
+

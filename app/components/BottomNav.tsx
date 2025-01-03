@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams, useLocation, Link } from "@remix-run/react";
 import { Home, Wallet, PieChart, Users } from 'lucide-react';
+import { cn } from "~/lib/utils";
 
 interface NavItem {
   name: string;
@@ -30,7 +31,7 @@ export default function BottomNav() {
   }, [location.pathname, navItems]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 p-2 rounded-t-3xl" aria-label="Bottom Navigation">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[#f0ebff] dark:bg-[#212237] p-2 rounded-t-3xl border-t border-[#886fa6]/20" aria-label="Bottom Navigation">
       <div className="flex justify-around items-center text-gray-500">
         {navItems.map((item) => (
           <Link
@@ -41,10 +42,22 @@ export default function BottomNav() {
             onClick={() => setActiveTab(item.path)}
             aria-current={activeTab === item.path ? 'page' : undefined}
           >
-            <div className={`rounded-full p-3 transition-all duration-300 ease-in-out ${activeTab === item.path ? 'bg-purple-500' : 'bg-transparent'}`}>
-              <item.icon className={`h-6 w-6 transition-all duration-300 ease-in-out ${activeTab === item.path ? 'text-white' : 'text-gray-500'}`} aria-hidden="true" />
+            <div className={cn(
+              "rounded-full p-3 transition-all duration-300 ease-in-out",
+              activeTab === item.path ? "bg-[#886fa6]" : "bg-transparent"
+            )}>
+              <item.icon 
+                className={cn(
+                  "h-6 w-6 transition-all duration-300 ease-in-out",
+                  activeTab === item.path ? "text-white" : "text-gray-500"
+                )} 
+                aria-hidden="true" 
+              />
             </div>
-            <span className={`text-xs transition-all duration-300 ease-in-out ${activeTab === item.path ? 'text-purple-500' : 'text-gray-500'}`}>
+            <span className={cn(
+              "text-xs transition-all duration-300 ease-in-out",
+              activeTab === item.path ? "text-[#886fa6]" : "text-gray-500"
+            )}>
               {item.name}
             </span>
           </Link>
@@ -53,3 +66,4 @@ export default function BottomNav() {
     </nav>
   );
 }
+

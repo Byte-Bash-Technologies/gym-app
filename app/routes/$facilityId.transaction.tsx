@@ -108,6 +108,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       id,
       amount,
       created_at,
+      member_id,
       members (id, full_name, email),
       memberships (plans (id, name))
     `
@@ -217,6 +218,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     transactions: transactions.map((t) => ({
       id: t.id,
       user: t.members.full_name,
+      member_id: t.member_id,
       amount: t.amount,
       timestamp: new Date(t.created_at).toLocaleString("en-IN", {
         timeZone: "Asia/Kolkata",
@@ -290,18 +292,20 @@ export default function Transactions() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
+    <div className="min-h-screen bg-gray-50 pb-16 dark:bg-[#212237]">
       {/* Header */}
-      <header className="bg-white p-4 flex items-center justify-between">
+      <header className="bg-background p-4 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-xl font-bold ml-6">Transaction</h1>
         </div>
         <div className="flex items-center space-x-4">
           {/* <Bell className="h-6 w-6 text-purple-500" /> */}
           <a href="tel:7010976271">
-            <Phone className="h-6 w-6 text-purple-500" />
+            <Phone className="h-6 w-6 text-[#886fa6]" />
           </a>
-          <Settings className="h-6 w-6 text-purple-500" />
+          <Link to={`/${params.facilityId}/settings`}>
+            <Settings className="h-6 w-6 text-[#886fa6]" />
+          </Link>
         </div>
       </header>
 
@@ -311,7 +315,7 @@ export default function Transactions() {
           <Input
             type="text"
             placeholder="Search by name or email"
-            className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
+            className="pl-10 pr-20 py-2 w-full bg-background rounded-full "
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -320,10 +324,10 @@ export default function Transactions() {
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-purple-500"
+              className="h-8 w-8 text-[#886fa6]"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
             >
-              <Filter className="text-purple-500" />
+              <Filter className="text-[#886fa6]" />
             </Button>
           </div>
         </form>
@@ -331,7 +335,7 @@ export default function Transactions() {
 
       {/* Filter options */}
       {isFilterOpen && (
-        <div className="p-4 bg-white space-y-4">
+        <div className="m-4 p-4 bg-background space-y-4 rounded-xl">
           <div>
             <label
               htmlFor="timeline"
@@ -387,7 +391,7 @@ export default function Transactions() {
       )}
 
       {/* Main Content */}
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 dark:bg-[#212237]">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Transactions Chart */}
@@ -558,15 +562,15 @@ export default function Transactions() {
         </div>
 
         {/* Transactions List */}
-        <Card className="bg-purple-50">
+        <Card>
           <CardContent className="p-4">
             {transactions.map((transaction: Transaction) => (
               <Link
                 key={transaction.id}
-                to={`/${params.facilityId}/members/${transaction.id}`}
-                className="flex items-center justify-between bg-white p-4 rounded-lg mb-2 last:mb-0 hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                to={`/${params.facilityId}/members/${transaction.member_id}`}
+                className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out mb-2 last:mb-2"
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-4">
                   <Avatar>
                     <AvatarImage
                       src={transaction.avatar}

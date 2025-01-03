@@ -7,6 +7,7 @@ import {
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import InstallPWAButton from "~/components/InstallPWAButton";
+import { ThemeProvider } from "~/components/theme-provider";
 
 import "./tailwind.css";
 
@@ -25,7 +26,7 @@ export const links: LinksFunction = () => [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <title>Sports Dot</title>
         <link rel="manifest" href="/manifest.webmanifest" />
@@ -37,7 +38,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
-        <InstallPWAButton /> {/* Place the PWA button here */}
+        <InstallPWAButton />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -46,5 +47,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <ThemeProvider>
+      <Outlet />
+    </ThemeProvider>
+  );
 }
+

@@ -14,6 +14,7 @@ import {
   DialogDescription,
 } from "~/components/ui/dialog";
 import { ActionFunction } from "@remix-run/node";
+import { ThemeToggle } from "~/components/theme-toggle";
 
 
 export const loader: LoaderFunction = async ({ params, request }) => {
@@ -149,12 +150,12 @@ export default function Component() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white p-4 flex items-center justify-between">
+    <div className="min-h-screen bg-[#f0ebff] dark:bg-[#212237]">
+      <header className="bg-background  p-4 flex items-center justify-between border-b border-[#8e76af]/20">
         <div className="flex items-center gap-2">
-          <Link to={`/${facility.id}/home`}>
+          <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-6 w-6 cursor-pointer" />
-          </Link>
+          </Button>
           <h1 className="text-xl font-bold">Settings</h1>
         </div>
       </header>
@@ -175,7 +176,7 @@ export default function Component() {
 
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Your Gym</h2>
-          <Card className="p-4 bg-purple-50">
+          <Card className="p-4 bg-background  hover:bg-[#f0ebff]/50 dark:hover:bg-[#212237]/50 transition-colors">
             <div className="flex items-center gap-3 mb-4">
               <Avatar className="h-12 w-12">
                 <AvatarImage
@@ -210,10 +211,10 @@ export default function Component() {
               </p>
               <Button
                 variant="ghost"
-                className="text-gray-500 pl-0"
+                className="text-[#8e76af] pl-4"
                 onClick={() => setIsChangePlanDialogOpen(true)}
               >
-                <RefreshCcw className="h-4 w-4 mr-2" />
+                <RefreshCcw className="h-4 w-4 mr-2 " />
                 Change plan
               </Button>
             </div>
@@ -221,24 +222,37 @@ export default function Component() {
         </section>
 
         <section className="space-y-2">
+          <h2 className="text-xl font-bold">Appearance</h2>
+          <Card className="p-4 bg-background hover:bg-[#f0ebff]/50 dark:hover:bg-[#212237]/50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Theme</h3>
+                <p className="text-sm text-gray-500">Customize how the app looks</p>
+              </div>
+              <ThemeToggle />
+            </div>
+          </Card>
+        </section>
+
+        <section className="space-y-2">
           <h2 className="text-xl font-bold">Manage Gym</h2>
-          <Card className="divide-y">
+          <Card className="divide-y bg-background hover:bg-[#f0ebff]/50 dark:hover:bg-[#212237]/50 transition-colors">
             <Link to={`/${facility.id}/message-template`} className="block">
-              <Button variant="ghost" className="w-full justify-start p-4">
-                <MessageSquare className="h-5 w-5 mr-3 text-purple-500" />
-                Message templates
+              <Button variant="ghost" className="w-full justify-start p-6">
+                <MessageSquare className="h-5 w-5 mr-3 text-[#8e76af]" />
+                <h3 className="font-semibold">Message templates</h3>
               </Button>
             </Link>
             <Link to={`/${facility.id}/plans`} className="block">
-              <Button variant="ghost" className="w-full justify-start p-4">
-                <BarChart className="h-5 w-5 mr-3 text-purple-500" />
-                Plans
+              <Button variant="ghost" className="w-full justify-start p-6">
+                <BarChart className="h-5 w-5 mr-3 text-[#8e76af]" />
+                <h3 className="font-semibold">Plans</h3>
               </Button>
             </Link>
             <Link to={`/${facility.id}/trainers`} className="block">
-              <Button variant="ghost" className="w-full justify-start p-4">
-                <UserCog className="h-5 w-5 mr-3 text-purple-500" />
-                Manage Trainers
+              <Button variant="ghost" className="w-full justify-start p-6">
+                <UserCog className="h-5 w-5 mr-3 text-[#8e76af]" />
+                <h3 className="font-semibold">Manage Trainers</h3>
               </Button>
             </Link>
           </Card>
@@ -246,21 +260,21 @@ export default function Component() {
 
         <section className="space-y-2">
           <h2 className="text-xl font-bold">Sportsdot</h2>
-          <Card className="divide-y">
+          <Card className="divide-y bg-background hover:bg-[#f0ebff]/50 dark:hover:bg-[#212237]/50 transition-colors">
             <Button
               variant="ghost"
-              className="w-full justify-start p-4"
+              className="w-full justify-start p-6"
               onClick={() => setIsContactDialogOpen(true)}
             >
-              <User2 className="h-5 w-5 mr-3 text-purple-500" />
+              <User2 className="h-5 w-5 mr-3 text-[#8e76af]" />
               Contact us
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start p-4"
+              className="w-full justify-start p-6"
               onClick={() => setIsInfoDialogOpen(true)}
             >
-              <Clock className="h-5 w-5 mr-3 text-purple-500" />
+              <Clock className="h-5 w-5 mr-3 text-[#8e76af]" />
               Support and Information
             </Button>
           </Card>
@@ -273,7 +287,7 @@ export default function Component() {
             variant="ghost"
             className="w-full flex items-center justify-center gap-2"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-5 w-5 text-[#8e76af]" />
             Logout
           </Button>
         </Form>

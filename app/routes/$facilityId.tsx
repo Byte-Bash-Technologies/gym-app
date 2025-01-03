@@ -1,3 +1,5 @@
+//app/routes/$facilityId.tsx
+
 import { useState } from "react";
 import {
   Outlet,

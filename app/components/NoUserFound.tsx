@@ -30,7 +30,7 @@ export default function NoUsersFound() {
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Button asChild>
-            <Link to={`/${params.facilityId}/members`}>
+            <Link to="#" onClick={() => window.history.back()}>
               <Home className="w-4 h-4 mr-2" />
               Return Home
             </Link>

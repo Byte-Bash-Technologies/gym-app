@@ -71,7 +71,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user }) => (
   <div className="space-y-4">
     <div className="flex items-center space-x-4 p-4 bg-gray-100 rounded-lg">
       <Avatar>
-        <AvatarImage src={user.avatar_url} alt={user.full_name} />
+        <AvatarImage src={user.avatar_url ?? ''} alt={user.full_name ?? 'User'} />
         <AvatarFallback>{user.full_name?.charAt(0)}</AvatarFallback>
       </Avatar>
       <div>

@@ -1,3 +1,5 @@
+// app/routes/$facilityId.home.tsx
+
 import { json, redirect, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useParams, useNavigate } from "@remix-run/react";
 import { Bell, Phone, Settings, ChevronDown, ChevronRight } from 'lucide-react';
@@ -208,9 +210,9 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-background text-foreground pb-20">
       {/* Header */}
-      <header className="bg-white p-4 flex items-center justify-between">
+      <header className="bg-card text-card-foreground p-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Avatar className="h-10 w-10">
             <AvatarImage src={currentGym.logo_url || `https://api.dicebear.com/9.x/identicon/svg/${currentGym.name[0]}`} alt={currentGym.name} />
@@ -241,18 +243,18 @@ export default function Index() {
         </div>
         <div className="flex items-center space-x-4">
           <a href="tel:7010976271">
-            <Phone className="h-6 w-6 text-purple-400" />
+            <Phone className="h-6 w-6 text-[#886fa6]" />
           </a>
           <a href={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-400" />
+            <Settings className="h-6 w-6 text-[#886fa6]" />
           </a>
         </div>
       </header>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 p-4">
+      <div className="grid grid-cols-2 gap-4 p-4 dark:bg-[#212237]">
         <Card
-          className="bg-white shadow-md cursor-pointer border-none"
+          className="bg-card text-card-foreground shadow-md cursor-pointer border-none"
           onClick={() => handleStatClick("active")}
         >
           <CardContent className="p-4 flex justify-between gap-2 items-center">
@@ -263,7 +265,7 @@ export default function Index() {
           </CardContent>
         </Card>
         <Card 
-          className="bg-white shadow-md border-none cursor-pointer"
+          className="bg-card text-card-foreground shadow-md border-none cursor-pointer"
           onClick={() => handleStatClick("expiring")}
         >
           <CardContent className="p-4 flex justify-between gap-2 items-center">
@@ -274,7 +276,7 @@ export default function Index() {
           </CardContent>
         </Card>
         <Card
-          className="bg-white shadow-md border-none cursor-pointer"
+          className="bg-card text-card-foreground shadow-md border-none cursor-pointer"
           onClick={() => handleStatClick("expired")}
         >
           <CardContent className="p-4 flex justify-between gap-2 items-center">
@@ -285,7 +287,7 @@ export default function Index() {
           </CardContent>
         </Card>
         <Card
-          className="bg-white shadow-md border-none cursor-pointer"
+          className="bg-card text-card-foreground shadow-md border-none cursor-pointer"
           onClick={() => handleStatClick("all")}
         >
           <CardContent className="p-4 flex justify-between gap-2 items-center">
@@ -318,9 +320,9 @@ export default function Index() {
       )}
 
       {/* Expired Members Section */}
-      <div className="p-4">
+      <div className="p-4 dark:bg-[#212237]">
         <h4 className="text-lg font-bold mb-6">Expired Memberships</h4>
-        <Card className=" shadow-md border-none">
+        <Card className="shadow-md border-none">
           <CardContent>
             <ul className="divide-y divide-purple-200">
               {expiredMembers.length > 0 ? (
@@ -331,7 +333,7 @@ export default function Index() {
                   >
                     <Link
                       to={`/${params.facilityId}/members/${member.id}`}
-                      className="py-4 flex items-center justify-between w-full hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                      className="p-4 flex items-center justify-between w-full hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
@@ -345,7 +347,7 @@ export default function Index() {
                           <span className="font-medium">
                             {member.full_name}
                           </span>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             {member.memberships && member.memberships.length > 0
                               ? formatExpirationDate(
                                   member.memberships[0].end_date
@@ -354,7 +356,7 @@ export default function Index() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="text-red-500">Expired</Badge>
+                      <Badge variant="secondary" className="text-destructive">Expired</Badge>
                     </Link>
                   </li>
                 ))
@@ -376,7 +378,7 @@ export default function Index() {
       </div>
 
       {/* Expiring Soon Section */}
-      <div className="p-4">
+      <div className="p-4 dark:bg-[#212237]">
         <h2 className="text-lg font-bold mb-4">Memberships Expiring Soon</h2>
         <Card className=" shadow-md border-none">
           <CardContent>
@@ -389,7 +391,7 @@ export default function Index() {
                   >
                     <Link
                       to={`/${params.facilityId}/members/${member.id}`}
-                      className="py-4 flex items-center justify-between w-full hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                      className="p-4 flex items-center justify-between w-full hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
@@ -403,7 +405,7 @@ export default function Index() {
                           <span className="font-medium">
                             {member.full_name}
                           </span>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             {formatExpirationDate(
                               member.memberships[0].end_date
                             )}
@@ -435,17 +437,18 @@ export default function Index() {
       </div>
 
       {/* Members with Balance Section */}
-      <div className="p-4">
+      <div className="p-4 dark:bg-[#212237]">
         <h2 className="text-lg font-bold mb-4">Members with Balance</h2>
         <Card className=" shadow-md border-none">
           <CardContent>
             <ul className="divide-y divide-gray-200">
               {membersWithBalance.length > 0 ? (
                 membersWithBalance.slice(0, 5).map((member) => (
-                  <li key={member.id}>
+                  <li key={member.id}
+                  className="py-4">
                     <Link
                       to={`/${params.facilityId}/members/${member.id}`}
-                      className="py-4 flex items-center justify-between hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                      className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">

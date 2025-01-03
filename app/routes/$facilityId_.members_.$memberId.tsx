@@ -345,9 +345,9 @@ export default function MemberProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#212237] p-4">
       {/* Header */}
-      <header className="flex items-center justify-between mb-6">
+      <header className="flex items-center  justify-between mb-6">
         <div className="flex items-center">
           <Link to={`/${params.facilityId}/members`}>
             <ArrowLeft className="h-6 w-6 mr-2" />
@@ -357,10 +357,10 @@ export default function MemberProfile() {
         <div className="flex items-center space-x-4">
           {/* <Bell className="h-6 w-6 text-purple-500" /> */}
           <a href="tel:7010976271">
-            <Phone className="h-6 w-6 text-purple-500" />
+            <Phone className="h-6 w-6 text-[#886fa6]" />
           </a>
           <a href={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
+            <Settings className="h-6 w-6 text-[#886fa6]" />
           </a>
         </div>
       </header>

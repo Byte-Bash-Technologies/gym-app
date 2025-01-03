@@ -1,6 +1,5 @@
 import { json, type LoaderFunction } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
-import { Link } from "react-router-dom";
+import { useLoaderData, Link } from "@remix-run/react";
 import { supabase } from "~/utils/supabase.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";

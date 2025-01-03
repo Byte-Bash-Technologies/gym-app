@@ -1,6 +1,6 @@
 import { json, type LoaderFunction, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate } from "@remix-run/react";
-import { Dumbbell, VibrateIcon as Volleyball, Users, Calendar, ChevronRight, CodeIcon as ChartColumnIncreasing, Settings, Plus, UserCog } from 'lucide-react';
+import { Dumbbell, Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing, Settings, Plus, UserCog } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { createServerClient, parse } from '@supabase/ssr';

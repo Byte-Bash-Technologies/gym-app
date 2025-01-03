@@ -119,9 +119,6 @@ export default function UsersList() {
 
   return (
     <div className="min-h-screen bg-gray-100 pb-20 relative">
-      <header className="bg-white p-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold ml-6">Users</h1>
-      </header>
 
       <main className="p-4 space-y-4">
         <div className="p-4">

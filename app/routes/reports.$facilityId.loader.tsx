@@ -41,7 +41,7 @@ if (facilityError) {
         .gt('balance', 0),
       supabase
         .from('transactions')
-        .select('id, amount, created_at, members (full_name)')
+        .select('id, amount, created_at,member_id ,members (full_name)')
         .eq('facility_id', facilityId)
         .order('created_at', { ascending: false })
         .limit(3),
@@ -97,6 +97,7 @@ if (facilityError) {
       transactions: recentTransactions.data?.map(t => ({
         id: t.id,
         user: t.members.full_name,
+        member_id: t.member_id,
         amount: t.amount,
         timestamp: new Date(t.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
       })) || [],

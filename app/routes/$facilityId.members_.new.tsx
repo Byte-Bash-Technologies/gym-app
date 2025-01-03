@@ -1,5 +1,5 @@
-// app/routes/$facilityId.members_.new.tsx
-import { useState, useTransition } from "react";
+// app/routes/$facilityId.members.new.tsx
+import { useState } from "react";
 import {
   json,
   useActionData,
@@ -9,7 +9,7 @@ import {
 } from "@remix-run/react";
 import { type ActionFunction, type LoaderFunction } from "@remix-run/node";
 import { supabase } from "~/utils/supabase.server";
-import { ArrowLeft, Bell, Phone, Settings, ImagePlus } from "lucide-react";
+import { ArrowLeft, Bell, Phone, Settings, ImagePlus } from 'lucide-react';
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -24,6 +24,12 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+}
 
 export const loader: LoaderFunction = async ({ params }) => {
   const { data: facility } = await supabase
@@ -69,9 +75,8 @@ export const action: ActionFunction = async ({ request, params }) => {
   const admission_no = `${facilityPrefix}-${randomNum}`;
   let photoUrl = null;
   let transactionID;
-  let whatsappLink;
-  // Upload photo to Supabase storage
 
+  // Upload photo to Supabase storage if provided
   if (photo.size > 0) {
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("member-photos")
@@ -134,13 +139,14 @@ export const action: ActionFunction = async ({ request, params }) => {
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + duration);
 
-    const { data: membership, error: membershipError } = await supabase
+    // Create membership
+    const { error: membershipError } = await supabase
       .from("memberships")
       .insert([
         {
           member_id: memberData[0].id,
           plan_id,
-          start_date: new Date().toISOString(),
+          start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
           status: "active",
           price: planPrice,
@@ -153,20 +159,23 @@ export const action: ActionFunction = async ({ request, params }) => {
     if (membershipError) {
       return json({ error: membershipError.message }, { status: 400 });
     }
-    const MembershipID = await supabase
+
+    // Get the latest membership ID
+    const { data: membershipData } = await supabase
       .from("memberships")
       .select("id")
       .eq("facility_id", params.facilityId)
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
+
     // Create transaction record
-    const { data: transaction, error: transactionError } = await supabase
+    const { error: transactionError } = await supabase
       .from("transactions")
       .insert([
         {
           member_id: memberData[0].id,
-          membership_id: MembershipID.data?.id || null,
+          membership_id: membershipData?.id,
           amount: payment_amount,
           facility_id: params.facilityId,
           type: "payment",
@@ -178,15 +187,19 @@ export const action: ActionFunction = async ({ request, params }) => {
     if (transactionError) {
       return json({ error: transactionError.message }, { status: 400 });
     }
-    transactionID = await supabase
+
+    // Get the latest transaction ID
+    const { data: transactionData } = await supabase
       .from("transactions")
       .select("id")
       .eq("facility_id", params.facilityId)
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
-    console.log("Transaction ID:", transactionID);
+
+    transactionID = transactionData?.id;
   } else {
+    // Insert member without plan
     const { error: memberError } = await supabase
       .from("members")
       .insert([
@@ -206,59 +219,47 @@ export const action: ActionFunction = async ({ request, params }) => {
           balance: 0,
           photo_url: photoUrl,
         },
-      ])
-      .select();
+      ]);
+
     if (memberError) {
       return json({ error: memberError.message }, { status: 400 });
     }
   }
 
-  // Generate PDF (implement this function)
-  //const pdfUrl = await generateMembershipPDF(memberData[0].id);
-
-  // Send WhatsApp message
+  // Send WhatsApp message if phone number is provided
   if (phone.length === 10) {
-    //const message = `Welcome to our gym, ${full_name}! ${plan_id ? "Your membership plan has been activated." : ""} Download your membership details here: ${pdfUrl}`;
     const message = `Welcome to our gym, ${full_name}! ${
       plan_id ? "Your membership plan has been activated." : ""
-    } Download your membership details here: https://${process.env.APP_URL!}/invoice/${
-      transactionID?.data?.id || ""
+    } Download your membership details here: https://${process.env.APP_URL}/invoice/${
+      transactionID || ""
     }`;
-    whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(
+    const whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(
       message
     )}`;
-    // You can use this link to send the message programmatically or provide it to staff
-    const response = await fetch(whatsappLink);
-    if (!response.ok) {
-      console.error("Failed to send WhatsApp message");
-    }
-    console.log("WhatsApp Link:", whatsappLink);
+    return redirect(whatsappLink);
   }
 
-  return redirect(`${whatsappLink}`);
+  return redirect(`/${params.facilityId}/members`);
 };
 
 export default function NewMemberForm() {
   const { facilityName, plans } = useLoaderData<typeof loader>();
   const actionData = useActionData();
-  const transition = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
   const [addPlan, setAddPlan] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
   const params = useParams();
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const [preview, setPreview] = useState<string | null>(null);
 
-  const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    setSelectedFile(file);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPreview(reader.result);
+        setPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     } else {
@@ -267,8 +268,7 @@ export default function NewMemberForm() {
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    const form = event.currentTarget;
-    if (!form.checkValidity()) {
+    if (!event.currentTarget.checkValidity()) {
       event.preventDefault();
       setFormError("Please fill out all required fields.");
     } else {
@@ -277,71 +277,63 @@ export default function NewMemberForm() {
   };
 
   const handlePlanChange = (planId: string) => {
-    const plan = plans.find((p) => p.id === planId);
-    setSelectedPlan(plan);
+    const plan = plans.find((p: Plan) => p.id === planId);
+    setSelectedPlan(plan || null);
     setPaymentAmount(plan?.price || 0);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <header className="bg-white p-4 flex items-center justify-between">
+    <div className="min-h-screen bg-background pb-20">
+      <header className="bg-card text-card-foreground p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <ArrowLeft
-            className="h-6 w-6"
-            onClick={() => window.history.back()}
-          />
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+            <ArrowLeft className="h-6 w-6" />
+          </Button>
           <h1 className="text-xl font-bold">New member</h1>
         </div>
         <div className="flex items-center gap-4">
-          {/* <Bell className="h-6 w-6 text-purple-500" /> */}
           <a href="tel:7010976271">
-            <Phone className="h-6 w-6 text-purple-500" />
+            <Phone className="h-6 w-6 text-[#8e76af]" />
           </a>
           <a href={`/${params.facilityId}/settings`}>
-            <Settings className="h-6 w-6 text-purple-500" />
+            <Settings className="h-6 w-6 text-[#8e76af]" />
           </a>
         </div>
       </header>
 
-      {/* Form */}
       <form
         onSubmit={handleSubmit}
         method="post"
         className="p-4 space-y-6"
         encType="multipart/form-data"
       >
-        {formError && <p className="text-red-500">{formError}</p>}
+        {formError && (
+          <p className="text-destructive">{formError}</p>
+        )}
         {actionData?.error && (
-          <p className="text-red-500">{actionData.error}</p>
+          <p className="text-destructive">{actionData.error}</p>
         )}
 
-        {/* Name */}
         <div className="space-y-2">
           <Label htmlFor="full_name">
-            Name <span className="text-red-500">*</span>
+            Name <span className="text-destructive">*</span>
           </Label>
           <Input id="full_name" name="full_name" placeholder="Name" required />
         </div>
 
-        {/* Email */}
         <div className="space-y-2">
-          <Label htmlFor="email">
-            Email 
-          </Label>
+          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             name="email"
             type="email"
             placeholder="example@gmail.com"
-            
           />
         </div>
 
-        {/* Mobile Number */}
         <div className="space-y-2">
           <Label htmlFor="phone">
-            Mobile <span className="text-red-500">*</span>
+            Mobile <span className="text-destructive">*</span>
           </Label>
           <Input
             id="phone"
@@ -353,7 +345,6 @@ export default function NewMemberForm() {
           />
         </div>
 
-        {/* Address */}
         <div className="space-y-2">
           <Label htmlFor="address">Address</Label>
           <Textarea
@@ -363,48 +354,36 @@ export default function NewMemberForm() {
           />
         </div>
 
-        {/* DOB */}
         <div className="space-y-2">
           <Label htmlFor="date_of_birth">
-            DOB <span className="text-red-500">*</span>
+            Date of Birth <span className="text-destructive">*</span>
           </Label>
-          <div className="relative">
-            <Input
-              type="date"
-              id="date_of_birth"
-              name="date_of_birth"
-              placeholder="Day / Month / Year"
-              required
-            />
-          </div>
+          <Input
+            type="date"
+            id="date_of_birth"
+            name="date_of_birth"
+            required
+          />
         </div>
 
-        {/* Gender */}
         <div className="space-y-2">
           <Label>Gender</Label>
           <RadioGroup defaultValue="male" name="gender" className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="male" id="male" />
-              <Label
-                htmlFor="male"
-                className="bg-purple-50 px-4 py-2 rounded-full"
-              >
+              <Label htmlFor="male" className="bg-secondary px-4 py-2 rounded-full">
                 Male
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="female" id="female" />
-              <Label
-                htmlFor="female"
-                className="bg-purple-50 px-4 py-2 rounded-full"
-              >
+              <Label htmlFor="female" className="bg-secondary px-4 py-2 rounded-full">
                 Female
               </Label>
             </div>
           </RadioGroup>
         </div>
 
-        {/* Blood Group */}
         <div className="space-y-2">
           <Label>Blood group</Label>
           <Select name="blood_type">
@@ -424,34 +403,33 @@ export default function NewMemberForm() {
           </Select>
         </div>
 
-        {/* Height */}
         <div className="space-y-2">
           <Label htmlFor="height">Height</Label>
-          <Input id="height" name="height" placeholder="-- cm" />
+          <Input id="height" name="height" placeholder="-- cm" type="number" />
         </div>
 
-        {/* Weight */}
         <div className="space-y-2">
           <Label htmlFor="weight">Weight</Label>
-          <Input id="weight" name="weight" placeholder="-- kg" />
+          <Input id="weight" name="weight" placeholder="-- kg" type="number" />
         </div>
-        {/* Photo */}
+
         <div className="space-y-2">
-            <Label htmlFor="photo">Photo</Label>
-            <label htmlFor="photo" className="block">
+          <Label htmlFor="photo">Photo</Label>
+          <label htmlFor="photo" className="block">
             <Input
               id="photo"
               name="photo"
               type="file"
+              accept="image/*"
               className="hidden"
               onChange={handleFileChange}
             />
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
+            <div className="border-2 border-dashed border-input rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
               {preview ? (
                 <img
                   src={preview}
                   alt="Selected"
-                  className="h-32 w-32 object-cover  mb-2"
+                  className="h-32 w-32 object-cover rounded-full mb-2"
                 />
               ) : (
                 <>
@@ -462,7 +440,7 @@ export default function NewMemberForm() {
             </div>
           </label>
         </div>
-        {/* Add Plan Toggle */}
+
         <div className="flex items-center space-x-2">
           <Switch
             id="add-plan"
@@ -472,7 +450,6 @@ export default function NewMemberForm() {
           <Label htmlFor="add-plan">Add Membership Plan</Label>
         </div>
 
-        {/* Membership Plan Selection */}
         {addPlan && (
           <>
             <div className="space-y-2">
@@ -482,7 +459,7 @@ export default function NewMemberForm() {
                   <SelectValue placeholder="Select a plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  {plans.map((plan) => (
+                  {plans.map((plan: Plan) => (
                     <SelectItem key={plan.id} value={plan.id}>
                       {plan.name} - ₹{plan.price}
                     </SelectItem>
@@ -502,7 +479,7 @@ export default function NewMemberForm() {
                     min="0"
                     max={selectedPlan.price}
                     value={discount}
-                    onChange={(e) => setDiscount(parseFloat(e.target.value))}
+                    onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
                   />
                 </div>
 
@@ -514,14 +491,11 @@ export default function NewMemberForm() {
                     type="number"
                     min="0"
                     max={selectedPlan.price - discount}
-                    value={Math.min(
-                      paymentAmount,
-                      selectedPlan.price - discount
-                    )}
+                    value={Math.min(paymentAmount, selectedPlan.price - discount)}
                     onChange={(e) =>
                       setPaymentAmount(
                         Math.min(
-                          parseFloat(e.target.value),
+                          parseFloat(e.target.value) || 0,
                           selectedPlan.price - discount
                         )
                       )
@@ -529,14 +503,12 @@ export default function NewMemberForm() {
                   />
                 </div>
 
-                <div>
-                  <p>Total: ₹{selectedPlan.price - discount}</p>
+                <div className="space-y-1 text-sm">
+                  <p>Total: ₹{selectedPlan.price}</p>
                   <p>Discount: ₹{discount}</p>
                   <p>
                     Balance: ₹
-                    {paymentAmount >= selectedPlan.price - discount
-                      ? 0
-                      : selectedPlan.price - discount - paymentAmount}
+                    {selectedPlan.price - discount - paymentAmount}
                   </p>
                 </div>
               </>
@@ -544,15 +516,14 @@ export default function NewMemberForm() {
           </>
         )}
 
-        {/* Submit Button */}
         <Button
           type="submit"
-          className="w-full bg-purple-500 hover:bg-purple-600 text-white py-6 rounded-full text-lg"
-          disabled={transition.state === "submitting"}
+          className="w-full bg-[#8e76af] hover:bg-[#8e76af]/90 text-white py-6 rounded-full text-lg"
         >
-          {transition.state === "submitting" ? "Adding..." : "Add member"}
+          Add member
         </Button>
       </form>
     </div>
   );
 }
+
