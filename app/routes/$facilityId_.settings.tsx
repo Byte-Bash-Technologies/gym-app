@@ -302,7 +302,7 @@ export default function Component() {
           <DialogDescription className="space-y-4">
             <p>Choose how you would like to contact us:</p>
             <div className="flex flex-col gap-3">
-              <Button onClick={handleWhatsAppContact} className="w-full">
+              <Button onClick={handleWhatsAppContact} className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90">
                 Contact via WhatsApp
               </Button>
               <Button

@@ -73,7 +73,7 @@ export default function ReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-16">
+    <div className="min-h-screen bg-[#f0ebff] pb-16">
       {/* Header */}
       <header className="bg-background p-4 flex items-center justify-between">
         <div className="flex items-center">
@@ -96,7 +96,7 @@ export default function ReportPage() {
       {/* Main Content */}
       <main className="p-4 space-y-4 dark:bg-[#212237]">
         {/* Search */}
-        <div className="p-4">
+        <div>
           <div className="relative flex items-center">
             <Input
               type="text"
@@ -367,7 +367,7 @@ export default function ReportPage() {
           to={`/${params.facilityId}/members/${transaction.member_id}`}
             className="block"
           >
-            <div className="flex items-center justify-between bg-background p-2 hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl mb-2 last:mb-2 ">
+            <div className="flex items-center justify-between bg-background p-2 hover:bg-violet-50 dark:hover:bg-[#212237] rounded-xl mb-2 last:mb-2 ">
               <div className="flex items-center space-x-2">
                 <Avatar>
             <AvatarImage

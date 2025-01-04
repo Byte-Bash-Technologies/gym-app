@@ -313,7 +313,7 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="min-h-screen pb-20 relative">
+    <div className="min-h-screen pb-20 relative bg-[#f0ebff]">
       <header className="bg-background p-4 flex items-center justify-between">
         <h1 className="text-xl font-bold ml-6">
           Members - {facility?.name || "Loading..."}
@@ -330,7 +330,7 @@ export default function MembersPage() {
       </header>
 
       <main className="p-4 space-y-4 dark:bg-[#212237]">
-        <div className="p-4">
+        <div className="">
           <div className="relative flex items-center">
             <Input
               type="text"
@@ -501,8 +501,8 @@ export default function MembersPage() {
 
         <h2 className="text-lg font-semibold mb-4">All members</h2>
 
-        <Card className="bg-[#f0ebff] dark:bg-background p-4">
-          <div className="bg-[#f0ebff] dark:bg-background rounded-3xl p-4 space-y-4">
+        <Card className="dark:bg-background p-4">
+          <div className="dark:bg-background rounded-3xl p-2 space-y-4">
             {!filteredMembers?.length ? (
               <div className="text-center py-4">No members found</div>
             ) : (
@@ -510,7 +510,7 @@ export default function MembersPage() {
                 <div
                   key={member.id}
                   onClick={() => handleMemberClick(member.id)}
-                  className="flex items-center gap-3 border-b border-[#886fa6]/20 last:border-0 pb-4 last:pb-0 cursor-pointer hover:bg-white/50 dark:hover:bg-[#212237]/50 rounded-lg p-2 transition-colors"
+                  className="flex items-center gap-3 border-b border-[#886fa6]/20 last:border-0 pb-4 last:pb-0 cursor-pointer hover:bg-violet-50 dark:hover:bg-[#212237]/50 rounded-lg p-2 transition-colors"
                 >
                   <Avatar className="h-12 w-12">
                     <AvatarImage

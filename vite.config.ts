@@ -36,7 +36,7 @@ export default defineConfig({
         background_color: "#ffffff",
         display: "standalone",
         display_override: ["window-controls-overlay"],
-        start_url: "/",
+        start_url: "/login",
         icons: [
           {
             src: "/icons/icon-192x192.png",
@@ -52,14 +52,15 @@ export default defineConfig({
         // screenshots: [
         //   {
         //     src: "/screenshots/screenshot1.png",
-        //     sizes: "1280x720",
+        //     sizes: "1280x720", // Wide format for desktop
         //     type: "image/png",
         //     form_factor: "wide"
         //   },
         //   {
         //     src: "/screenshots/screenshot2.png",
-        //     sizes: "720x1280",
-        //     type: "image/png"
+        //     sizes: "720x1280", // Narrow format for mobile
+        //     type: "image/png",
+        //     form_factor: "narrow" // or simply remove this key for mobile
         //   }
         // ]
       }

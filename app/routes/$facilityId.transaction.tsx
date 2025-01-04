@@ -292,7 +292,7 @@ export default function Transactions() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16 dark:bg-[#212237]">
+    <div className="min-h-screen bg-[#f0ebff] pb-16 dark:bg-[#212237]">
       {/* Header */}
       <header className="bg-background p-4 flex items-center justify-between">
         <div className="flex items-center">
@@ -568,7 +568,7 @@ export default function Transactions() {
               <Link
                 key={transaction.id}
                 to={`/${params.facilityId}/members/${transaction.member_id}`}
-                className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out mb-2 last:mb-2"
+                className="p-4 flex items-center justify-between hover:bg-violet-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out mb-2 last:mb-2"
               >
                 <div className="flex items-center space-x-4">
                   <Avatar>

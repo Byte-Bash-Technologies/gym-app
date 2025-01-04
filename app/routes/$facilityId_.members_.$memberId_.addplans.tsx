@@ -293,7 +293,7 @@ export default function RenewMembership() {
               </Select>
             </div>
 
-            <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            <Button type="submit" className="w-full text-primary-foreground bg-[#886fa6] hover:bg-[#886fa6]/90"
             disabled={isLoading}>
               <CreditCard className="w-4 h-4 mr-2" />
               "{isLoading ? "Renewing Membership..." : "Renew Membership"}

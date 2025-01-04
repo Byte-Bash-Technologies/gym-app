@@ -210,7 +210,7 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
+    <div className="min-h-screen bg-[#f0ebff] text-foreground pb-20">
       {/* Header */}
       <header className="bg-card text-card-foreground p-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -333,7 +333,7 @@ export default function Index() {
                   >
                     <Link
                       to={`/${params.facilityId}/members/${member.id}`}
-                      className="p-4 flex items-center justify-between w-full hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
+                      className="p-4 flex items-center justify-between w-full hover:bg-violet-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
@@ -391,7 +391,7 @@ export default function Index() {
                   >
                     <Link
                       to={`/${params.facilityId}/members/${member.id}`}
-                      className="p-4 flex items-center justify-between w-full hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
+                      className="p-4 flex items-center justify-between w-full hover:bg-violet-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
@@ -448,7 +448,7 @@ export default function Index() {
                   className="py-4">
                     <Link
                       to={`/${params.facilityId}/members/${member.id}`}
-                      className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
+                      className="p-4 flex items-center justify-between hover:bg-violet-50 dark:hover:bg-[#212237] rounded-xl transition-colors duration-150 ease-in-out"
                     >
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">

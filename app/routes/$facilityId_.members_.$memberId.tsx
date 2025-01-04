@@ -345,7 +345,7 @@ export default function MemberProfile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#212237] p-4">
+    <div className="min-h-screen bg-[#f0ebff] dark:bg-[#212237] p-4">
       {/* Header */}
       <header className="flex items-center  justify-between mb-6">
         <div className="flex items-center">
@@ -378,7 +378,8 @@ export default function MemberProfile() {
 
       {/* Contact Section */}
       <CardContent className="flex justify-center space-x-4">
-        <Button onClick={handlePhoneClick}>
+        <Button onClick={handlePhoneClick}
+        className="bg-[#886fa6] hover:bg-[#886fa6]/90">
           <a href={`tel:${member.phone}`}>
             <Phone className="h-4 w-4 mr-2" />
           </a>
@@ -389,7 +390,8 @@ export default function MemberProfile() {
           onOpenChange={setIsWhatsAppDrawerOpen}
         >
           <DrawerTrigger asChild>
-            <Button>
+            <Button
+            className="bg-[#886fa6] hover:bg-[#886fa6]/90">
               <MessageCircle className="h-4 w-4 mr-2" />
               WhatsApp
             </Button>
@@ -796,7 +798,7 @@ export default function MemberProfile() {
                 <div className="mt-4 pt-4 border-t">
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90"
                     form="editMemberForm"
                   >
                     Save Changes

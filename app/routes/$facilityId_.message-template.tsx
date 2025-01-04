@@ -125,8 +125,8 @@ export default function MessageTemplates() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-8 dark:bg-[#212237]">
-      <Card className="rounded-none border-x-0 dark:bg-[#212237]">
+    <div className="min-h-screen bg-[#f0ebff] pb-8 dark:bg-[#212237]">
+      <Card className="rounded-none border-x-0 bg-[#f0ebff] dark:bg-[#212237]">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4">
           <Link to={`/${params.facilityId}/settings`} className="flex items-center space-x-2">
             <ArrowLeft className="h-6 w-6" />
@@ -206,7 +206,7 @@ export default function MessageTemplates() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90">
               {editingTemplate ? 'Update Template' : 'Add Template'}
             </Button>
           </form>
