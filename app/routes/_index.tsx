@@ -1,6 +1,6 @@
 import { ActionFunction, json, type LoaderFunction, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate, Form } from "@remix-run/react";
-import { Dumbbell, VibrateIcon as Volleyball, Users, Calendar, ChevronRight, CodeIcon as ChartColumnIncreasing, Settings, Plus, UserCog, LogOut, Moon, Sun } from 'lucide-react';
+import { Dumbbell, Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing, Settings, Plus, UserCog, LogOut, Moon, Sun } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { createServerClient, parse, serialize } from '@supabase/ssr';
@@ -27,12 +27,6 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar";
 import { useTheme } from "~/components/theme-provider";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
 import { ThemeToggle } from "~/components/theme-toggle";
 import SportsDotLogo from "~/assets/sportsdot-favicon-16-01.svg";
 import { Separator } from "~/components/ui/separator";
@@ -171,20 +165,20 @@ export default function Dashboard() {
     <SidebarProvider>
       <div className="flex w-full min-h-screen bg-[#f0ebff] dark:bg-[#212237] text-foreground">
         <Sidebar>
-          <SidebarHeader>
-            <div className="flex items-center gap-3 p-6">
+          <SidebarHeader className="bg-[#f0ebff] dark:bg-[#212237]">
+            <div className="flex items-center gap-3 p-6 rounded-xl bg-[#f8ebff] dark:bg-[#282237]">
               <Avatar className="h-12 w-12">
                 <AvatarImage src={`${SportsDotLogo}`} />
                 <AvatarFallback>S</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <span className="font-semibold text-lg">SportsDot Base</span>
+                <span className="font-semibold text-lg">SportsDot</span>
                 <span className="text-xs text-muted-foreground">Management Dashboard</span>
               </div>
             </div>
             <Separator className="mb-4" />
           </SidebarHeader>
-          <SidebarContent className="px-4 py-2">
+          <SidebarContent className="px-4 py-2 bg-[#f0ebff] dark:bg-[#212237]">
             <div className="space-y-4">
               <div>
                 <h3 className="mb-2 px-4 text-sm font-semibold tracking-tight">Settings</h3>
@@ -199,7 +193,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <Separator />
-              <div>
+              <div className="space-y-4 rounded-lg border p-4">
                 <h3 className="mb-2 px-4 text-sm font-semibold tracking-tight">Account</h3>
                 <div className="space-y-1">
                   <Form method="post">
@@ -219,9 +213,9 @@ export default function Dashboard() {
             </div>
             <Separator/>
           </SidebarContent>
-          <SidebarFooter>
+          <SidebarFooter className="bg-[#f0ebff] dark:bg-[#212237]">
             <Separator className="mb-4" />
-            <div className="flex items-center gap-3 px-6 py-4 bg-card">
+            <div className="flex items-center gap-3 px-6 py-4 bg-[#f8ebff] dark:bg-[#282237] rounded-xl">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${userName}`} />
                 <AvatarFallback>{userName[0]}</AvatarFallback>
@@ -258,7 +252,7 @@ export default function Dashboard() {
               <h2 className="text-2xl font-bold">Welcome, {userName}</h2>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-[#886fa6] hover:bg-[#886fa6]/90 text-white dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90">
                     <Plus className="h-4 w-4 mr-2" />
                     Add New Facility
                   </Button>
@@ -267,7 +261,7 @@ export default function Dashboard() {
                   <DialogHeader>
                     <DialogTitle>Add New Facility</DialogTitle>
                     <DialogDescription>
-                      Contact our admin team to add a new facility to your account. We'll get back to you within 24 hours.
+                      Contact our admin team to add a new facility to your account. We&apos;ll get back to you within 24 hours.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
@@ -329,14 +323,14 @@ function FacilityCard({ facility }: { facility: Facility }) {
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow"
+      className="cursor-pointer hover:shadow-md transition-shadow dark:bg-[#4A4A62] dark:border dark:border-[#4A4A62]"
       onClick={() => navigate(`${facility.id}/home`)}
     >
       <CardHeader>
         <div className="flex justify-between items-center">
           <div className="space-y-1">
             <CardTitle className="text-lg">{facility.name}</CardTitle>
-            <Badge variant={facility.is_owner ? "default" : "secondary"} className="text-xs">
+            <Badge variant={facility.is_owner ? "default" : "secondary"} className="text-xs bg-[#886fa6] dark:bg-[#3A3A52] text-white">
               {facility.is_owner ? (
                 <>
                   <UserCog className="h-3 w-3 mr-1" />
@@ -351,8 +345,8 @@ function FacilityCard({ facility }: { facility: Facility }) {
             </Badge>
           </div>
           <Badge
-            variant={facility.type === "gym" ? "default" : "secondary"}
-            className="text-xs"
+            variant={facility.type === "gym" ? "secondary" : "secondary"}
+            className="text-xs dark:bg-[#3A3A52]"
           >
             {facility.type === "gym" ? (
               <Dumbbell className="h-4 w-4 mr-1" />
