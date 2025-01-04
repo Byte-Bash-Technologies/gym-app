@@ -1,9 +1,9 @@
-import { json, type LoaderFunction, redirect } from "@remix-run/node";
-import { useLoaderData, Link, useNavigate } from "@remix-run/react";
-import { Dumbbell, Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing, Settings, Plus, UserCog } from 'lucide-react';
+import { ActionFunction, json, type LoaderFunction, redirect } from "@remix-run/node";
+import { useLoaderData, Link, useNavigate, Form } from "@remix-run/react";
+import { Dumbbell, VibrateIcon as Volleyball, Users, Calendar, ChevronRight, CodeIcon as ChartColumnIncreasing, Settings, Plus, UserCog, LogOut, Moon, Sun } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
-import { createServerClient, parse } from '@supabase/ssr';
+import { createServerClient, parse, serialize } from '@supabase/ssr';
 import { supabase } from "~/utils/supabase.server";
 import { Button } from "~/components/ui/button";
 import {
@@ -11,11 +11,31 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogFooter,
 } from "~/components/ui/dialog";
 import { Textarea } from "~/components/ui/textarea";
 import { useState } from "react";
+import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarProvider,
+  SidebarTrigger,
+} from "~/components/ui/sidebar";
+import { useTheme } from "~/components/theme-provider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { ThemeToggle } from "~/components/theme-toggle";
+import SportsDotLogo from "~/assets/sportsdot-favicon-16-01.svg";
+import { Separator } from "~/components/ui/separator";
 
 interface Facility {
   id: string;
@@ -31,6 +51,7 @@ interface Facility {
 interface LoaderData {
   facilities: Facility[];
   userName: string;
+  email: string;
 }
 
 export const loader: LoaderFunction = async ({ request }) => {
@@ -83,7 +104,7 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   const { data: userName } = await supabase
     .from('users')
-    .select('full_name')
+    .select('full_name,email')
     .eq('id', user.id)
     .single();
 
@@ -99,15 +120,43 @@ export const loader: LoaderFunction = async ({ request }) => {
 
   return json({ 
     facilities: processedFacilities, 
-    userName: userName?.full_name || ''
+    userName: userName?.full_name || '',
+    email : userName?.email || ''
   });
 };
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const action = formData.get("action");
+  const response = new Response();
 
+  const supabaseClient = createServerClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (key) => parse(request.headers.get("Cookie") || "")[key],
+        set: (key, value, options) => {
+          response.headers.append("Set-Cookie", serialize(key, value, options));
+        },
+        remove: (key, options) => {
+          response.headers.append("Set-Cookie", serialize(key, "", options));
+        },
+      },
+    }
+  );
+  if (action === "logout") {
+   supabaseClient.auth.signOut();
+   return redirect("/login");
+  }
+
+  return null;
+};
 export default function Dashboard() {
-  const { facilities, userName } = useLoaderData<LoaderData>();
+  const { facilities, userName, email } = useLoaderData<LoaderData>();
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState("Hi, I would like to add a new facility to the platform.");
+  const { setTheme } = useTheme();
 
   const gyms = facilities.filter((f) => f.type === "gym");
   const badmintonFacilities = facilities.filter((f) => f.type === "badminton");
@@ -119,11 +168,80 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0ebff] dark:bg-[#212237] text-foreground">
-      <header className="text-card-foreground p-4 sticky top-0 z-10 shadow-sm bg-[#f0ebff] dark:bg-[#212237]">
-        <div className="container mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold">Facility Dashboard</h1>
-          {/*<div className="flex items-center gap-2">
+    <SidebarProvider>
+      <div className="flex w-full min-h-screen bg-[#f0ebff] dark:bg-[#212237] text-foreground">
+        <Sidebar>
+          <SidebarHeader>
+            <div className="flex items-center gap-3 p-6">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={`${SportsDotLogo}`} />
+                <AvatarFallback>S</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-semibold text-lg">SportsDot Base</span>
+                <span className="text-xs text-muted-foreground">Management Dashboard</span>
+              </div>
+            </div>
+            <Separator className="mb-4" />
+          </SidebarHeader>
+          <SidebarContent className="px-4 py-2">
+            <div className="space-y-4">
+              <div>
+                <h3 className="mb-2 px-4 text-sm font-semibold tracking-tight">Settings</h3>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                      <h3 className="font-semibold">Theme</h3>
+                      <p className="text-muted-foreground text-sm">Toggle light & dark mode</p>
+                    </div>
+                    <ThemeToggle />
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <h3 className="mb-2 px-4 text-sm font-semibold tracking-tight">Account</h3>
+                <div className="space-y-1">
+                  <Form method="post">
+                    <input type="hidden" name="action" value="logout" />
+                    <Button
+                      type="submit"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-destructive hover:text-destructive/90"
+                    >
+                      <LogOut className="h-6 w-6 mr-2" />
+                      <h3 className="text-sm font-semibold">Logout</h3>
+                    </Button>
+                  </Form>
+                </div>
+              </div>
+            </div>
+            <Separator/>
+          </SidebarContent>
+          <SidebarFooter>
+            <Separator className="mb-4" />
+            <div className="flex items-center gap-3 px-6 py-4 bg-card">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${userName}`} />
+                <AvatarFallback>{userName[0]}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="font-semibold">{userName}</span>
+                <span className="text-xs text-muted-foreground truncate max-w-[150px]">{email}</span>
+              </div>
+            </div>
+          </SidebarFooter>
+        </Sidebar>
+
+        <div className="flex-1">
+          <header className="text-card-foreground p-4 sticky top-0 z-10 shadow-sm bg-[#f0ebff] dark:bg-[#212237]">
+            <div className="container mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <h1 className="text-xl font-bold">Facility Dashboard</h1>
+              </div>
+              {/*<div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
@@ -132,72 +250,77 @@ export default function Dashboard() {
               <Settings className="h-5 w-5" />
             </Button>
           </div>*/}
-        </div>
-      </header>
-
-      <main className="container mx-auto p-4 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold">Welcome, {userName}</h2>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto">
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Facility
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Contact Admin</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type your message here..."
-                  className="min-h-[100px]"
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSendMessage}>
-                  Send Message
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Gyms Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Dumbbell className="h-5 w-5" />
-            Gyms
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {gyms.map((facility) => (
-              <FacilityCard key={facility.id} facility={facility} />
-            ))}
-          </div>
-        </div>
-
-        {/* Badminton Section - Only show if there are badminton facilities */}
-        {badmintonFacilities.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Volleyball className="h-5 w-5" />
-              Badminton Courts
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {badmintonFacilities.map((facility) => (
-                <FacilityCard key={facility.id} facility={facility} />
-              ))}
             </div>
-          </div>
-        )}
-      </main>
-    </div>
+          </header>
+
+          <main className="container mx-auto p-4 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h2 className="text-2xl font-bold">Welcome, {userName}</h2>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full sm:w-auto">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Facility
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Facility</DialogTitle>
+                    <DialogDescription>
+                      Contact our admin team to add a new facility to your account. We'll get back to you within 24 hours.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <Textarea
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Type your message here..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSendMessage}>
+                      Send Message
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Gyms Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Dumbbell className="h-5 w-5" />
+                Gyms
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {gyms.map((facility) => (
+                  <FacilityCard key={facility.id} facility={facility} />
+                ))}
+              </div>
+            </div>
+
+            {/* Badminton Section - Only show if there are badminton facilities */}
+            {badmintonFacilities.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Volleyball className="h-5 w-5" />
+                  Badminton Courts
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {badmintonFacilities.map((facility) => (
+                    <FacilityCard key={facility.id} facility={facility} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
 
@@ -268,3 +391,4 @@ function FacilityCard({ facility }: { facility: Facility }) {
     </Card>
   );
 }
+
