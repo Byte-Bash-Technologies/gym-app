@@ -171,10 +171,12 @@ export default function Dashboard() {
                 <AvatarImage src={`${SportsDotLogo}`} />
                 <AvatarFallback>S</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col">
-                <span className="font-semibold text-lg">SportsDot</span>
-                <span className="text-xs text-muted-foreground">Management Dashboard</span>
-              </div>
+              <Link to={"https://sportsdot.in"} className="flex items-center gap-1">
+                <div className="flex flex-col">
+                  <span className="font-semibold text-lg">SportsDot</span>
+                  <span className="text-xs text-muted-foreground">Management Dashboard</span>
+                </div>
+              </Link>
             </div>
             <Separator className="mb-4" />
           </SidebarHeader>

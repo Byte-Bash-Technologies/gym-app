@@ -441,11 +441,13 @@ export default function MemberProfile() {
                   {activeMembership.plans?.duration || "N/A"} days
                 </p>
               </div>
-              <Badge variant="success">{activeMembership.status}</Badge>
+              <Badge variant="success" className={`text-sm inline-block px-3 py-1 dark:bg-[#3A3A52] rounded-full ${activeMembership.status === "active" ? "bg-green-50 text-green-500" : "bg-red-50 text-red-500"}`}>
+              
+              •  {activeMembership.status}</Badge>
             </div>
           ) : (
-            <p className="text-sm text-yellow-500">
-              No active membership found
+            <p className="text-sm text-yellow-500 ">
+               No active membership found
             </p>
           )}
           <Link to="addplans">
@@ -490,7 +492,7 @@ export default function MemberProfile() {
                       {membership.plans?.duration || "N/A"} days
                     </p>
                   </div>
-                  <Badge variant="destructive">{membership.status}</Badge>
+                  <Badge variant="destructive" className="text-sm inline-block px-3 py-1 dark:bg-[#3A3A52] rounded-full bg-red-50 text-red-500">• {membership.status}</Badge>
                 </div>
               ))}
             </div>
