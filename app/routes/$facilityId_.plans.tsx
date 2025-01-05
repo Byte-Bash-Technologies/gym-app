@@ -124,9 +124,9 @@ export default function Plans() {
       <h2 className="text-2xl font-bold">Plans</h2>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90">Add New Plan</Button>
+            <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">Add New Plan</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="dark:bg-[#212237]">
             <DialogHeader>
               <DialogTitle>Add New Plan</DialogTitle>
             </DialogHeader>
@@ -141,15 +141,16 @@ export default function Plans() {
               <CardTitle>{plan.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600">{plan.duration} days</p>
+              <p className="text-gray-800 font-bold">{plan.duration} days</p>
               <p className="text-2xl font-bold mt-2">₹{plan.price}</p>
-              <p className="text-sm text-gray-500 mt-2">{plan.description}</p>
+              <p className="text-sm text-gray-500 mt-2 font-bold">{plan.description}</p>
               <div className="mt-4 space-x-2">
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="dark:bg-[#3A3A52]"
                       onClick={() => setEditingPlan(plan)}
                     >
                       Edit
@@ -167,6 +168,7 @@ export default function Plans() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="dark:bg-[#3A3A52]"
                     type="submit"
                     name="_action"
                     value="delete"
@@ -203,13 +205,14 @@ function PlanForm({ plan = null, onSuccess }: { plan?: Plan | null, onSuccess?: 
       <input type="hidden" name="id" value={plan?.id} />
       <div>
         <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" defaultValue={plan?.name} required />
+        <Input id="name" name="name" className="dark:bg-[#4A4A62]" defaultValue={plan?.name} required />
       </div>
       <div>
         <Label htmlFor="duration">Duration (days)</Label>
         <Input
           id="duration"
           name="duration"
+          className="dark:bg-[#4A4A62]"
           type="number"
           defaultValue={plan?.duration}
           required
@@ -220,6 +223,7 @@ function PlanForm({ plan = null, onSuccess }: { plan?: Plan | null, onSuccess?: 
         <Input
           id="price"
           name="price"
+          className="dark:bg-[#4A4A62]"
           type="number"
           step="0.01"
           defaultValue={plan?.price}
@@ -231,6 +235,7 @@ function PlanForm({ plan = null, onSuccess }: { plan?: Plan | null, onSuccess?: 
         <Input
           id="description"
           name="description"
+          className="dark:bg-[#4A4A62]"
           defaultValue={plan?.description}
         />
       </div>
@@ -239,7 +244,7 @@ function PlanForm({ plan = null, onSuccess }: { plan?: Plan | null, onSuccess?: 
         name="_action"
         value={plan ? "update" : "create"}
         disabled={isSubmitting}
-        className="bg-[#886fa6] hover:bg-[#886fa6]/90"
+        className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white"
       >
         {isSubmitting ? "Saving..." : plan ? "Update Plan" : "Create Plan"}
       </Button>

@@ -192,7 +192,7 @@ export default function RenewMembership() {
 
   return (
     <div className="container mx-auto p-4 max-w-md">
-      <Card className="bg-card text-card-foreground">
+      <Card className="bg-card dark:bg-[#212237] text-card-foreground">
         <CardHeader>
           <CardTitle className="text-2xl font-bold flex items-center">
             <Link to={`/${params.facilityId}/members/${member.id}`} className="text-foreground hover:text-primary transition-colors">
@@ -218,10 +218,10 @@ export default function RenewMembership() {
                 name="planId" 
                 onValueChange={(value) => setSelectedPlan(plans.find(p => p.id === value) || null)}
               >
-                <SelectTrigger className="bg-background text-foreground">
+                <SelectTrigger className="bg-background text-foreground dark:bg-[#4A4A62]">
                   <SelectValue placeholder="Choose a plan" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#4A4A62]">
                   {plans.map((plan) => (
                     <SelectItem key={plan.id} value={plan.id}>
                       {plan.name} - ₹{plan.price} for {plan.duration} days
@@ -239,13 +239,14 @@ export default function RenewMembership() {
                 type="number"
                 value={discount}
                 onChange={(e) => setDiscount(parseFloat(e.target.value))}
-                className="bg-background text-foreground"
+                className="bg-background text-foreground dark:bg-[#4A4A62]"
               />
             </div>
 
             <div className="flex items-center space-x-2">
               <Switch
                 id="paymentType"
+                className="dark:bg-[#4A4A62]"
                 checked={isFullPayment}
                 onCheckedChange={setIsFullPayment}
               />
@@ -264,7 +265,7 @@ export default function RenewMembership() {
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(parseFloat(e.target.value))}
                   max={calculateTotal()}
-                  className="bg-background text-foreground"
+                  className="bg-background text-foreground dark:bg-[#4A4A62]"
                 />
               </div>
             )}
@@ -281,10 +282,10 @@ export default function RenewMembership() {
             <div>
               <Label htmlFor="paymentMethod" className="text-foreground">Payment Method</Label>
               <Select name="paymentMethod" required defaultValue="cash">
-                <SelectTrigger className="bg-background text-foreground">
+                <SelectTrigger className="bg-background text-foreground dark:bg-[#4A4A62]">
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#4A4A62]">
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="credit_card">Credit Card</SelectItem>
                   <SelectItem value="debit_card">Debit Card</SelectItem>
@@ -293,7 +294,7 @@ export default function RenewMembership() {
               </Select>
             </div>
 
-            <Button type="submit" className="w-full text-primary-foreground bg-[#886fa6] hover:bg-[#886fa6]/90"
+            <Button type="submit" className="w-full text-primary-foreground bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white"
             disabled={isLoading}>
               <CreditCard className="w-4 h-4 mr-2" />
               "{isLoading ? "Renewing Membership..." : "Renew Membership"}

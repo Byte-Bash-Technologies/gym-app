@@ -210,9 +210,9 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0ebff] text-foreground pb-20">
+    <div className="min-h-screen bg-[#f0ebff] dark:bg-[#212237] text-foreground pb-20">
       {/* Header */}
-      <header className="bg-card text-card-foreground p-4 flex items-center justify-between">
+      <header className="bg-card dark:bg-[#4A4A62] text-card-foreground p-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Avatar className="h-10 w-10">
             <AvatarImage src={currentGym.logo_url || `https://api.dicebear.com/9.x/identicon/svg/${currentGym.name[0]}`} alt={currentGym.name} />
@@ -225,7 +225,7 @@ export default function Index() {
                 <ChevronDown className="h-4 w-4 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className="dark:bg-[#4A4A62]">
               {gyms.map((gym: Gym) => (
                 <DropdownMenuItem key={gym.id}>
                   <Link to={`/${gym.id}/home`} className="w-full">
@@ -258,7 +258,7 @@ export default function Index() {
           onClick={() => handleStatClick("active")}
         >
           <CardContent className="p-4 flex justify-between gap-2 items-center">
-            <p className="text-gray-600">Active members</p>
+            <p className="text-white-600">Active members</p>
             <p className="text-4xl font-bold text-green-500">
               {stats.activeMembers}
             </p>
@@ -269,7 +269,7 @@ export default function Index() {
           onClick={() => handleStatClick("expiring")}
         >
           <CardContent className="p-4 flex justify-between gap-2 items-center">
-            <p className="text-gray-600">Expiring soon</p>
+            <p className="text-White-600">Expiring soon</p>
             <p className="text-4xl font-bold text-yellow-500">
               {stats.expiringSoon}
             </p>
@@ -280,7 +280,7 @@ export default function Index() {
           onClick={() => handleStatClick("expired")}
         >
           <CardContent className="p-4 flex justify-between gap-2 items-center">
-            <p className="text-gray-600">Expired members</p>
+            <p className="text-white-600">Expired members</p>
             <p className="text-4xl font-bold text-red-500">
               {stats.expiredMembers}
             </p>
@@ -291,7 +291,7 @@ export default function Index() {
           onClick={() => handleStatClick("all")}
         >
           <CardContent className="p-4 flex justify-between gap-2 items-center">
-            <p className="text-gray-600">Total members</p>
+            <p className="text-white-600">Total members</p>
             <p className="text-4xl font-bold text-blue-500">
               {stats.totalMembers}
             </p>

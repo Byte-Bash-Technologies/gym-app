@@ -73,9 +73,9 @@ export default function ReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0ebff] pb-16">
+    <div className="min-h-screen bg-[#f0ebff] dark:bg-[#212237] pb-16">
       {/* Header */}
-      <header className="bg-background p-4 flex items-center justify-between">
+      <header className="bg-background dark:bg-[#4A4A62] p-4 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-xl font-bold ml-6">Report</h1>
         </div>
@@ -101,7 +101,7 @@ export default function ReportPage() {
             <Input
               type="text"
               placeholder="Search by name or number"
-              className="pl-10 pr-20 py-2 w-full bg-background rounded-full"
+              className="pl-10 pr-20 py-2 w-full bg-background rounded-full dark:bg-[#4A4A62] "
               value={searchTerm}
               onChange={handleSearch}
             />
@@ -134,7 +134,7 @@ export default function ReportPage() {
               <p className="text-blue-500 text-xl font-bold">
                 ₹{(metrics.totalReceived ?? 0).toFixed(2)}
               </p>
-              <p className="text-sm text-gray-500">Total received</p>
+              <p className="text-sm text-gray-800">Total received</p>
             </CardContent>
           </Card>
           <Card className="p-4">
@@ -142,7 +142,7 @@ export default function ReportPage() {
               <p className="text-red-500 text-xl font-bold">
                 ₹{(metrics.pendingPayment ?? 0).toFixed(2)}
               </p>
-              <p className="text-sm text-gray-500">Pending payment</p>
+              <p className="text-sm text-gray-800">Pending payment</p>
             </CardContent>
           </Card>
         </div>
@@ -367,7 +367,7 @@ export default function ReportPage() {
           to={`/${params.facilityId}/members/${transaction.member_id}`}
             className="block"
           >
-            <div className="flex items-center justify-between bg-background p-2 hover:bg-violet-50 dark:hover:bg-[#212237] rounded-xl mb-2 last:mb-2 ">
+            <div className="flex items-center justify-between bg-background dark:bg-[#3A3A52] p-2 hover:bg-violet-50 dark:hover:bg-[#212237] rounded-xl mb-2 last:mb-2 ">
               <div className="flex items-center space-x-2">
                 <Avatar>
             <AvatarImage

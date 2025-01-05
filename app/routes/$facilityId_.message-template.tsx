@@ -145,6 +145,7 @@ export default function MessageTemplates() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90"
                         onClick={() => {
                           setEditingTemplate(template);
                           setIsDialogOpen(true);
@@ -155,6 +156,7 @@ export default function MessageTemplates() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90"
                         onClick={() => setDeleteTemplate(template)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -177,12 +179,12 @@ export default function MessageTemplates() {
         <DialogTrigger asChild>
           <Button
             onClick={() => setEditingTemplate(null)}
-            className="fixed right-8 bottom-[5rem] h-14 w-14 rounded-full bg-[#8e76af] hover:bg-[#8e76af]/90 shadow-lg"
+            className="fixed right-8 bottom-[5rem] h-14 w-14 rounded-full bg-[#8e76af] hover:bg-[#8e76af]/90 shadow-lg dark:bg-[#212237] dark:hover:bg-[#212237]/90 text-white"
           >
             <Plus className="h-6 w-6" />
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="dark:bg-[#212237]">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? 'Edit' : 'Add'} Message Template</DialogTitle>
           </DialogHeader>
@@ -192,6 +194,7 @@ export default function MessageTemplates() {
               <Input
                 id="title"
                 name="title"
+                className="dark:bg-[#4A4A62]"
                 defaultValue={editingTemplate?.title}
                 required
               />
@@ -201,12 +204,13 @@ export default function MessageTemplates() {
               <Textarea
                 id="content"
                 name="content"
+                className="dark:bg-[#4A4A62]"
                 rows={5}
                 defaultValue={editingTemplate?.content}
                 required
               />
             </div>
-            <Button type="submit" className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90">
+            <Button type="submit" className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
               {editingTemplate ? 'Update Template' : 'Add Template'}
             </Button>
           </form>
@@ -214,15 +218,15 @@ export default function MessageTemplates() {
       </Dialog>
 
       <AlertDialog open={!!deleteTemplate} onOpenChange={(open) => !open && setDeleteTemplate(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="dark:bg-[#212237]">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the message template "{deleteTemplate?.title}". This action cannot be undone.
+              This will permanently delete the message template &quot;{deleteTemplate?.title}&quot;. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="dark:bg-[#3A3A52]">Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>

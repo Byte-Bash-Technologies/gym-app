@@ -313,9 +313,9 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="min-h-screen pb-20 relative bg-[#f0ebff]">
-      <header className="bg-background p-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold ml-6">
+    <div className="min-h-screen pb-20 relative bg-[#f0ebff] dark:bg-[#212237]">
+      <header className="bg-background dark:bg-[#4A4A62] p-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold ml-4">
           Members - {facility?.name || "Loading..."}
         </h1>
         <div className="flex items-center space-x-4">
@@ -335,7 +335,7 @@ export default function MembersPage() {
             <Input
               type="text"
               placeholder="Search by name or number"
-              className="pl-10 pr-20 py-2 w-full bg-white dark:bg-background rounded-full"
+              className="pl-10 pr-20 py-2 w-full bg-white dark:bg-[#4A4A62] rounded-full"
               onChange={handleSearch}
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -343,7 +343,7 @@ export default function MembersPage() {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-[#886fa6]"
+                className="h-8 w-8 text-[#886fa6] dark:hover:bg-[#3A3A52]/90"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
                 <Filter className="text-[#886fa6]" />
@@ -358,7 +358,7 @@ export default function MembersPage() {
                     <ChevronDown className="h-5 w-5 text-[#886fa6]" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent className="dark:bg-[#4A4A62]" align="end">
                   <DropdownMenuItem onSelect={() => handleSortChange("name")}>
                     Sort by Name{" "}
                     {sortOption.by === "name" &&
@@ -501,8 +501,8 @@ export default function MembersPage() {
 
         <h2 className="text-lg font-semibold mb-4">All members</h2>
 
-        <Card className="dark:bg-background p-4">
-          <div className="dark:bg-background rounded-3xl p-2 space-y-4">
+        <Card className="p-4">
+          <div className="rounded-3xl p-2 space-y-4">
             {!filteredMembers?.length ? (
               <div className="text-center py-4">No members found</div>
             ) : (
@@ -562,7 +562,7 @@ export default function MembersPage() {
       </main>
 
       <Link to="new" className="fixed right-6 bottom-[7rem]">
-        <Button className="w-14 h-14 rounded-full bg-[#886fa6] hover:bg-[#886fa6]/90 text-white shadow-lg">
+        <Button className="w-14 h-14 rounded-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#212237] dark:hover:bg-[#212237]/90 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>

@@ -294,7 +294,7 @@ export default function Transactions() {
   return (
     <div className="min-h-screen bg-[#f0ebff] pb-16 dark:bg-[#212237]">
       {/* Header */}
-      <header className="bg-background p-4 flex items-center justify-between">
+      <header className="bg-background dark:bg-[#4A4A62] p-4 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-xl font-bold ml-6">Transaction</h1>
         </div>
@@ -315,7 +315,7 @@ export default function Transactions() {
           <Input
             type="text"
             placeholder="Search by name or email"
-            className="pl-10 pr-20 py-2 w-full bg-background rounded-full "
+            className="pl-10 pr-20 py-2 w-full bg-background rounded-full dark:bg-[#4A4A62]"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -324,7 +324,7 @@ export default function Transactions() {
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-[#886fa6]"
+              className="h-8 w-8 text-[#886fa6] dark:hover:bg-[#3A3A52]/90"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
             >
               <Filter className="text-[#886fa6]" />
@@ -335,11 +335,11 @@ export default function Transactions() {
 
       {/* Filter options */}
       {isFilterOpen && (
-        <div className="m-4 p-4 bg-background space-y-4 rounded-xl">
+        <div className="m-4 p-4 bg-background dark:bg-[#4A4A62] space-y-4 rounded-xl">
           <div>
             <label
               htmlFor="timeline"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-800"
             >
               Timeline
             </label>
@@ -351,7 +351,7 @@ export default function Transactions() {
               <SelectTrigger>
                 <SelectValue placeholder="Select timeline" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="dark:bg-[#4A4A62]">
                 <SelectItem value="today">Today</SelectItem>
                 <SelectItem value="yesterday">Yesterday</SelectItem>
                 <SelectItem value="thisMonth">This Month</SelectItem>
@@ -365,7 +365,7 @@ export default function Transactions() {
           <div>
             <label
               htmlFor="plan"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-800"
             >
               Plan
             </label>
@@ -377,7 +377,7 @@ export default function Transactions() {
               <SelectTrigger>
                 <SelectValue placeholder="Select plan" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="dark:bg-[#4A4A62]">
                 <SelectItem value="all">All Plans</SelectItem>
                 {plans.map((plan) => (
                   <SelectItem key={plan.id} value={plan.id}>
@@ -537,7 +537,7 @@ export default function Transactions() {
                               ? date.toLocaleString([], { hour: '2-digit', minute: '2-digit' })
                               : date.toLocaleDateString();
                             return (
-                              <div className="bg-white p-2 border rounded shadow">
+                              <div className="bg-white dark:bg-[#3A3A52] p-2 border rounded shadow">
                                 <p className="text-sm">{dateString}</p>
                                 <p className="text-sm font-bold">₹{payload[0].value.toFixed(2)}</p>
                               </div>

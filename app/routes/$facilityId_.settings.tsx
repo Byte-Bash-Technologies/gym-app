@@ -151,7 +151,7 @@ export default function Component() {
 
   return (
     <div className="min-h-screen bg-[#f0ebff] dark:bg-[#212237]">
-      <header className="bg-background  p-4 flex items-center justify-between border-b border-[#8e76af]/20">
+      <header className="bg-background dark:bg-[#4A4A62] p-4 flex items-center justify-between border-b border-[#8e76af]/20">
         <div className="flex items-center gap-2">
           <Link to={`/${facility.id}/home`} className="flex items-center gap-2">
             <ArrowLeft className="h-6 w-6 cursor-pointer" />
@@ -199,7 +199,7 @@ export default function Component() {
                   : "No active plan"}
               </p>
               <p
-                className={`text-sm inline-block px-3 py-1 rounded-full ${
+                className={`text-sm inline-block px-3 py-1 dark:bg-[#3A3A52] rounded-full ${
                   getExpirationText().includes("Expiring soon")
                     ? "bg-yellow-50 text-yellow-500"
                     : getExpirationText().includes("Expired")
@@ -211,7 +211,7 @@ export default function Component() {
               </p>
               <Button
                 variant="ghost"
-                className="text-[#8e76af] pl-4 m-4"
+                className="text-[#8e76af] pl-4 m-4 dark:hover:bg-[#3A3A52]"
                 onClick={() => setIsChangePlanDialogOpen(true)}
               >
                 <RefreshCcw className="h-4 w-4 mr-2 " />
@@ -238,19 +238,19 @@ export default function Component() {
           <h2 className="text-xl font-bold">Manage Gym</h2>
           <Card className="divide-y bg-background">
             <Link to={`/${facility.id}/message-template`} className="block">
-              <Button variant="ghost" className="w-full justify-start p-6">
+              <Button variant="ghost" className="w-full justify-start p-6 dark:hover:bg-[#3A3A52] rounded-b-none rounded-t-xl">
                 <MessageSquare className="h-5 w-5 mr-3 text-[#8e76af]" />
                 <h3 className="font-semibold">Message templates</h3>
               </Button>
             </Link>
             <Link to={`/${facility.id}/plans`} className="block">
-              <Button variant="ghost" className="w-full justify-start p-6">
+              <Button variant="ghost" className="w-full justify-start p-6 dark:hover:bg-[#3A3A52] rounded-none">
                 <BarChart className="h-5 w-5 mr-3 text-[#8e76af]" />
                 <h3 className="font-semibold">Plans</h3>
               </Button>
             </Link>
             <Link to={`/${facility.id}/trainers`} className="block">
-              <Button variant="ghost" className="w-full justify-start p-6">
+              <Button variant="ghost" className="w-full justify-start p-6 dark:hover:bg-[#3A3A52] rounded-b-xl rounded-t-none">
                 <UserCog className="h-5 w-5 mr-3 text-[#8e76af]" />
                 <h3 className="font-semibold">Manage Trainers</h3>
               </Button>
@@ -263,7 +263,7 @@ export default function Component() {
           <Card className="divide-y bg-background">
             <Button
               variant="ghost"
-              className="w-full justify-start p-6"
+              className="w-full justify-start p-6 dark:hover:bg-[#3A3A52] rounded-t-xl rounded-b-none"
               onClick={() => setIsContactDialogOpen(true)}
             >
               <User2 className="h-5 w-5 mr-3 text-[#8e76af]" />
@@ -271,7 +271,7 @@ export default function Component() {
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start p-6"
+              className="w-full justify-start p-6 dark:hover:bg-[#3A3A52] rounded-b-xl rounded-t-none"
               onClick={() => setIsInfoDialogOpen(true)}
             >
               <Clock className="h-5 w-5 mr-3 text-[#8e76af]" />
@@ -285,7 +285,7 @@ export default function Component() {
           <Button
             type="submit"
             variant="ghost"
-            className="w-full flex items-center justify-center gap-2"
+            className="w-full flex items-center justify-center gap-2 p-4 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90"
           >
             <LogOut className="h-5 w-5 text-[#8e76af]" />
             Logout
@@ -295,20 +295,20 @@ export default function Component() {
       </main>
 
       <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
-        <DialogContent>
+        <DialogContent className="dark:bg-[#212237]">
           <DialogHeader>
             <DialogTitle>Contact Us</DialogTitle>
           </DialogHeader>
           <DialogDescription className="space-y-4">
             <p>Choose how you would like to contact us:</p>
             <div className="flex flex-col gap-3">
-              <Button onClick={handleWhatsAppContact} className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90">
+              <Button onClick={handleWhatsAppContact} className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] text-white">
                 Contact via WhatsApp
               </Button>
               <Button
                 onClick={handlePhoneContact}
                 variant="outline"
-                className="w-full"
+                className="w-full dark:bg-[#4A4A62]"
               >
                 Call Us
               </Button>
@@ -318,7 +318,7 @@ export default function Component() {
       </Dialog>
 
       <Dialog open={isInfoDialogOpen} onOpenChange={setIsInfoDialogOpen}>
-        <DialogContent>
+        <DialogContent className="dark:bg-[#212237]">
           <DialogHeader>
             <DialogTitle>Support and Information</DialogTitle>
             
@@ -356,7 +356,7 @@ export default function Component() {
       </Dialog>
 
       <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
-        <DialogContent>
+        <DialogContent className="dark:bg-[#212237]">
           <DialogHeader>
             <DialogTitle>Change Plan</DialogTitle>
             
@@ -368,7 +368,7 @@ export default function Component() {
                 <li>
                   <Button
                     variant="outline"
-                    className="w-full justify-between"
+                    className="w-full justify-between dark:bg-[#3A3A52]"
                     onClick={() => {
                       // Handle plan selection
                       setIsChangePlanDialogOpen(false);
@@ -381,7 +381,7 @@ export default function Component() {
                 <li>
                   <Button
                     variant="outline"
-                    className="w-full justify-between"
+                    className="w-full justify-between dark:bg-[#3A3A52]"
                     onClick={() => {
                       // Handle plan selection
                       setIsChangePlanDialogOpen(false);
@@ -394,7 +394,7 @@ export default function Component() {
                 <li>
                   <Button
                     variant="outline"
-                    className="w-full justify-between"
+                    className="w-full justify-between dark:bg-[#3A3A52]"
                     onClick={() => {
                       // Handle plan selection
                       setIsChangePlanDialogOpen(false);

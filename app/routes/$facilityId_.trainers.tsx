@@ -205,7 +205,7 @@ export default function TrainersPage() {
               <p className="text-muted-foreground">No trainers assigned yet</p>
               <Button
                 onClick={() => setIsAddTrainerDialogOpen(true)}
-                className="bg-[#8e76af] hover:bg-[#8e76af]/90"
+                className="bg-[#8e76af] hover:bg-[#8e76af]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white"
               >
                 <UserPlus2 className="h-4 w-4 mr-2" />
                 Add Your First Trainer
@@ -259,14 +259,14 @@ export default function TrainersPage() {
         {trainers.length > 0 && (
           <Button
             onClick={() => setIsAddTrainerDialogOpen(true)}
-            className="fixed right-6 bottom-24 h-14 w-14 rounded-full bg-[#8e76af] hover:bg-[#8e76af]/90 shadow-lg"
+            className="fixed right-6 bottom-24 h-14 w-14 rounded-full bg-[#8e76af] hover:bg-[#8e76af]/90 dark:bg-[#4A4A62] text-white shadow-lg"
           >
             <UserPlus2 className="h-6 w-6" />
           </Button>
         )}
 
         <Dialog open={isAddTrainerDialogOpen} onOpenChange={setIsAddTrainerDialogOpen}>
-          <DialogContent>
+          <DialogContent className="dark:bg-[#212237]">
             <DialogHeader>
               <DialogTitle>Add Trainer</DialogTitle>
             </DialogHeader>
@@ -288,6 +288,7 @@ export default function TrainersPage() {
                 <Input
                   id="trainerEmail"
                   name="trainerEmail"
+                  className="dark:bg-[#4A4A62]"
                   type="email"
                   placeholder="trainer@example.com"
                   value={trainerEmail}
@@ -299,7 +300,7 @@ export default function TrainersPage() {
               <DialogDescription className="text-sm text-muted-foreground">
                 Enter the email address of the trainer you want to add. They must have a Sportsdot account.
                 <div className="mt-2">
-                  <span>Don't have an account? </span>
+                  <span>Don&apos;t have an account? </span>
                   <Link to="/signup" className="font-medium text-[#8e76af] hover:text-[#8e76af]/90">
                     Create one
                   </Link>
@@ -309,6 +310,7 @@ export default function TrainersPage() {
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
+                  className="dark:bg-[#4A4A62] dark:hover:bg-[#4A4A62]/90"
                   variant="outline"
                   onClick={() => {
                     setIsAddTrainerDialogOpen(false);
@@ -317,7 +319,7 @@ export default function TrainersPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-[#8e76af] hover:bg-[#8e76af]/90">
+                <Button type="submit" className="bg-[#8e76af] hover:bg-[#8e76af]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
                   Add Trainer
                 </Button>
               </div>
@@ -328,7 +330,7 @@ export default function TrainersPage() {
           open={!!deleteConfirmTrainer} 
           onOpenChange={(open) => !open && setDeleteConfirmTrainer(null)}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className="dark:bg-[#212237]">
             <AlertDialogHeader>
               <AlertDialogTitle>Remove Trainer</AlertDialogTitle>
               <AlertDialogDescription>
@@ -337,7 +339,7 @@ export default function TrainersPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="dark:bg-[#3A3A52]">Cancel</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => {

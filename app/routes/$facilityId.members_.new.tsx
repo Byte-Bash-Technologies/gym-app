@@ -283,8 +283,8 @@ export default function NewMemberForm() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <header className="bg-card text-card-foreground p-4 flex items-center justify-between">
+    <div className="min-h-screen bg-background dark:bg-[#212237] pb-20">
+      <header className="bg-card dark:bg-[#4A4A62] text-card-foreground p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
             <ArrowLeft className="h-6 w-6" />
@@ -318,7 +318,7 @@ export default function NewMemberForm() {
           <Label htmlFor="full_name">
             Name <span className="text-destructive">*</span>
           </Label>
-          <Input id="full_name" name="full_name" placeholder="Name" required />
+          <Input id="full_name" name="full_name" className="dark:bg-[#4A4A62]" placeholder="Name" required />
         </div>
 
         <div className="space-y-2">
@@ -326,6 +326,7 @@ export default function NewMemberForm() {
           <Input
             id="email"
             name="email"
+            className="dark:bg-[#4A4A62]"
             type="email"
             placeholder="example@gmail.com"
           />
@@ -338,6 +339,7 @@ export default function NewMemberForm() {
           <Input
             id="phone"
             name="phone"
+            className="dark:bg-[#4A4A62]"
             placeholder="+91 XX XX X X X"
             required
             pattern="[0-9]{10}"
@@ -350,6 +352,7 @@ export default function NewMemberForm() {
           <Textarea
             id="address"
             name="address"
+            className="dark:bg-[#4A4A62]"
             placeholder="Enter your address"
           />
         </div>
@@ -361,6 +364,7 @@ export default function NewMemberForm() {
           <Input
             type="date"
             id="date_of_birth"
+            className="dark:bg-[#4A4A62]"
             name="date_of_birth"
             required
           />
@@ -371,13 +375,13 @@ export default function NewMemberForm() {
           <RadioGroup defaultValue="male" name="gender" className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="male" id="male" />
-              <Label htmlFor="male" className="bg-secondary px-4 py-2 rounded-full">
+              <Label htmlFor="male" className="bg-secondary px-4 py-2 rounded-full dark:bg-[#4A4A62]">
                 Male
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="female" id="female" />
-              <Label htmlFor="female" className="bg-secondary px-4 py-2 rounded-full">
+              <Label htmlFor="female" className="bg-secondary px-4 py-2 rounded-full dark:bg-[#4A4A62]">
                 Female
               </Label>
             </div>
@@ -387,10 +391,10 @@ export default function NewMemberForm() {
         <div className="space-y-2">
           <Label>Blood group</Label>
           <Select name="blood_type">
-            <SelectTrigger>
+            <SelectTrigger className="dark:bg-[#4A4A62]">
               <SelectValue placeholder="Please select" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="dark:bg-[#4A4A62]">
               <SelectItem value="A+">A+</SelectItem>
               <SelectItem value="A-">A-</SelectItem>
               <SelectItem value="B+">B+</SelectItem>
@@ -405,12 +409,12 @@ export default function NewMemberForm() {
 
         <div className="space-y-2">
           <Label htmlFor="height">Height</Label>
-          <Input id="height" name="height" placeholder="-- cm" type="number" />
+          <Input id="height" name="height" className="dark:bg-[#4A4A62]" placeholder="-- cm" type="number" />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="weight">Weight</Label>
-          <Input id="weight" name="weight" placeholder="-- kg" type="number" />
+          <Input id="weight" name="weight" className="dark:bg-[#4A4A62]" placeholder="-- kg" type="number" />
         </div>
 
         <div className="space-y-2">
@@ -424,7 +428,7 @@ export default function NewMemberForm() {
               className="hidden"
               onChange={handleFileChange}
             />
-            <div className="border-2 border-dashed border-input rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
+            <div className="border-2 dark:bg-[#4A4A62] border-dashed border-input rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
               {preview ? (
                 <img
                   src={preview}
@@ -444,6 +448,7 @@ export default function NewMemberForm() {
         <div className="flex items-center space-x-2">
           <Switch
             id="add-plan"
+            className="dark:bg-[#4A4A62]"
             checked={addPlan}
             onCheckedChange={setAddPlan}
           />
@@ -455,10 +460,10 @@ export default function NewMemberForm() {
             <div className="space-y-2">
               <Label htmlFor="plan_id">Membership Plan</Label>
               <Select name="plan_id" onValueChange={handlePlanChange}>
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#4A4A62]">
                   <SelectValue placeholder="Select a plan" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#4A4A62]">
                   {plans.map((plan: Plan) => (
                     <SelectItem key={plan.id} value={plan.id}>
                       {plan.name} - ₹{plan.price}
@@ -475,6 +480,7 @@ export default function NewMemberForm() {
                   <Input
                     id="discount"
                     name="discount"
+                    className="dark:bg-[#4A4A62]"
                     type="number"
                     min="0"
                     max={selectedPlan.price}
@@ -488,6 +494,7 @@ export default function NewMemberForm() {
                   <Input
                     id="payment_amount"
                     name="payment_amount"
+                    className="dark:bg-[#4A4A62]"
                     type="number"
                     min="0"
                     max={selectedPlan.price - discount}
@@ -518,7 +525,7 @@ export default function NewMemberForm() {
 
         <Button
           type="submit"
-          className="w-full bg-[#8e76af] hover:bg-[#8e76af]/90 text-white py-6 rounded-full text-lg"
+          className="w-full bg-[#8e76af] hover:bg-[#8e76af]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white py-6 rounded-full text-lg"
         >
           Add member
         </Button>

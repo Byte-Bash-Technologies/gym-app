@@ -379,7 +379,7 @@ export default function MemberProfile() {
       {/* Contact Section */}
       <CardContent className="flex justify-center space-x-4">
         <Button onClick={handlePhoneClick}
-        className="bg-[#886fa6] hover:bg-[#886fa6]/90">
+        className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
           <a href={`tel:${member.phone}`}>
             <Phone className="h-4 w-4 mr-2" />
           </a>
@@ -391,7 +391,7 @@ export default function MemberProfile() {
         >
           <DrawerTrigger asChild>
             <Button
-            className="bg-[#886fa6] hover:bg-[#886fa6]/90">
+            className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
               <MessageCircle className="h-4 w-4 mr-2" />
               WhatsApp
             </Button>
@@ -449,7 +449,7 @@ export default function MemberProfile() {
             </p>
           )}
           <Link to="addplans">
-            <Button variant="outline" size="sm" className="mt-4">
+            <Button variant="outline" size="sm" className="mt-4 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
               
               {activeMembership ? (<><RefreshCcw className="h-4 w-4 mr-2" /> Change Membership</>) : (<><Plus className="h-4 w-4 mr-2" /> Add Membership</>)}
             </Button>
@@ -523,12 +523,12 @@ export default function MemberProfile() {
                 onOpenChange={setIsPaymentSheetOpen}
               >
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
                     <CreditCard className="h-4 w-4 mr-2" />
                     Pay Balance
                   </Button>
                 </SheetTrigger>
-                <SheetContent>
+                <SheetContent className="dark:bg-[#212237]">
                   <SheetHeader>
                     <SheetTitle>Pay Balance</SheetTitle>
                   </SheetHeader>
@@ -542,6 +542,7 @@ export default function MemberProfile() {
                       <Input
                         id="amount"
                         name="amount"
+                        className="dark:bg-[#4A4A62]"
                         type="number"
                         step="0.01"
                         max={member.balance}
@@ -551,10 +552,10 @@ export default function MemberProfile() {
                     <div>
                       <Label htmlFor="paymentMethod">Payment Method</Label>
                       <Select name="paymentMethod" required>
-                        <SelectTrigger>
+                        <SelectTrigger className="dark:bg-[#4A4A62]">
                           <SelectValue placeholder="Select payment method" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="dark:bg-[#4A4A62]">
                           <SelectItem value="cash">Cash</SelectItem>
                           <SelectItem value="credit_card">
                             Credit Card
@@ -564,7 +565,7 @@ export default function MemberProfile() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button type="submit" className="w-full">
+                    <Button type="submit" className="w-full bg-[#886fa6] dark:bg-[#3A3A52] hover:bg-[#886fa6]/90 dark:hover:bg-[#3A3A52]/90 text-white">
                       Process Payment
                     </Button>
                   </fetcher.Form>
@@ -575,12 +576,12 @@ export default function MemberProfile() {
                 onOpenChange={setIsReminderDialogOpen}
               >
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Send Reminder
                   </Button>
                 </SheetTrigger>
-                <SheetContent>
+                <SheetContent className="dark:bg-[#212237]">
                   <SheetHeader>
                     <SheetTitle>Send Reminder</SheetTitle>
                   </SheetHeader>
@@ -588,11 +589,11 @@ export default function MemberProfile() {
                     <Label htmlFor="reminder-message">Message</Label>
                     <textarea
                       id="reminder-message"
-                      className="w-full border rounded p-2 h-64"
+                      className="w-full border rounded p-2 h-64 dark:bg-[#4A4A62]"
                       rows={4}
                       defaultValue={`Hello ${member.full_name},\n\nYou have a pending balance amount of ₹${member.balance}.\n\n Please settle as soon as possible.\n\nThank you,\n${facility.name}\n${facility.phone}`}
                     />
-                    <Button onClick={handleSendReminder} className="w-full">
+                    <Button onClick={handleSendReminder} className="w-full bg-[#886fa6] dark:bg-[#3A3A52] hover:bg-[#886fa6]/90 dark:hover:bg-[#3A3A52]/90 text-white">
                       Send Reminder
                     </Button>
                   </div>
@@ -686,11 +687,11 @@ export default function MemberProfile() {
           <div className="flex space-x-2">
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" className="dark:bg-[3A3A52]" size="sm">
                   <Pencil className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[80vh] flex flex-col">
+              <DialogContent className="max-h-[80vh] flex flex-col dark:bg-[#212237]">
                 <DialogHeader>
                   <DialogTitle>Edit Member Details</DialogTitle>
                 </DialogHeader>
@@ -706,6 +707,7 @@ export default function MemberProfile() {
                       <Input
                         id="full_name"
                         name="full_name"
+                        className="dark:bg-[#4A4A62]"
                         defaultValue={member.full_name}
                         required
                       />
@@ -715,6 +717,7 @@ export default function MemberProfile() {
                       <Input
                         id="email"
                         name="email"
+                        className="dark:bg-[#4A4A62]"
                         type="email"
                         defaultValue={member.email}
                         required
@@ -725,6 +728,7 @@ export default function MemberProfile() {
                       <Input
                         id="phone"
                         name="phone"
+                        className="dark:bg-[#4A4A62]"
                         defaultValue={member.phone}
                         required
                       />
@@ -732,10 +736,10 @@ export default function MemberProfile() {
                     <div>
                       <Label htmlFor="gender">Gender</Label>
                       <Select name="gender" defaultValue={member.gender}>
-                        <SelectTrigger className="w-full select-trigger">
+                        <SelectTrigger className="w-full select-trigger dark:bg-[#4A4A62]">
                           <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="dark:bg-[#4A4A62]">
                           <SelectItem value="male">Male</SelectItem>
                           <SelectItem value="female">Female</SelectItem>
                           <SelectItem value="other">Other</SelectItem>
@@ -747,6 +751,7 @@ export default function MemberProfile() {
                       <Input
                         id="date_of_birth"
                         name="date_of_birth"
+                        className="dark:bg-[#4A4A62]"
                         type="date"
                         defaultValue={member.date_of_birth.split("T")[0]}
                         required
@@ -758,10 +763,10 @@ export default function MemberProfile() {
                         name="blood_type"
                         defaultValue={member.blood_type}
                       >
-                        <SelectTrigger className="w-full select-trigger">
+                        <SelectTrigger className="w-full select-trigger dark:bg-[#4A4A62]">
                           <SelectValue placeholder="Select blood type" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="dark:bg-[#4A4A62]">
                           <SelectItem value="A+">A+</SelectItem>
                           <SelectItem value="A-">A-</SelectItem>
                           <SelectItem value="B+">B+</SelectItem>
@@ -778,6 +783,7 @@ export default function MemberProfile() {
                       <Input
                         id="height"
                         name="height"
+                        className="dark:bg-[#4A4A62]"
                         type="number"
                         defaultValue={member.height}
                         required
@@ -788,6 +794,7 @@ export default function MemberProfile() {
                       <Input
                         id="weight"
                         name="weight"
+                        className="dark:bg-[#4A4A62]"
                         type="number"
                         defaultValue={member.weight}
                         required
@@ -798,7 +805,7 @@ export default function MemberProfile() {
                 <div className="mt-4 pt-4 border-t">
                   <Button
                     type="submit"
-                    className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90"
+                    className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white"
                     form="editMemberForm"
                   >
                     Save Changes
