@@ -562,7 +562,7 @@ export default function MembersPage() {
       </main>
 
       <Link to="new" className="fixed right-6 bottom-[7rem]">
-        <Button className="w-14 h-14 rounded-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#212237] dark:hover:bg-[#212237]/90 text-white shadow-lg">
+        <Button className="w-14 h-14 rounded-full bg-[#886fa6] hover:bg-[#886fa6]/90 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>

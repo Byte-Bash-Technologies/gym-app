@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ActionFunction } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { useActionData, Form, Link } from "@remix-run/react";
 import { createServerClient, parse, serialize } from "@supabase/ssr";
@@ -8,8 +9,9 @@ import { Label } from "~/components/ui/label";
 import { Checkbox } from "~/components/ui/checkbox";
 import iconImage from "~/assets/sportsdot-favicon-64-01.svg";
 
-export const action = async ({ request }) => {
+export const action: ActionFunction = async ({ request }) => {
   const response = new Response();
+  
   const supabase = createServerClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_ANON_KEY!,
@@ -26,6 +28,7 @@ export const action = async ({ request }) => {
     }
   );
 
+
   const formData = await request.formData();
   const email = formData.get("email");
   const password = formData.get("password");
@@ -37,7 +40,6 @@ export const action = async ({ request }) => {
 
   if (error) {
     return json({ error: error.message });
-
   }
 
   if (data?.user) {
@@ -50,110 +52,123 @@ export const action = async ({ request }) => {
 };
 
 export default function Login() {
-  const actionData = useActionData();
+  const actionData = useActionData<typeof action>();
   const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
-    // Reset loading state if there's an error
     if (actionData?.error) {
       setIsLoading(false);
     }
   }, [actionData]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-purple-100 flex flex-col items-center px-4 py-8">
+    <div className="min-h-screen bg-[#f0ebff] dark:bg-[#212237] flex flex-col items-center px-4 py-8">
       <div className="w-full max-w-sm space-y-8">
-        {/* Logo */}
         <div className="flex flex-col items-center">
           <div className="space-y-2 relative w-32 h-32">
             <img
               src={iconImage}
-              alt="logo"
+              alt="SportsDot Logo"
               className="w-full h-full object-cover"
             />
           </div>
         </div>
 
-        {/* Login Form */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-medium text-center text-purple-600">
+        <div className="space-y-6 ">
+          <h2 className="text-2xl font-medium text-center text-[#8e76af]">
             Login
           </h2>
 
-          <Form
-            method="post"
+          <Form 
+            method="post" 
             onSubmit={() => setIsLoading(true)}
             className="space-y-6"
           >
             {actionData?.error && (
               <div
-                className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg relative"
                 role="alert"
               >
                 <span className="block sm:inline">{actionData.error}</span>
               </div>
-              
             )}
-  
+
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email / number</Label>
+                <Label htmlFor="email" className="text-foreground">
+                  Email
+                </Label>
                 <Input
                   id="email"
                   name="email"
-                  placeholder="Email / number"
-                  className="h-12 bg-white rounded-2xl"
                   type="text"
+                  autoComplete="email"
                   required
+                  placeholder="Enter your email or phone number"
+                  className="h-12 bg-background"
+                  aria-label="Email or phone number"
+                  aria-describedby={actionData?.error ? "error-message" : undefined}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-foreground">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   name="password"
-                  placeholder="Password"
-                  className="h-12 bg-white rounded-2xl"
                   type="password"
+                  autoComplete="current-password"
                   required
+                  placeholder="Enter your password"
+                  className="h-12 bg-background"
+                  aria-label="Password"
+                  aria-describedby={actionData?.error ? "error-message" : undefined}
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Checkbox id="remember" className="border-purple-300" />
-                <label
-                  htmlFor="remember"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                <Checkbox 
+                  id="remember" 
+                  name="remember"
+                  className="border-[#8e76af]"
+                  aria-label="Remember me"
+                />
+                <Label 
+                  htmlFor="remember" 
+                  className="text-sm font-medium leading-none cursor-pointer"
                 >
-                  Remember Me
-                </label>
+                  Remember me
+                </Label>
               </div>
               <Link
-                to="#"
-                className="text-sm text-purple-600 hover:text-purple-500"
+                to="/forgot-password"
+                className="text-sm text-[#8e76af] hover:text-[#8e76af]/90"
               >
-                Forget Password?
+                Forgot Password?
               </Link>
             </div>
 
             <Button
               type="submit"
-              className="w-full h-12 text-lg font-medium bg-purple-400 hover:bg-purple-500 rounded-2xl"
+              className="w-full h-12 text-lg font-medium bg-[#8e76af] hover:bg-[#8e76af]/90 text-white rounded-xl"
               disabled={isLoading}
             >
               {isLoading ? "Logging in..." : "Login"}
             </Button>
 
             <div className="text-center space-x-1">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 Don't have an account?
               </span>
               <Link
-                to="#"
-                className="text-sm font-medium text-purple-600 hover:text-purple-500"
+                to="tel:7010976271"
+                className="text-sm font-medium text-[#8e76af] hover:text-[#8e76af]/90"
               >
-                <a href="tel:7010976271">CONTACT US</a>
+                Contact Us
               </Link>
             </div>
           </Form>
@@ -162,3 +177,4 @@ export default function Login() {
     </div>
   );
 }
+
