@@ -115,7 +115,6 @@ export default function Component() {
   const navigate = useNavigate();
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-  const [isChangePlanDialogOpen, setIsChangePlanDialogOpen] = useState(false);
 
   const getExpirationText = () => {
     if (!subscription) return "No active subscription";
@@ -147,6 +146,14 @@ export default function Component() {
   const handlePhoneContact = () => {
     window.location.href = "tel:+917010976271";
     setIsContactDialogOpen(false);
+  };
+
+  const handleRenewSubscription = () => {
+    const phoneNumber = "917010976271";
+    const message = encodeURIComponent(
+      `Hello Benston,\n\nI would like to renew my subscription for the ${facility.type} facility, specifically for ${facility.name}.\n\nFacility subscription link: https://app.sportsdot.in/${facility.id}/renew-subscription`
+    );
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`);
   };
 
   return (
@@ -212,7 +219,7 @@ export default function Component() {
               <Button
                 variant="ghost"
                 className="text-[#8e76af] pl-4 m-4 dark:hover:bg-[#3A3A52]"
-                onClick={() => setIsChangePlanDialogOpen(true)}
+                onClick={handleRenewSubscription}
               >
                 <RefreshCcw className="h-4 w-4 mr-2 " />
                 Change plan
@@ -345,66 +352,11 @@ export default function Component() {
               </ul>
               <p>
                 For more detailed information, please visit our{" "}
-                <a href="/help-center" className="text-purple-500 underline">
+                <a href="/help-center" className="text-purple-300 underline">
                   Help Center
                 </a>
                 .
               </p>
-            </div>
-          </DialogDescription>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isChangePlanDialogOpen} onOpenChange={setIsChangePlanDialogOpen}>
-        <DialogContent className="dark:bg-[#212237]">
-          <DialogHeader>
-            <DialogTitle>Change Plan</DialogTitle>
-            
-          </DialogHeader>
-          <DialogDescription>
-            <div className="space-y-4">
-              <p>Select a new plan for your gym:</p>
-              <ul className="space-y-2">
-                <li>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between dark:bg-[#3A3A52]"
-                    onClick={() => {
-                      // Handle plan selection
-                      setIsChangePlanDialogOpen(false);
-                    }}
-                  >
-                    Basic Plan
-                    <span className="font-bold">₹499.00/1-month</span>
-                  </Button>
-                </li>
-                <li>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between dark:bg-[#3A3A52]"
-                    onClick={() => {
-                      // Handle plan selection
-                      setIsChangePlanDialogOpen(false);
-                    }}
-                  >
-                    Pro Plan
-                    <span className="font-bold">₹2499.00/3-month</span>
-                  </Button>
-                </li>
-                <li>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between dark:bg-[#3A3A52]"
-                    onClick={() => {
-                      // Handle plan selection
-                      setIsChangePlanDialogOpen(false);
-                    }}
-                  >
-                    Enterprise Plan
-                    <span className="font-bold">₹4499.00/1-year</span>
-                  </Button>
-                </li>
-              </ul>
             </div>
           </DialogDescription>
         </DialogContent>

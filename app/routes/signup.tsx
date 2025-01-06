@@ -151,7 +151,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-purple-100 flex flex-col items-center px-4 py-8">
+    <div className="min-h-screen bg-[#f0ebff] dark:bg-[#212237] flex flex-col items-center px-4 py-8">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center">
@@ -178,7 +178,7 @@ export default function Signup() {
                   id="fullName"
                   name="fullName"
                   placeholder="Full Name"
-                  className="h-12 bg-white rounded-2xl"
+                  className="h-12 rounded-2xl bg-background dark:bg-[#4A4A62]"
                   required
                 />
               </div>
@@ -189,7 +189,7 @@ export default function Signup() {
                   name="email"
                   type="email"
                   placeholder="Email"
-                  className="h-12 bg-white rounded-2xl"
+                  className="h-12 bg-background dark:bg-[#4A4A62] rounded-2xl"
                   required
                 />
               </div>
@@ -200,7 +200,7 @@ export default function Signup() {
                   name="password"
                   type="password"
                   placeholder="Password"
-                  className="h-12 bg-white rounded-2xl"
+                  className="h-12 bg-background dark:bg-[#4A4A62] rounded-2xl"
                   required
                 />
               </div>
@@ -211,7 +211,7 @@ export default function Signup() {
                   name="phoneNumber"
                   type="tel"
                   placeholder="Phone Number"
-                  className="h-12 bg-white rounded-2xl"
+                  className="h-12 bg-background dark:bg-[#4A4A62] rounded-2xl"
                   required
                 />
               </div>
@@ -252,7 +252,7 @@ export default function Signup() {
               )}
             </div>
 
-            <Button type="submit" className="w-full h-12 text-lg font-medium bg-purple-400 hover:bg-purple-500 rounded-2xl" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 text-lg font-medium bg-[#8e76af] hover:bg-[#8e76af]/90 dark:bg-[#3A3A52] text-white rounded-2xl" disabled={isLoading}>
               {isLoading ? 'Signing up...' : 'Sign up'}
             </Button>
 

@@ -1,6 +1,6 @@
 import { ActionFunction, json, type LoaderFunction, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate, Form } from "@remix-run/react";
-import { Dumbbell, Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing, Settings, Plus, UserCog, LogOut, Moon, Sun } from 'lucide-react';
+import { Dumbbell, Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing, Settings, Plus, UserCog, LogOut, Moon, Sun, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { createServerClient, parse, serialize } from '@supabase/ssr';
@@ -194,6 +194,20 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+              <div className="space-y-4 rounded-lg border p-4">
+                <h3 className="mb-2 px-4 text-sm font-semibold tracking-tight">Support</h3>
+                <div className="space-y-1">
+                 <Button
+                      onClick={() => navigate("/help-center")}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start hover:text-white bg-[#886fa6] hover:bg-[#886fa6]/90 text-white dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90"
+                    >
+                      <BookOpen className="h-6 w-6 mr-2" />
+                      <h3 className="text-sm font-semibold">Help Center</h3>
+                    </Button>
+                </div>
+              </div>
               <Separator />
               <div className="space-y-4 rounded-lg border p-4">
                 <h3 className="mb-2 px-4 text-sm font-semibold tracking-tight">Account</h3>
@@ -204,7 +218,7 @@ export default function Dashboard() {
                       type="submit"
                       variant="ghost"
                       size="sm"
-                      className="w-full justify-start text-destructive hover:text-destructive/90"
+                      className="w-full justify-start hover:text-white bg-[#886fa6] hover:bg-[#886fa6]/90 text-white dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90"
                     >
                       <LogOut className="h-6 w-6 mr-2" />
                       <h3 className="text-sm font-semibold">Logout</h3>
@@ -212,6 +226,7 @@ export default function Dashboard() {
                   </Form>
                 </div>
               </div>
+              
             </div>
             <Separator/>
           </SidebarContent>
@@ -259,7 +274,7 @@ export default function Dashboard() {
                     Add New Facility
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="bg-[#f0ebff] dark:bg-[#212237]">
                   <DialogHeader>
                     <DialogTitle>Add New Facility</DialogTitle>
                     <DialogDescription>
@@ -271,14 +286,14 @@ export default function Dashboard() {
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="Type your message here..."
-                      className="min-h-[100px]"
+                      className="min-h-[100px] dark:bg-[#4A4A62] dark:text-white"
                     />
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <DialogFooter className="p-4 gap-2 dark:bg-[#212237]">
+                    <Button variant="destructive" onClick={() => setIsDialogOpen(false)}>
                       Cancel
                     </Button>
-                    <Button onClick={handleSendMessage}>
+                    <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90 text-white dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90" onClick={handleSendMessage}>
                       Send Message
                     </Button>
                   </DialogFooter>
@@ -332,7 +347,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
         <div className="flex justify-between items-center">
           <div className="space-y-1">
             <CardTitle className="text-lg">{facility.name}</CardTitle>
-            <Badge variant={facility.is_owner ? "default" : "secondary"} className="text-xs bg-[#886fa6] dark:bg-[#3A3A52] text-white">
+            <Badge variant={facility.is_owner ? "default" : "secondary"} className="text-xs bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] text-white">
               {facility.is_owner ? (
                 <>
                   <UserCog className="h-3 w-3 mr-1" />

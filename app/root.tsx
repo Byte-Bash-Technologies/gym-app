@@ -6,7 +6,7 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
-// import InstallPWAButton from "~/components/InstallPWAButton";
+import InstallPWAButton from "~/components/InstallPWAButton";
 import { ThemeProvider } from "~/components/theme-provider";
 
 import "./tailwind.css";
@@ -49,7 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {children}
-        {/* <InstallPWAButton /> */}
+         <InstallPWAButton />
         <ScrollRestoration />
         <Scripts />
       </body>

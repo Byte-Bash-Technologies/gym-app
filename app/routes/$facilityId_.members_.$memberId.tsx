@@ -1,7 +1,7 @@
 import { ActionFunction, json, LoaderFunction } from "@remix-run/node";
-import { useLoaderData,redirect, Link, useFetcher, useParams, useActionData } from "@remix-run/react";
+import { useLoaderData,redirect, Link, useFetcher, useParams, useActionData, useNavigate } from "@remix-run/react";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus, MessageCircle, Clock, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, Bell, Phone, Settings, Download, Pencil, CreditCard, Plus, MessageCircle, Clock, RefreshCcw, Trash2 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
@@ -39,6 +39,7 @@ import {
 import { supabase } from "~/utils/supabase.server";
 import { toast } from "~/hooks/use-toast";
 import FacilityLayout from "./$facilityId";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "~/components/ui/alert-dialog";
 
 interface Member {
   id: string;
@@ -258,6 +259,40 @@ export const action: ActionFunction = async ({ request, params }) => {
     const encodedMessage = encodeURIComponent(messageContent);
     whatsappUrl=`https://api.whatsapp.com/send?phone=${member.phone}&text=${encodedMessage}`;
     return redirect(whatsappUrl);
+  } else if (action === "deleteMember") {
+    const memberId = formData.get("memberId") as string;
+    const facilityId = params.facilityId;
+
+    // Delete related records first (memberships, transactions)
+    const { error: membershipError } = await supabase
+      .from("memberships")
+      .delete()
+      .eq("member_id", memberId);
+
+    if (membershipError) {
+      return json({ error: "Failed to delete memberships" }, { status: 500 });
+    }
+
+    const { error: transactionError } = await supabase
+      .from("transactions")
+      .delete()
+      .eq("member_id", memberId);
+
+    if (transactionError) {
+      return json({ error: "Failed to delete transactions" }, { status: 500 });
+    }
+
+    // Finally delete the member
+    const { error: memberError } = await supabase
+      .from("members")
+      .delete()
+      .eq("id", memberId);
+
+    if (memberError) {
+      return json({ error: "Failed to delete member" }, { status: 500 });
+    }
+
+    return redirect(`/${facilityId}/members`);
   }
 
 
@@ -282,6 +317,8 @@ export default function MemberProfile() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const fetcher = useFetcher();
   const actionData = useActionData();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const navigate = useNavigate();
   useEffect(() => {
     if (actionData?.success && actionData?.whatsappUrl) {
       window.open(actionData.whatsappUrl, '_blank');
@@ -323,9 +360,11 @@ export default function MemberProfile() {
   };
 
   const handleWhatsAppSend = (messageContent: string) => {
+    messageContent = messageContent.replace("{name}", member.full_name);
+    console.log(messageContent);
     const encodedMessage = encodeURIComponent(messageContent);
     window.open(
-      `https://wa.me/${member.phone}?text=${encodedMessage}`,
+      `https://wa.me/91${member.phone}?text=${encodedMessage}`,
       "_blank"
     );
     setIsWhatsAppDrawerOpen(false);
@@ -342,6 +381,14 @@ export default function MemberProfile() {
     );
     setIsReminderDialogOpen(false);
     setIsPaymentSheetOpen(false);
+  };
+
+  const handleDelete = () => {
+    const form = new FormData();
+    form.append("_action", "deleteMember");
+    form.append("memberId", member.id);
+    fetcher.submit(form, { method: "post" });
+    setIsDeleteDialogOpen(false);
   };
 
   return (
@@ -451,7 +498,7 @@ export default function MemberProfile() {
             </p>
           )}
           <Link to="addplans">
-            <Button variant="outline" size="sm" className="mt-4 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
+            <Button variant="outline" size="sm" className="mt-4 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-black dark:text-white">
               
               {activeMembership ? (<><RefreshCcw className="h-4 w-4 mr-2" /> Change Membership</>) : (<><Plus className="h-4 w-4 mr-2" /> Add Membership</>)}
             </Button>
@@ -525,7 +572,7 @@ export default function MemberProfile() {
                 onOpenChange={setIsPaymentSheetOpen}
               >
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
+                  <Button variant="outline" size="sm" className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-black dark:text-white">
                     <CreditCard className="h-4 w-4 mr-2" />
                     Pay Balance
                   </Button>
@@ -578,7 +625,7 @@ export default function MemberProfile() {
                 onOpenChange={setIsReminderDialogOpen}
               >
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
+                  <Button variant="outline" size="sm" className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-black dark:text-white">
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Send Reminder
                   </Button>
@@ -856,6 +903,38 @@ export default function MemberProfile() {
           </div>
         </CardContent>
       </Card>
+                {/* Add Delete Button after the header */}
+      <div className="mt-2 flex justify-center ">
+        <Button
+          variant="destructive"
+          onClick={() => setIsDeleteDialogOpen(true)}
+          className="flex items-center gap-2 w-full sm:w-auto"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete Member
+        </Button>
+      </div>
+      {/* Add Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {member.full_name}? This action cannot be undone.
+              All related data including memberships and transactions will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

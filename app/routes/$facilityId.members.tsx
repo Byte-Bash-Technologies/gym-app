@@ -421,7 +421,7 @@ export default function MembersPage() {
                     variant={showJoinedFirst ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowJoinedFirst(!showJoinedFirst)}
-                    className={showJoinedFirst ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}
+                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${showJoinedFirst ? "bg-[#886fa6] hover:bg-[#886fa6]/90 text-white" : ""}`}
                   >
                     Joined First
                   </Button>
@@ -429,7 +429,7 @@ export default function MembersPage() {
                     variant={showJoinedRecently ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowJoinedRecently(!showJoinedRecently)}
-                    className={showJoinedRecently ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}
+                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${showJoinedRecently ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}`}
                   >
                     Recent Members
                   </Button>
@@ -437,7 +437,7 @@ export default function MembersPage() {
                     variant={showMembersWithNoPlan ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowMembersWithNoPlan(!showMembersWithNoPlan)}
-                    className={showMembersWithNoPlan ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}
+                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${showMembersWithNoPlan ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}`}
                   >
                     No Plan
                   </Button>
@@ -562,7 +562,7 @@ export default function MembersPage() {
       </main>
 
       <Link to="new" className="fixed right-6 bottom-[7rem]">
-        <Button className="w-14 h-14 rounded-full bg-[#886fa6] hover:bg-[#886fa6]/90 text-white shadow-lg">
+        <Button className="w-14 h-14 rounded-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#212237] dark:hover:bg-[#212237]/90 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>

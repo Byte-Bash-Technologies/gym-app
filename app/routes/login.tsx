@@ -105,7 +105,7 @@ export default function Login() {
                   autoComplete="email"
                   required
                   placeholder="Enter your email or phone number"
-                  className="h-12 bg-background"
+                  className="h-12 rounded-2xl bg-background dark:bg-[#4A4A62]"
                   aria-label="Email or phone number"
                   aria-describedby={actionData?.error ? "error-message" : undefined}
                 />
@@ -122,7 +122,7 @@ export default function Login() {
                   autoComplete="current-password"
                   required
                   placeholder="Enter your password"
-                  className="h-12 bg-background"
+                  className="h-12 rounded-2xl bg-background dark:bg-[#4A4A62]"
                   aria-label="Password"
                   aria-describedby={actionData?.error ? "error-message" : undefined}
                 />
@@ -154,7 +154,7 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="w-full h-12 text-lg font-medium bg-[#8e76af] hover:bg-[#8e76af]/90 text-white rounded-xl"
+              className="w-full h-12 text-lg font-medium bg-[#8e76af] hover:bg-[#8e76af]/90 dark:bg-[#3A3A52] text-white rounded-xl"
               disabled={isLoading}
             >
               {isLoading ? "Logging in..." : "Login"}

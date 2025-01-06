@@ -323,7 +323,7 @@ export default function Index() {
       <div className="p-4 dark:bg-[#212237]">
         <h4 className="text-lg font-bold mb-6">Expired Memberships</h4>
         <Card className="shadow-md border-none">
-          <CardContent>
+          <CardContent className="p-2">
             <ul className="divide-y divide-purple-200">
               {expiredMembers.length > 0 ? (
                 expiredMembers.slice(0, 5).map((member) => (
@@ -365,13 +365,15 @@ export default function Index() {
               )}
             </ul>
             {expiredMembers.length > 5 && (
-              <Button
-                variant="link"
-                className="mt-2"
-                onClick={() => handleStatClick("expired")}
-              >
-                View all {expiredMembers.length} expired members
-              </Button>
+                <div className="flex items-center justify-center">
+                <Button
+                  variant="link"
+                  className="mt-2 w-full"
+                  onClick={() => handleStatClick("expired")}
+                >
+                  View all {expiredMembers.length} expired members
+                </Button>
+                </div>
             )}
           </CardContent>
         </Card>
@@ -381,7 +383,7 @@ export default function Index() {
       <div className="p-4 dark:bg-[#212237]">
         <h2 className="text-lg font-bold mb-4">Memberships Expiring Soon</h2>
         <Card className=" shadow-md border-none">
-          <CardContent>
+          <CardContent className="p-2">
             <ul className="divide-y divide-gray-200">
               {expiringSoonMembers.length > 0 ? (
                 expiringSoonMembers.slice(0, 5).map((member) => (
@@ -423,14 +425,16 @@ export default function Index() {
               )}
             </ul>
             {expiringSoonMembers.length > 5 && (
+              <div className="flex items-center justify-center">
               <Button
                 variant="link"
-                className="mt-2"
+                className="mt-2 w-full sm:text-sm"
                 onClick={() => handleStatClick("expiring")}
               >
                 View all {expiringSoonMembers.length} members with expiring
                 memberships
               </Button>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -440,7 +444,7 @@ export default function Index() {
       <div className="p-4 dark:bg-[#212237]">
         <h2 className="text-lg font-bold mb-4">Members with Balance</h2>
         <Card className=" shadow-md border-none">
-          <CardContent>
+          <CardContent className="p-2">
             <ul className="divide-y divide-gray-200">
               {membersWithBalance.length > 0 ? (
                 membersWithBalance.slice(0, 5).map((member) => (
