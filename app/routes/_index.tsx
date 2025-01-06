@@ -90,7 +90,8 @@ export const loader: LoaderFunction = async ({ request }) => {
         end_date
       )
     `)
-    .or(`user_id.eq.${userId},id.in.(${facilityIds.join(',')})`);
+    .or(`user_id.eq.${userId},id.in.(${facilityIds.join(',')})`)
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching facilities:', error);
@@ -246,7 +247,7 @@ export default function Dashboard() {
         </Sidebar>
 
         <div className="flex-1">
-          <header className="text-card-foreground p-4 sticky top-0 z-10 shadow-sm bg-[#f0ebff] dark:bg-[#212237]">
+          <header className="text-card-foreground p-4 sticky top-0 z-1 shadow-sm bg-[#f0ebff] dark:bg-[#212237]">
             <div className="container mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <SidebarTrigger />

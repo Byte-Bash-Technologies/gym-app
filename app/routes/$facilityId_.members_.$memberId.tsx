@@ -666,7 +666,7 @@ export default function MemberProfile() {
               {recentTransactions.map((transaction) => (
                 <li
                   key={transaction.id}
-                  className="flex justify-between items-center cursor-pointer hover:bg-gray-100 p-2 rounded"
+                  className="flex justify-between items-center cursor-pointer hover:bg-gray-100 dark:hover:bg-[#3A3A52] p-2 rounded"
                   onClick={() => setSelectedTransaction(transaction)}
                 >
                   <span className="text-sm w-1/4">
@@ -696,7 +696,7 @@ export default function MemberProfile() {
 
       {/* Transaction Details Dialog */}
       <Dialog open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)}>
-        <DialogContent>
+        <DialogContent className="dark:bg-[#212237]">
           <DialogHeader>
             <DialogTitle>Transaction Details</DialogTitle>
           </DialogHeader>
@@ -720,7 +720,7 @@ export default function MemberProfile() {
               </div>
               <Button
                 onClick={() => window.open(`/invoice/${selectedTransaction.id}`, '_blank')}
-                className="w-full"
+                className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white"
               >
                 View Invoice
               </Button>
@@ -736,8 +736,8 @@ export default function MemberProfile() {
           <div className="flex space-x-2">
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" className="dark:bg-[3A3A52]" size="sm">
-                  <Pencil className="h-4 w-4" />
+                <Button variant="ghost" className="dark:bg-[3A3A52] dark:hover:bg-[#3A3A52]" size="sm">
+                  <Pencil className="h-4 w-4 " />
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-h-[80vh] flex flex-col dark:bg-[#212237]">
@@ -872,7 +872,7 @@ export default function MemberProfile() {
             </div>
             <div>
               <p className="text-gray-500">Email</p>
-              <p className="font-semibold">{member.email}</p>
+              <p className="font-semibold truncate">{member.email}</p>
             </div>
             <div>
               <p className="text-gray-500">Phone</p>

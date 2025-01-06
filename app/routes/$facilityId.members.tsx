@@ -343,7 +343,7 @@ export default function MembersPage() {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-[#886fa6] dark:hover:bg-[#3A3A52]/90"
+                className="h-8 w-8 text-[#886fa6]  dark:hover:bg-[#3A3A52]/90"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
                 <Filter className="text-[#886fa6]" />
@@ -353,13 +353,13 @@ export default function MembersPage() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-[#886fa6]"
+                    className="h-8 w-8 text-[#886fa6] dark:hover:bg-[#3A3A52]/90"
                   >
                     <ChevronDown className="h-5 w-5 text-[#886fa6]" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="dark:bg-[#4A4A62]" align="end">
-                  <DropdownMenuItem onSelect={() => handleSortChange("name")}>
+                  <DropdownMenuItem className="dark:hover:bg-[#3A3A52]/90" onSelect={() => handleSortChange("name")}>
                     Sort by Name{" "}
                     {sortOption.by === "name" &&
                       (sortOption.order === "asc" ? (
@@ -368,7 +368,7 @@ export default function MembersPage() {
                         <SortDesc className="ml-2 h-4 w-4" />
                       ))}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleSortChange("joined")}>
+                  <DropdownMenuItem className="dark:hover:bg-[#3A3A52]/90" onSelect={() => handleSortChange("joined")}>
                     Sort by Join Date{" "}
                     {sortOption.by === "joined" &&
                       (sortOption.order === "asc" ? (
@@ -378,6 +378,7 @@ export default function MembersPage() {
                       ))}
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    className="dark:hover:bg-[#3A3A52]/90"
                     onSelect={() => handleSortChange("balance")}
                   >
                     Sort by Balance{" "}
@@ -524,7 +525,7 @@ export default function MembersPage() {
                     <p className="text-sm text-muted-foreground">
                       {member.phone}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground truncate">
                       {member.email}
                     </p>
                   </div>

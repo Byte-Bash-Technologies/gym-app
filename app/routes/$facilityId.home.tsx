@@ -220,20 +220,20 @@ export default function Index() {
           </Avatar>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center">
+              <Button variant="ghost" className="flex items-center dark:hover:bg-[#3A3A52]/90">
                 <span className="font-bold">{currentGym.name}</span>
                 <ChevronDown className="h-4 w-4 ml-1" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="dark:bg-[#4A4A62]">
               {gyms.map((gym: Gym) => (
-                <DropdownMenuItem key={gym.id}>
+                <DropdownMenuItem className="dark:hover:bg-[#3A3A52]/90" key={gym.id}>
                   <Link to={`/${gym.id}/home`} className="w-full">
                     {gym.name}
                   </Link>
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuItem>
+              <DropdownMenuItem className="dark:hover:bg-[#3A3A52]/90">
                 <Link to="/" className="w-full">
                   Manage Facilities
                 </Link>

@@ -348,17 +348,17 @@ export default function Transactions() {
               defaultValue={timelineFilter}
               onValueChange={(value) => handleFilterChange("timeline", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="dark:bg-[#4A4A62]">
                 <SelectValue placeholder="Select timeline" />
               </SelectTrigger>
               <SelectContent className="dark:bg-[#4A4A62]">
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="yesterday">Yesterday</SelectItem>
-                <SelectItem value="thisMonth">This Month</SelectItem>
-                <SelectItem value="lastMonth">Last Month</SelectItem>
-                <SelectItem value="last7Days">Last 7 Days</SelectItem>
-                <SelectItem value="last30Days">Last 30 Days</SelectItem>
-                <SelectItem value="allTime">All Time</SelectItem>
+                <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="today">Today</SelectItem>
+                <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="yesterday">Yesterday</SelectItem>
+                <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="thisMonth">This Month</SelectItem>
+                <SelectItem className="dark:hover:bg-[#3A3A52]/90" value="lastMonth">Last Month</SelectItem>
+                <SelectItem className="dark:hover:bg-[#3A3A52]/90" value="last7Days">Last 7 Days</SelectItem>
+                <SelectItem className="dark:hover:bg-[#3A3A52]/90" value="last30Days">Last 30 Days</SelectItem>
+                <SelectItem className="dark:hover:bg-[#3A3A52]/90" value="allTime">All Time</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -378,9 +378,9 @@ export default function Transactions() {
                 <SelectValue placeholder="Select plan" />
               </SelectTrigger>
               <SelectContent className="dark:bg-[#4A4A62]">
-                <SelectItem value="all">All Plans</SelectItem>
+                <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="all">All Plans</SelectItem>
                 {plans.map((plan) => (
-                  <SelectItem key={plan.id} value={plan.id}>
+                  <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" key={plan.id} value={plan.id}>
                     {plan.name}
                   </SelectItem>
                 ))}

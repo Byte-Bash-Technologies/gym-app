@@ -16,7 +16,7 @@ export default function HelpCenter() {
       <header className="bg-background dark:bg-[#4A4A62] border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => history.back()}>
+            <Button className="hover:dark:bg-[#3A3A52]/90" variant="ghost" size="icon" onClick={() => history.back()}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
