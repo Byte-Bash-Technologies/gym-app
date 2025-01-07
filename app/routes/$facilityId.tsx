@@ -29,7 +29,6 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   
   const facility = facilities?.[0];
   if (facilityError) {
-  console.error("Error fetching facility data:", facilityError);
   throw new Response("Facility not found", { status: 404 });
 } 
   const { data, error } = await supabase

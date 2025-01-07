@@ -1,5 +1,5 @@
 // app/routes/$facilityId.members.new.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   json,
   useActionData,
@@ -225,26 +225,23 @@ export const action: ActionFunction = async ({ request, params }) => {
       return json({ error: memberError.message }, { status: 400 });
     }
   }
-
   // Send WhatsApp message if phone number is provided
-  if (phone.length === 10) {
+
     const message = `Welcome to our gym, ${full_name}! ${
       plan_id ? "Your membership plan has been activated." : ""
     } Download your membership details here: https://${process.env.APP_URL}/invoice/${
       transactionID || ""
     }`;
-    const whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(
+   const whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(
       message
     )}`;
-    return redirect(whatsappLink);
-  }
-
-  return redirect(`/${params.facilityId}/members`);
+   
+  return json({whatsappLink,redirectUrl:`/${params.facilityId}/members/`});
 };
 
 export default function NewMemberForm() {
   const { facilityName, plans } = useLoaderData<typeof loader>();
-  const actionData = useActionData();
+  const actionData = useActionData<{ error?: string; whatsappLink?: string; redirectUrl?: string }>();
   const [formError, setFormError] = useState<string | null>(null);
   const [addPlan, setAddPlan] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
@@ -252,6 +249,7 @@ export default function NewMemberForm() {
   const [discount, setDiscount] = useState<number>(0);
   const params = useParams();
   const [preview, setPreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -266,6 +264,18 @@ export default function NewMemberForm() {
       setPreview(null);
     }
   };
+
+  useEffect(()=>{
+    if (actionData?.error) {
+      setIsLoading(false);
+    }
+    if(actionData?.whatsappLink){
+      window.open(actionData.whatsappLink,'_blank');
+      if (actionData.redirectUrl) {
+        window.location.href = actionData.redirectUrl;
+      }
+    }
+  },[actionData])
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (!event.currentTarget.checkValidity()) {
@@ -302,7 +312,7 @@ export default function NewMemberForm() {
       </header>
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(event) => { setIsLoading(true); handleSubmit(event); }}
         method="post"
         className="p-4 space-y-6"
         encType="multipart/form-data"
@@ -526,8 +536,9 @@ export default function NewMemberForm() {
         <Button
           type="submit"
           className="w-full bg-[#8e76af] hover:bg-[#8e76af]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white py-6 rounded-full text-lg"
+          disabled={isLoading}
         >
-          Add member
+         {isLoading ? "Adding member..." : "Add Member"}
         </Button>
       </form>
     </div>

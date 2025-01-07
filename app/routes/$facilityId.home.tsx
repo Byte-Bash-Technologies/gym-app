@@ -301,11 +301,11 @@ export default function Index() {
 
       {/* Birthdays Section */}
       {birthdays.length > 0 && (
-        <div className="p-4">
+        <div className="p-4 overflow-x-auto">
           <h2 className="text-xl font-bold mb-4">Birthdays Today</h2>
           <div className="flex space-x-4">
             {birthdays.map((birthday: Birthday) => (
-              <div key={birthday.id} className="flex flex-col items-center">
+              <div key={birthday.id} className="flex flex-col  items-center">
                 <Avatar className="h-16 w-16 ring-2 ring-purple-100">
                   <AvatarImage src={birthday.avatar} alt={birthday.name} />
                   <AvatarFallback>{birthday.name[0]}</AvatarFallback>
