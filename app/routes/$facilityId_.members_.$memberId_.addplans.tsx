@@ -202,14 +202,14 @@ export default function RenewMembership() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="mb-6">
+            <div className="mb-6">
             <h2 className="text-lg font-semibold text-foreground">{member.full_name}</h2>
             <p className="text-muted-foreground">{member.email}</p>
             <p className="text-muted-foreground">{member.phone}</p>
             <p className="text-sm text-muted-foreground">Admission No: {member.admission_no}</p>
             <p className="text-sm text-muted-foreground">Joined: {new Date(member.joined_date).toLocaleDateString()}</p>
-            <p className="text-sm text-muted-foreground">Current Balance: ₹{member.balance.toFixed(2)}</p>
-          </div>
+            <p className="text-sm text-muted-foreground">Current Balance: ₹{(member.balance || 0).toFixed(2)}</p>
+            </div>
 
           <Form method="post" onSubmit={() => setIsLoading(true)} className="space-y-4">
             <div>
