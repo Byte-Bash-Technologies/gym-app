@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, useParams, useLocation, Link } from "@remix-run/react";
 import { Home, Wallet, PieChart, Users } from 'lucide-react';
 import { cn } from "~/lib/utils";
@@ -12,7 +12,7 @@ interface NavItem {
 export default function BottomNav() {
   const params = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
+  const prefetchedRoutes = useRef<Set<string>>(new Set());
 
   const navItems: NavItem[] = useMemo(() => [
     { name: 'Home', path: 'home', icon: Home },
@@ -30,14 +30,32 @@ export default function BottomNav() {
     setActiveTab(newActiveTab);
   }, [location.pathname, navItems]);
 
+  const shouldShowNav = useMemo(() => {
+    const allowedPaths = navItems.map(item => `/${params.facilityId}/${item.path}`);
+    return allowedPaths.includes(location.pathname);
+  }, [location.pathname, navItems, params.facilityId]);
+
+  const handlePrefetch = (path: string) => {
+    const fullPath = `/${params.facilityId}/${path}`;
+    if (!prefetchedRoutes.current.has(fullPath)) {
+      prefetchedRoutes.current.add(fullPath);
+      return "render";
+    }
+    return "none";
+  };
+
+  if (!shouldShowNav) {
+    return null;
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-[#f0ebff] dark:bg-[#212237] p-2 rounded-t-3xl border-t border-[#886fa6]/20" aria-label="Bottom Navigation">
       <div className="flex justify-around items-center text-gray-500">
         {navItems.map((item) => (
           <Link
-            prefetch="render"
             key={item.path}
             to={`/${params.facilityId}/${item.path}`}
+            prefetch={handlePrefetch(item.path)}
             className="flex flex-col items-center relative"
             onClick={() => setActiveTab(item.path)}
             aria-current={activeTab === item.path ? 'page' : undefined}
