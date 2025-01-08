@@ -2,7 +2,9 @@
 
 import { json, redirect, type LoaderFunction } from "@remix-run/node";
 import { useLoaderData, Link, useParams, useNavigate } from "@remix-run/react";
-import { Bell, Phone, Settings, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from "react";
+import { Bell, Phone, Settings, ChevronDown, ChevronRight, Cake, Gift, User } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '~/components/ui/dialog';
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "~/components/ui/avatar";
@@ -33,6 +35,7 @@ interface Birthday {
   id: number;
   name: string;
   avatar: string;
+  phone: number;
 }
 
 interface Member {
@@ -143,7 +146,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   const today = now.toISOString().split("T")[0];
   const { data: birthdays, error: birthdaysError } = await supabase
     .from("members")
-    .select("id, full_name,photo_url, date_of_birth")
+    .select("id, full_name,photo_url, date_of_birth, phone")
     .eq("facility_id", facilityId);
 
   if (birthdaysError) throw new Error("Failed to fetch birthdays");
@@ -161,6 +164,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
       id: b.id,
       name: b.full_name,
       avatar:b.photo_url,
+      phone: b.phone,
     })),
     expiredMembers,
     expiringSoonMembers,
@@ -171,6 +175,8 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 
 export default function Index() {
   const params = useParams();
+  const [isBirthdayDialogOpen, setIsBirthdayDialogOpen] = useState(false);
+  const [selectedBirthday, setSelectedBirthday] = useState<Birthday | null>(null);
   const navigate = useNavigate();
   const {
     gyms,
@@ -306,7 +312,13 @@ export default function Index() {
           <div className="flex space-x-4">
             {birthdays.map((birthday: Birthday) => (
               <div key={birthday.id} className="flex flex-col  items-center">
-                <Avatar className="h-16 w-16 ring-2 ring-purple-100">
+                <Avatar 
+                  className="h-16 w-16 ring-2 ring-purple-100 cursor-pointer hover:ring-purple-300 transition-all"
+                  onClick={() => {
+                  setSelectedBirthday(birthday);
+                  setIsBirthdayDialogOpen(true);
+                }}
+                >
                   <AvatarImage src={birthday.avatar} alt={birthday.name} />
                   <AvatarFallback>{birthday.name[0]}</AvatarFallback>
                 </Avatar>
@@ -316,6 +328,59 @@ export default function Index() {
               </div>
             ))}
           </div>
+            <Dialog open={isBirthdayDialogOpen} onOpenChange={setIsBirthdayDialogOpen}>
+            <DialogContent className="sm:max-w-[425px] dark:bg-[#212237]">
+              <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Cake className="h-5 w-5 text-purple-500" />
+                Birthday Wishes
+              </DialogTitle>
+              <DialogDescription>
+                Send birthday wishes or view profile
+              </DialogDescription>
+              </DialogHeader>
+              
+              {selectedBirthday && (
+              <div className="flex flex-col items-center gap-4 py-4">
+                <Avatar className="h-20 w-20">
+                <AvatarImage src={selectedBirthday.avatar} alt={selectedBirthday.name} />
+                <AvatarFallback>{selectedBirthday.name[0]}</AvatarFallback>
+                </Avatar>
+                <div className="text-center">
+                <h3 className="font-semibold text-lg">{selectedBirthday.name}</h3>
+                <p className="text-sm text-muted-foreground">is celebrating their birthday today!</p>
+                </div>
+                
+                <div className="flex flex-col w-full gap-2">
+                <Button 
+                  className="w-full gap-2 bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white"
+                  onClick={() => {
+                  // Open WhatsApp with birthday message
+                    const message = encodeURIComponent(`Happy Birthday ${selectedBirthday.name}!🎉 \n🎂 Wishing you a fantastic day filled with joy and celebration! \n\n${currentGym.name}`);
+                  window.open(`https://wa.me/${selectedBirthday.phone}?text=${message}`, '_blank');
+                  setIsBirthdayDialogOpen(false);
+                  }}
+                >
+                  <Gift className="h-4 w-4" />
+                  Send Birthday Wish
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full gap-2 dark:bg-[#4A4A62] dark:hover:bg-[#4A4A62]/90"
+                  onClick={() => {
+                  navigate(`/${params.facilityId}/members/${selectedBirthday.id}`);
+                  setIsBirthdayDialogOpen(false);
+                  }}
+                >
+                  <User className="h-4 w-4" />
+                  View Profile
+                </Button>
+                </div>
+              </div>
+              )}
+            </DialogContent>
+            </Dialog>
         </div>
       )}
 

@@ -69,7 +69,6 @@ interface Membership {
   end_date: string;
   status: string;
 }
-
 interface Transaction {
   id: string;
   amount: number;
@@ -165,29 +164,40 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     const memberships = membershipsResponse.data || [];
     
     // Optimize membership status updates by doing them in parallel
-    const activeMembership = memberships.find(m => new Date(m.end_date) >= now) || null;
+    const activeMembership = memberships.find(m => new Date(m.start_date) <= now && new Date(m.end_date) && m.is_disabled===false ) || null;
     const expiredMemberships = memberships.filter(m => new Date(m.end_date) < now || m.is_disabled === true);
-
+    const pendingMemberships = memberships.filter(m => new Date(m.start_date) > now);
     // Batch update membership statuses if needed
     const statusUpdates = [];
     
     if (activeMembership?.status !== "active") {
       statusUpdates.push(
-        supabase
-          .from("memberships")
-          .update({ status: "active" })
-          .eq("id", activeMembership?.id)
+      supabase
+        .from("memberships")
+        .update({ status: "active" })
+        .eq("id", activeMembership?.id)
       );
     }
 
     expiredMemberships.forEach(membership => {
       if (membership.status !== "expired") {
-        statusUpdates.push(
-          supabase
-            .from("memberships")
-            .update({ status: "expired" })
-            .eq("id", membership.id)
-        );
+      statusUpdates.push(
+        supabase
+        .from("memberships")
+        .update({ status: "expired" })
+        .eq("id", membership.id)
+      );
+      }
+    });
+
+    pendingMemberships.forEach(membership => {
+      if (membership.status !== "pending") {
+      statusUpdates.push(
+        supabase
+        .from("memberships")
+        .update({ status: "pending" })
+        .eq("id", membership.id)
+      );
       }
     });
 
@@ -202,6 +212,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
         facility: facilityResponse.data,
         activeMembership,
         expiredMemberships,
+        pendingMemberships,
         recentTransactions: transactionsResponse.data || [],
         messageTemplates: templatesResponse.data || [],
       },
@@ -337,6 +348,7 @@ export default function MemberProfile() {
     facility,
     activeMembership,
     expiredMemberships,
+    pendingMemberships,
     recentTransactions,
     messageTemplates,
   } = useLoaderData<LoaderData>();
@@ -474,7 +486,7 @@ export default function MemberProfile() {
               WhatsApp
             </Button>
           </DrawerTrigger>
-          <DrawerContent>
+          <DrawerContent className="dark:bg-[#212237] text-white">
             <DrawerHeader>
               <DrawerTitle>Send WhatsApp Message</DrawerTitle>
             </DrawerHeader>
@@ -483,7 +495,7 @@ export default function MemberProfile() {
                 <Button
                   key={template.id}
                   onClick={() => handleWhatsAppSend(template.content)}
-                  className="w-full justify-start"
+                  className="w-full justify-start bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white"
                 >
                   {template.title}
                 </Button>
@@ -536,10 +548,54 @@ export default function MemberProfile() {
           </Link>
         </CardContent>
       </Card>
+        {/*Pending Membership */}
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-lg font-bold">
+            Pending Membership
+          </CardTitle>
+          <Clock className="h-5 w-5 text-gray-400" />
+        </CardHeader>
+        <CardContent>
+          {pendingMemberships.length > 0 ? (
+            <div className="space-y-4">
+              {pendingMemberships.map((membership: { id: Key | null | undefined; plans: { name: any; price: any; duration: any; }; start_date: string | number | Date; end_date: string | number | Date; status: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; }) => (
+                <div
+                  key={membership.id}
+                  className="flex justify-between items-center"
+                >
+                  <div>
+                    <h3 className="font-semibold">
+                      {membership.plans?.name || "Unknown Plan"}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(membership.start_date).toLocaleDateString()} -{" "}
+                      {new Date(membership.end_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold">
+                      ₹{membership.plans?.price || "N/A"}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {membership.plans?.duration || "N/A"} days
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="text-sm inline-block px-3 py-1 dark:bg-[#3A3A52] rounded-full bg-yellow-50 text-yellow-500">• {membership.status}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No pending memberships found
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Membership History */}
       <Card className="mb-6">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardHeader className="flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg font-bold">
             Membership History
           </CardTitle>

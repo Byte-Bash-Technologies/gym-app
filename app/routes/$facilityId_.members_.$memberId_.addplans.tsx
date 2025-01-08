@@ -60,6 +60,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   const discount = parseFloat(formData.get("discount") as string) || 0;
   const isFullPayment = formData.get("isFullPayment") === "true";
   const paidAmount = parseFloat(formData.get("paidAmount") as string) || 0;
+  const startDate = new Date(formData.get("startDate") as string);
 
   const { data: plan, error: planError } = await supabase
     .from('plans')
@@ -105,13 +106,15 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   if (disableMembershipsError) return json({ error: "Failed to disable existing memberships" }, { status: 500 });
 
+  
+  
   const { data: membership, error: membershipError } = await supabase
     .from('memberships')
     .insert({
       member_id: params.memberId,
       plan_id: planId,
-      start_date: new Date().toISOString(),
-      end_date: new Date(Date.now() + plan.duration * 24 * 60 * 60 * 1000).toISOString(),
+      start_date: startDate.toISOString(),
+      end_date: new Date(startDate.getTime() + plan.duration * 24 * 60 * 60 * 1000).toISOString(),
       status: 'active'
     })
     .select()
@@ -223,14 +226,23 @@ export default function RenewMembership() {
                 </SelectTrigger>
                 <SelectContent className="dark:bg-[#4A4A62]">
                   {plans.map((plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
+                    <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" key={plan.id} value={plan.id}>
                       {plan.name} - ₹{plan.price} for {plan.duration} days
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Plan Start Date</Label>
+              <Input
+                type="date"
+                id="startDate"
+                name="startDate"
+                className="dark:bg-[#4A4A62]"
+                required
+              />
+            </div>
             <div>
               <Label htmlFor="discount" className="text-foreground">Discount</Label>
               <Input
@@ -286,10 +298,10 @@ export default function RenewMembership() {
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
                 <SelectContent className="dark:bg-[#4A4A62]">
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="credit_card">Credit Card</SelectItem>
-                  <SelectItem value="debit_card">Debit Card</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="cash">Cash</SelectItem>
+                  <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="credit_card">Credit Card</SelectItem>
+                  <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="debit_card">Debit Card</SelectItem>
+                  <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="upi">UPI</SelectItem>
                 </SelectContent>
               </Select>
             </div>

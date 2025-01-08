@@ -22,13 +22,13 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="dark:bg-[#3A3A52]">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem className='dark:focus:bg-[#4A4A62]/90 dark:hover:bg-[#4A4A62]/90' onClick={() => setTheme("light")}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem className='dark:focus:bg-[#4A4A62]/90 dark:hover:bg-[#4A4A62]/90' onClick={() => setTheme("dark")}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem className='dark:focus:bg-[#4A4A62]/90 dark:hover:bg-[#4A4A62]/90' onClick={() => setTheme("system")}>
           System
         </DropdownMenuItem>
       </DropdownMenuContent>

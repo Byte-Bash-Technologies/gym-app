@@ -66,6 +66,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   const plan_id = formData.get("plan_id") as string;
   const payment_amount = parseFloat(formData.get("payment_amount") as string);
   const discount = parseFloat(formData.get("discount") as string) || 0;
+  const start_date = formData.get("start_date") as string;
 
   // Generate admission number
   const facilityPrefix = (params.facilityId as string)
@@ -134,10 +135,10 @@ export const action: ActionFunction = async ({ request, params }) => {
       return json({ error: memberError.message }, { status: 400 });
     }
 
-    const duration = planData?.duration || 0;
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + duration);
+    
+    const startDate = new Date(formData.get("startDate") as string);
+    const endDate = new Date(startDate.getTime() + planData?.duration * 24 * 60 * 60 * 1000).toISOString();
+    
 
     // Create membership
     const { error: membershipError } = await supabase
@@ -147,7 +148,7 @@ export const action: ActionFunction = async ({ request, params }) => {
           member_id: memberData[0].id,
           plan_id,
           start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
+          end_date: endDate,
           status: "active",
           price: planPrice,
           discount,
@@ -296,7 +297,7 @@ export default function NewMemberForm() {
     <div className="min-h-screen bg-background dark:bg-[#212237] pb-20">
       <header className="bg-card dark:bg-[#4A4A62] text-card-foreground p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+          <Button variant="ghost" className="hover:dark:bg-[#212237]" size="icon" onClick={() => window.history.back()}>
             <ArrowLeft className="h-6 w-6" />
           </Button>
           <h1 className="text-xl font-bold">New member</h1>
@@ -475,12 +476,23 @@ export default function NewMemberForm() {
                 </SelectTrigger>
                 <SelectContent className="dark:bg-[#4A4A62]">
                   {plans.map((plan: Plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
+                    <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" key={plan.id} value={plan.id}>
                       {plan.name} - ₹{plan.price}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Plan Start Date</Label>
+              <Input
+                type="date"
+                id="start_date"
+                name="start_date"
+                className="dark:bg-[#4A4A62]"
+                required
+              />
             </div>
 
             {selectedPlan && (
