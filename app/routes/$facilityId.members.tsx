@@ -44,18 +44,9 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     const sortBy = url.searchParams.get("sortBy") || "name";
     const sortOrder = url.searchParams.get("sortOrder") || "asc";
 
-    const { data: facility, error: facilityError } = await supabase
-      .from("facilities")
-      .select("name")
-      .eq("id", facilityId)
-      .single();
-
-    if (facilityError) throw facilityError;
-
-    const { data: members, error: membersError } = await supabase
-      .from("members")
-      .select(
-        `
+    const [facilityResponse, membersResponse, plansResponse] = await Promise.all([
+      supabase.from("facilities").select("name").eq("id", facilityId).single(),
+      supabase.from("members").select(`
         id, 
         full_name, 
         email, 
@@ -64,23 +55,18 @@ export const loader: LoaderFunction = async ({ params, request }) => {
         balance,
         joined_date,
         memberships(status, end_date, plans(name))
-      `
-      )
-      .eq("facility_id", facilityId);
+      `).eq("facility_id", facilityId),
+      supabase.from("plans").select("id, name").eq("facility_id", facilityId),
+    ]);
 
-    if (membersError) throw membersError;
-
-    const { data: plans, error: plansError } = await supabase
-      .from("plans")
-      .select("id, name")
-      .eq("facility_id", facilityId);
-
-    if (plansError) throw plansError;
+    if (facilityResponse.error) throw facilityResponse.error;
+    if (membersResponse.error) throw membersResponse.error;
+    if (plansResponse.error) throw plansResponse.error;
 
     const now = new Date();
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const processedMembers = members.map((member: any) => ({
+    const processedMembers = membersResponse.data.map((member: any) => ({
       ...member,
       status: member.memberships.length > 0
         ? member.memberships[0].status === "active"
@@ -92,9 +78,9 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     }));
 
     return json({
-      facility,
+      facility: facilityResponse.data,
       members: processedMembers,
-      plans,
+      plans: plansResponse.data,
       currentFilters: filters,
       currentSort: { by: sortBy, order: sortOrder },
     });

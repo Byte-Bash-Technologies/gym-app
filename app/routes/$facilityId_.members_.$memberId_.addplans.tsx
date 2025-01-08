@@ -144,7 +144,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 
   // Send WhatsApp message
   const message = `Dear ${memberData.full_name}, your membership has been successfully renewed. You can view your invoice at ${process.env.APP_URL}/invoice/${transaction.id}`;
-  const whatsappUrl=`https://api.whatsapp.com/send?phone=${memberData.phone}&text=${encodeURIComponent(message)}`;
+  const whatsappUrl=`https://api.whatsapp.com/send?phone=91${memberData.phone}&text=${encodeURIComponent(message)}`;
 
   return json({ whatsappUrl, redirectUrl: `/${params.facilityId}/members/${params.memberId}` });
 };

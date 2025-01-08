@@ -59,47 +59,26 @@ export default function FacilityLayout() {
   const { endDate, facilityName, facilityType } =
     useLoaderData<typeof loader>();
 
-  const navItems = [
-    { icon: Home, label: "Home", href: `/${params.facilityId}/home` },
-    { icon: Users, label: "Members", href: `/${params.facilityId}/members` },
-    { icon: FileText, label: "Reports", href: `/${params.facilityId}/reports` },
-  ];
 
   const isSubscriptionExpired = !endDate || new Date(endDate) < new Date();
 
-  const NavLinks = ({ isMobile = false }) => (
-    <>
-      {navItems.map((item) => (
-        <Link
-          key={item.href}
-          to={item.href}
-          className={cn(
-            "flex items-center space-x-2 px-4 py-2 rounded-md transition-colors",
-            location.pathname === item.href
-              ? "bg-purple-100 text-purple-700"
-              : "text-gray-600 hover:bg-gray-100",
-            isMobile && "text-lg py-3"
-          )}
-          onClick={() => isMobile && setIsMobileMenuOpen(false)}
-        >
-          <item.icon className="h-5 w-5" />
-          <span>{item.label}</span>
-        </Link>
-      ))}
-    </>
-  );
+ 
 
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-grow container mx-auto">
         {isSubscriptionExpired ? (
           <SubscriptionExpiredMessage
-            facilityName={facilityName}
-            facilityType={facilityType}
-            facilityId={params.facilityId ?? ""}
+        facilityName={facilityName}
+        facilityType={facilityType}
+        facilityId={params.facilityId ?? ""}
           />
         ) : (
-          <Outlet />
+          location.pathname === `/${params.facilityId}/` ? (
+        window.location.href = `/${params.facilityId}/home`
+          ) : (
+        <Outlet />
+          )
         )}
       </main>
       <BottomNav />

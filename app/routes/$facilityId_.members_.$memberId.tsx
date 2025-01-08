@@ -92,97 +92,128 @@ interface LoaderData {
   messageTemplates: MessageTemplate[];
 }
 
-export const loader: LoaderFunction = async ({ params }) => {
-  const facilityId = params.facilityId;
+// Add cache headers helper
+function createCacheHeaders(maxAge: number = 60) {
+  return {
+    "Cache-Control": `private, max-age=${maxAge}`,
+    "Vary": "Cookie",
+  };
+}
 
-  const { data: facility, error: facilityError } = await supabase
-    .from("facilities")
-    .select("name,phone")
-    .eq("id", facilityId)
-    .single();
+// Optimize loader with caching and error handling
+export const loader: LoaderFunction = async ({ params, request }) => {
+  // Add cache control
+  const headers = createCacheHeaders(300); // Cache for 5 minutes
 
-  if (facilityError) {
-    throw new Response("Facility not found", { status: 404 });
-  }
-
-  const { data: member, error: memberError } = await supabase
-    .from("members")
-    .select("*")
-    .eq("facility_id", facilityId)
-    .eq("id", params.memberId)
-    .single();
-
-  if (memberError) throw new Response("Member not found", { status: 405 });
-
-  const { data: memberships, error: membershipsError } = await supabase
-    .from("memberships")
-    .select(
-      `
-      id,
-      start_date,
-      end_date,
-      is_disabled,
-      status,
-      plans (
-        name,
-        duration,
-        price
-      )
-    `
-    )
-    .eq("member_id", params.memberId)
-    .order("start_date", { ascending: false });
-
-  const now = new Date();
-  const activeMembership =
-    memberships?.find((m) => new Date(m.end_date) >= now) || null;
-  const expiredMemberships =
-    memberships?.filter((m) => new Date(m.end_date) < now || m.is_disabled===true) || [];
-
-  // Update membership statuses
-  if (activeMembership && activeMembership.status !== "active") {
-    await supabase
-      .from("memberships")
-      .update({ status: "active" })
-      .eq("id", activeMembership.id);
-    activeMembership.status = "active";
-  }
-  
-  for (const membership of expiredMemberships) {
-    if (membership.status !== "expired") {
-      await supabase
+  try {
+    // Parallel data fetching for better performance
+    const [
+      facilityResponse,
+      memberResponse,
+      membershipsResponse,
+      transactionsResponse,
+      templatesResponse
+    ] = await Promise.all([
+      supabase
+        .from("facilities")
+        .select("name,phone")
+        .eq("id", params.facilityId)
+        .single(),
+      
+      supabase
+        .from("members")
+        .select("*")
+        .eq("facility_id", params.facilityId)
+        .eq("id", params.memberId)
+        .single(),
+      
+      supabase
         .from("memberships")
-        .update({ status: "expired" })
-        .eq("id", membership.id);
-      membership.status = "expired";
+        .select(`
+          id,
+          start_date,
+          end_date,
+          is_disabled,
+          status,
+          plans (
+            name,
+            duration,
+            price
+          )
+        `)
+        .eq("member_id", params.memberId)
+        .order("start_date", { ascending: false }),
+      
+      supabase
+        .from("transactions")
+        .select("*")
+        .eq("member_id", params.memberId)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      
+      supabase
+        .from("message_templates")
+        .select("*")
+        .order("title")
+    ]);
+
+    // Early error checking
+    if (facilityResponse.error) throw new Response("Facility not found", { status: 404 });
+    if (memberResponse.error) throw new Response("Member not found", { status: 404 });
+
+    const now = new Date();
+    const memberships = membershipsResponse.data || [];
+    
+    // Optimize membership status updates by doing them in parallel
+    const activeMembership = memberships.find(m => new Date(m.end_date) >= now) || null;
+    const expiredMemberships = memberships.filter(m => new Date(m.end_date) < now || m.is_disabled === true);
+
+    // Batch update membership statuses if needed
+    const statusUpdates = [];
+    
+    if (activeMembership?.status !== "active") {
+      statusUpdates.push(
+        supabase
+          .from("memberships")
+          .update({ status: "active" })
+          .eq("id", activeMembership?.id)
+      );
     }
+
+    expiredMemberships.forEach(membership => {
+      if (membership.status !== "expired") {
+        statusUpdates.push(
+          supabase
+            .from("memberships")
+            .update({ status: "expired" })
+            .eq("id", membership.id)
+        );
+      }
+    });
+
+    // Execute all status updates in parallel if any exist
+    if (statusUpdates.length > 0) {
+      await Promise.all(statusUpdates);
+    }
+
+    return json(
+      {
+        member: memberResponse.data,
+        facility: facilityResponse.data,
+        activeMembership,
+        expiredMemberships,
+        recentTransactions: transactionsResponse.data || [],
+        messageTemplates: templatesResponse.data || [],
+      },
+      {
+        headers,
+        status: 200,
+      }
+    );
+  } catch (error) {
+    console.error("Loader error:", error);
+    throw new Response("Error loading member profile", { status: 500 });
   }
-
-  const { data: transactions, error: transactionsError } = await supabase
-    .from("transactions")
-    .select("*")
-    .eq("member_id", params.memberId)
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const { data: messageTemplates, error: messageTemplatesError } =
-    await supabase.from("message_templates").select("*").order("title");
-
-  if (membershipsError)
-    console.error("Error fetching memberships:", membershipsError);
-  if (transactionsError)
-    console.error("Error fetching transactions:", transactionsError);
-  if (messageTemplatesError)
-    console.error("Error fetching message templates:", messageTemplatesError);
-
-  return json({
-    member,
-    facility,
-    activeMembership,
-    expiredMemberships,
-    recentTransactions: transactions ?? [],
-    messageTemplates: messageTemplates ?? [],
-  });
 };
 export { ErrorBoundary} from "~/components/CatchErrorBoundary";
 
@@ -728,8 +759,7 @@ export default function MemberProfile() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Member Details */}
+          {/* Member Details */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg font-bold">Member details</CardTitle>
@@ -935,6 +965,7 @@ export default function MemberProfile() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
     </div>
   );
 }
