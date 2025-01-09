@@ -27,6 +27,12 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar";
 import { useTheme } from "~/components/theme-provider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { ThemeToggle } from "~/components/theme-toggle";
 import SportsDotLogo from "~/assets/sportsdot-favicon-16-01.svg";
 import { Separator } from "~/components/ui/separator";
@@ -90,8 +96,7 @@ export const loader: LoaderFunction = async ({ request }) => {
         end_date
       )
     `)
-    .or(`user_id.eq.${userId},id.in.(${facilityIds.join(',')})`)
-    .order('created_at', { ascending: false });
+    .or(`user_id.eq.${userId},id.in.(${facilityIds.join(',')})`);
 
   if (error) {
     console.error('Error fetching facilities:', error);
@@ -107,16 +112,26 @@ export const loader: LoaderFunction = async ({ request }) => {
     return json({ error: error.message });
   }
 
-  const processedFacilities = facilities.map(facility => ({
-    ...facility,
-    subscription_end_date: facility.facility_subscriptions[0]?.end_date || null,
-    is_owner: facility.user_id === user.id
+  const facilitiesWithRevenue = await Promise.all(facilities.map(async (facility) => {
+    const { data: transactions } = await supabase
+      .from('transactions')
+      .select('amount')
+      .eq('facility_id', facility.id);
+      
+    const revenue = transactions?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0;
+    
+    return {
+      ...facility,
+      revenue,
+      subscription_end_date: facility.facility_subscriptions[0]?.end_date || null,
+      is_owner: facility.user_id === user.id
+    };
   }));
 
   return json({ 
-    facilities: processedFacilities, 
+    facilities: facilitiesWithRevenue, 
     userName: userName?.full_name || '',
-    email : userName?.email || ''
+    email: userName?.email || ''
   });
 };
 export const action: ActionFunction = async ({ request }) => {
@@ -173,10 +188,10 @@ export default function Dashboard() {
                 <AvatarFallback>S</AvatarFallback>
               </Avatar>
               <Link to={"https://sportsdot.in"} className="flex items-center gap-1">
-                <div className="flex flex-col">
-                  <span className="font-semibold text-lg">SportsDot</span>
-                  <span className="text-xs text-muted-foreground">Management Dashboard</span>
-                </div>
+              <div className="flex flex-col">
+                <span className="font-semibold text-lg">SportsDot Base</span>
+                <span className="text-xs text-muted-foreground">Management Dashboard</span>
+              </div>
               </Link>
             </div>
             <Separator className="mb-4" />
@@ -227,9 +242,7 @@ export default function Dashboard() {
                   </Form>
                 </div>
               </div>
-              
             </div>
-            <Separator/>
           </SidebarContent>
           <SidebarFooter className="bg-[#f0ebff] dark:bg-[#212237]">
             <Separator className="mb-4" />
@@ -342,63 +355,63 @@ function FacilityCard({ facility }: { facility: Facility }) {
   return (
     <Card
       className="cursor-pointer hover:shadow-md transition-shadow dark:bg-[#4A4A62] dark:border dark:border-[#4A4A62]"
-      onClick={() => navigate(`${facility.id}/home`)}
+      onClick={() => navigate(`${facility.id}/home`, { state: { prefetch: 'render' } })}
     >
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <div className="space-y-1">
-            <CardTitle className="text-lg">{facility.name}</CardTitle>
-            <Badge variant={facility.is_owner ? "default" : "secondary"} className="text-xs bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] text-white">
-              {facility.is_owner ? (
-                <>
-                  <UserCog className="h-3 w-3 mr-1" />
-                  Owner
-                </>
-              ) : (
-                <>
-                  <Users className="h-3 w-3 mr-1" />
-                  Trainer
-                </>
-              )}
-            </Badge>
-          </div>
-          <Badge
-            variant={facility.type === "gym" ? "secondary" : "secondary"}
-            className="text-xs dark:bg-[#3A3A52]"
-          >
-            {facility.type === "gym" ? (
-              <Dumbbell className="h-4 w-4 mr-1" />
-            ) : (
-              <Volleyball className="h-4 w-4 mr-1" />
-            )}
-            {facility.type === "gym" ? "Gym" : "Badminton"}
-          </Badge>
+      <div className="flex justify-between items-center">
+        <div className="space-y-1">
+        <CardTitle className="text-lg">{facility.name}</CardTitle>
+        <Badge variant={facility.is_owner ? "default" : "secondary"} className="text-xs bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] text-white">
+          {facility.is_owner ? (
+          <>
+            <UserCog className="h-3 w-3 mr-1" />
+            Owner
+          </>
+          ) : (
+          <>
+            <Users className="h-3 w-3 mr-1" />
+            Trainer
+          </>
+          )}
+        </Badge>
         </div>
+        <Badge
+        variant={facility.type === "gym" ? "secondary" : "secondary"}
+        className="text-xs dark:bg-[#3A3A52]"
+        >
+        {facility.type === "gym" ? (
+          <Dumbbell className="h-4 w-4 mr-1" />
+        ) : (
+          <Volleyball className="h-4 w-4 mr-1" />
+        )}
+        {facility.type === "gym" ? "Gym" : "Badminton"}
+        </Badge>
+      </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          <div className="flex items-center text-sm">
-            <Users className="h-4 w-4 mr-2 text-primary" />
-            <span>{facility.members} members</span>
-          </div>
-          {facility.is_owner && (
-            <div className="flex items-center text-sm">
-              <ChartColumnIncreasing className="h-4 w-4 mr-2 text-primary" />
-              <span>₹{(facility.revenue || 1000).toLocaleString()} revenue</span>
-            </div>
-          )}
-          <div className="flex items-center text-sm">
-            <Calendar className="h-4 w-4 mr-2 text-primary" />
-            <span>
-              {facility.subscription_end_date
-                ? `Subscription ends: ${new Date(facility.subscription_end_date).toLocaleDateString()}`
-                : "No active subscription"}
-            </span>
-          </div>
+      <div className="space-y-2">
+        <div className="flex items-center text-sm">
+        <Users className="h-4 w-4 mr-2 text-primary" />
+        <span>{facility.members} members</span>
         </div>
-        <div className="flex justify-end mt-4">
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+        {facility.is_owner && (
+        <div className="flex items-center text-sm">
+        <ChartColumnIncreasing className="h-4 w-4 mr-2 text-primary" />
+          <span>₹{(facility.revenue || 1000).toLocaleString()} revenue</span>
         </div>
+        )}
+        <div className="flex items-center text-sm">
+        <Calendar className="h-4 w-4 mr-2 text-primary" />
+        <span>
+          {facility.subscription_end_date
+          ? `Subscription ends: ${new Date(facility.subscription_end_date).toLocaleDateString()}`
+          : "No active subscription"}
+        </span>
+        </div>
+      </div>
+      <div className="flex justify-end mt-4">
+        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+      </div>
       </CardContent>
     </Card>
   );

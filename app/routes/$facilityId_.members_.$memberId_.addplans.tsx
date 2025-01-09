@@ -81,7 +81,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   // Fetch current member balance
   const { data: memberData, error: memberError } = await supabase
     .from('members')
-    .select('balance, phone')
+    .select('balance, phone,full_name')
     .eq('id', params.memberId)
     .single();
 

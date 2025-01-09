@@ -246,7 +246,7 @@ export default function HelpCenter() {
         <section>
           <h2 className="text-xl font-semibold mb-4">Quick Links</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Link to="/members">
+            <Link to="https://app.tango.us/app/workflow/Membership-Registration-and-Renewal-Process-5087737c6b904e5a8824fb622d2a82d4" target="_blank" rel="noopener noreferrer">
               <Card className="hover:bg-gray-50 transition-colors">
                 <CardContent className="flex items-center gap-3 p-4">
                   <Users className="h-5 w-5 text-purple-300" />
@@ -260,7 +260,7 @@ export default function HelpCenter() {
               </Card>
             </Link>
 
-            <Link to="/settings">
+            <Link to="#settings">
               <Card className="hover:bg-gray-50 transition-colors">
                 <CardContent className="flex items-center gap-3 p-4">
                   <Settings className="h-5 w-5 text-purple-300" />
@@ -274,7 +274,7 @@ export default function HelpCenter() {
               </Card>
             </Link>
 
-            <Link to="/billing">
+            <Link to="#billing">
               <Card className="hover:bg-gray-50 transition-colors">
                 <CardContent className="flex items-center gap-3 p-4">
                   <CreditCard className="h-5 w-5 text-purple-300" />
@@ -288,7 +288,7 @@ export default function HelpCenter() {
               </Card>
             </Link>
 
-            <Link to="/facility">
+            <Link to="#facility">
               <Card className="hover:bg-gray-50 transition-colors">
                 <CardContent className="flex items-center gap-3 p-4">
                   <Building2 className="h-5 w-5 text-purple-300" />

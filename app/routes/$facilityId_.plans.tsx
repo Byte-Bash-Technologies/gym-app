@@ -18,8 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
-import { toast } from "~/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { useToast } from "~/hooks/use-toast";
+import { ArrowLeft } from 'lucide-react';
 
 interface Plan {
   id: string;
@@ -46,7 +46,7 @@ export const loader: LoaderFunction = async ({params}) => {
 };
 
 export const action: ActionFunction = async ({ request, params }) => {
-  const {facilityId} = params;
+  const { facilityId } = params;
   const formData = await request.formData();
   const action = formData.get("_action");
 
@@ -69,7 +69,7 @@ export const action: ActionFunction = async ({ request, params }) => {
         const id = formData.get("id") as string;
         const { error } = await supabase
           .from("plans")
-          .update({ name, duration, price, description, facility_id: params.facilityId })
+          .update({ name, duration, price, description })
           .eq("id", id);
 
         if (error)
@@ -93,76 +93,71 @@ export const action: ActionFunction = async ({ request, params }) => {
 };
 
 export default function Plans() {
-  const { plans, facilityId } = useLoaderData<{ plans: Plan[], facilityId: string }>();
+  const { plans } = useLoaderData<{ plans: Plan[] }>();
   const actionData = useActionData();
-  const transition = useTransition();
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const navigate = useNavigate();
   const params = useParams();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (transition.state === "loading" && actionData?.error === undefined) {
-      setIsDialogOpen(false);
+    if (actionData?.error) {
+      toast({
+        title: "Error",
+        description: actionData.error,
+        variant: "destructive",
+      });
     }
-  }, [transition.state, actionData]);
+  }, [actionData, toast]);
 
-  if (actionData?.error) {
-    toast({
-      title: "Error",
-      description: actionData.error,
-      variant: "destructive",
-    });
-  }
+  const handleEditClick = (plan: Plan) => {
+    setEditingPlan(plan);
+    setIsEditDialogOpen(true);
+  };
 
   return (
-    <div className="space-y-4 p-4 bg-[#f0ebff] dark:bg-[#212237]">
+    <div className="space-y-4 p-4 bg-[#f0ebff] dark:bg-[#212237] min-h-screen">
       <div className="flex justify-between items-center">
-      <Link to={`/${params.facilityId}/settings`} className="flex items-center space-x-2">
-        <ArrowLeft className="h-6 w-6 cursor-pointer" />
-      </Link>
-      <h2 className="text-2xl font-bold">Plans</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Link to={`/${params.facilityId}/settings`} className="flex items-center space-x-2">
+          <ArrowLeft className="h-6 w-6 cursor-pointer" />
+        </Link>
+        <h2 className="text-2xl font-bold">Plans</h2>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">Add New Plan</Button>
+            <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white">
+              Add New Plan
+            </Button>
           </DialogTrigger>
           <DialogContent className="dark:bg-[#212237]">
             <DialogHeader>
               <DialogTitle>Add New Plan</DialogTitle>
             </DialogHeader>
-            <PlanForm onSuccess={() => setIsDialogOpen(false)} />
+            <PlanForm onSuccess={() => setIsAddDialogOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto ">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {plans.map((plan) => (
           <Card key={plan.id}>
             <CardHeader>
               <CardTitle>{plan.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-800 font-bold">{plan.duration} days</p>
+              <p className="text-gray-800 dark:text-gray-200 font-bold">{plan.duration} days</p>
               <p className="text-2xl font-bold mt-2">₹{plan.price}</p>
               <p className="text-sm text-gray-500 mt-2 font-bold">{plan.description}</p>
               <div className="mt-4 space-x-2">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="dark:bg-[#3A3A52]"
-                      onClick={() => setEditingPlan(plan)}
-                    >
-                      Edit
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Edit Plan</DialogTitle>
-                    </DialogHeader>
-                    <PlanForm plan={editingPlan} onSuccess={() => navigate(".", { replace: true })} />
-                  </DialogContent>
-                </Dialog>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="dark:bg-[#3A3A52]"
+                  onClick={() => handleEditClick(plan)}
+                >
+                  Edit
+                </Button>
                 <Form method="post" style={{ display: "inline" }}>
                   <input type="hidden" name="id" value={plan.id} />
                   <Button
@@ -173,9 +168,7 @@ export default function Plans() {
                     name="_action"
                     value="delete"
                     onClick={(e) => {
-                      if (
-                        !confirm("Are you sure you want to delete this plan?")
-                      ) {
+                      if (!confirm("Are you sure you want to delete this plan?")) {
                         e.preventDefault();
                       }
                     }}
@@ -188,24 +181,51 @@ export default function Plans() {
           </Card>
         ))}
       </div>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="dark:bg-[#212237]">
+          <DialogHeader>
+            <DialogTitle>Edit Plan</DialogTitle>
+          </DialogHeader>
+          {editingPlan && (
+            <PlanForm 
+              plan={editingPlan} 
+              onSuccess={() => {
+                setIsEditDialogOpen(false);
+                setEditingPlan(null);
+              }} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function PlanForm({ plan = null, onSuccess }: { plan?: Plan | null, onSuccess?: () => void }) {
+function PlanForm({ plan, onSuccess }: { plan?: Plan | null; onSuccess?: () => void }) {
   const transition = useTransition();
   const isSubmitting = transition.state === "submitting";
 
   return (
-    <Form method="post" className="space-y-4" onSubmit={() => {
-      if (onSuccess) {
-        setTimeout(onSuccess, 0);
-      }
-    }}>
-      <input type="hidden" name="id" value={plan?.id} />
+    <Form 
+      method="post" 
+      className="space-y-4" 
+      onSubmit={() => {
+        if (onSuccess) {
+          setTimeout(onSuccess, 0);
+        }
+      }}
+    >
+      {plan && <input type="hidden" name="id" value={plan.id} />}
       <div>
         <Label htmlFor="name">Name</Label>
-        <Input id="name" name="name" className="dark:bg-[#4A4A62]" defaultValue={plan?.name} required />
+        <Input 
+          id="name" 
+          name="name" 
+          className="dark:bg-[#4A4A62]" 
+          defaultValue={plan?.name} 
+          required 
+        />
       </div>
       <div>
         <Label htmlFor="duration">Duration (days)</Label>
@@ -244,7 +264,7 @@ function PlanForm({ plan = null, onSuccess }: { plan?: Plan | null, onSuccess?: 
         name="_action"
         value={plan ? "update" : "create"}
         disabled={isSubmitting}
-        className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white"
+        className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white w-full"
       >
         {isSubmitting ? "Saving..." : plan ? "Update Plan" : "Create Plan"}
       </Button>
