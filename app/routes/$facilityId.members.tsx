@@ -395,19 +395,7 @@ export default function MembersPage() {
     return result;
   }, [members, searchTerm, statusFilter, planFilter, sortOption, showJoinedFirst, showJoinedRecently, showMembersWithNoPlan]);
 
-  useEffect(() => {
-    const newParams = new URLSearchParams(searchParams);
-    if (searchTerm) newParams.set("search", searchTerm);
-    if (statusFilter.length) newParams.set("status", statusFilter.join(","));
-    if (planFilter.length) newParams.set("plans", planFilter.join(","));
-    newParams.set("sortBy", sortOption.by);
-    newParams.set("sortOrder", sortOption.order);
-    newParams.set("joinedFirst", showJoinedFirst.toString());
-    newParams.set("joinedRecently", showJoinedRecently.toString());
-    newParams.set("membersWithNoPlan", showMembersWithNoPlan.toString());
-    setSearchParams(newParams, { replace: true });
-  }, [searchTerm, statusFilter, planFilter, sortOption, showJoinedFirst, showJoinedRecently, showMembersWithNoPlan, setSearchParams]);
-
+ 
   // Prefetch member data on hover
   const prefetchMember = useCallback((memberId: string) => {
     fetcher.load(`/${params.facilityId}/members/${memberId}`);

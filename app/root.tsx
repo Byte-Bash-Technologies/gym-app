@@ -8,7 +8,7 @@ import {
 import type { LinksFunction } from "@remix-run/node";
 import InstallPWAButton from "~/components/InstallPWAButton";
 import { ThemeProvider } from "~/components/theme-provider";
-
+import NetworkStatus from "~/components/NetworkStatus";
 import "./tailwind.css";
 
 export const links: LinksFunction = () => [
@@ -49,6 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {children}
+        <NetworkStatus />
          <InstallPWAButton />
         <ScrollRestoration />
         <Scripts />
