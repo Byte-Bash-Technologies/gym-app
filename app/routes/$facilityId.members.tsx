@@ -6,7 +6,6 @@ import {
   useParams,
   Link,
   Outlet,
-  useFetcher
 } from "@remix-run/react";
 import debounce from "lodash.debounce";
 import { Bell, Phone, Settings, Search, UserPlus, Filter, ChevronDown, X, SortAsc, SortDesc } from 'lucide-react';
@@ -20,47 +19,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Label } from "~/components/ui/label";
 import { Badge } from "~/components/ui/badge";
 import { json, type LoaderFunction } from "@remix-run/node";
 import { supabase } from "~/utils/supabase.server";
-
-interface Member {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  photo_url: string;
-  balance: number;
-  joined_date: string;
-  memberships: Array<{
-    status: string;
-    end_date: string;
-    plan_name: string;
-  }>;
-  status?: string;
-}
-
-interface Plan {
-  id: string;
-  name: string;
-}
-
-interface LoaderData {
-  facility: { name: string };
-  members: Member[];
-  plans: Plan[];
-  currentFilters: {
-    status: string[];
-    plans: string[];
-    newMembers: boolean;
-    expired30Days: boolean;
-    expiringIn1Week: boolean;
-  };
-  currentSort: {
-    by: string;
-    order: string;
-  };
-}
 
 // Cache control helper
 function createCacheHeaders(maxAge: number = 60) {
@@ -70,43 +33,28 @@ function createCacheHeaders(maxAge: number = 60) {
   };
 }
 
-// Data serializer to minimize payload
-function serializeMemberData(member: any): Member {
-  return {
-    id: member.id,
-    full_name: member.full_name,
-    email: member.email || '',
-    phone: member.phone || '',
-    photo_url: member.photo_url || '',
-    balance: member.balance || 0,
-    joined_date: member.joined_date,
-    memberships: member.memberships?.map((m: any) => ({
-      status: m.status,
-      end_date: m.end_date,
-      plan_name: m.plans?.name || ''
-    })) || []
-  };
-}
-
-// Error handling helper
-function handleError(error: any, status: number = 500) {
-  console.error("Error:", error);
-  throw new Response(error.message || "An error occurred", { status });
-}
-
 export const loader: LoaderFunction = async ({ params, request }) => {
   const facilityId = params.facilityId;
-  if (!facilityId) throw new Response("Facility ID is required", { status: 400 });
+
+  if (!facilityId) {
+    throw new Error("Facility ID is required");
+  }
 
   try {
     const url = new URL(request.url);
-    const searchParams = url.searchParams;
-    const isPrefetch = request.headers.get("Purpose") === "prefetch";
+    const filters = {
+      status: url.searchParams.getAll("status"),
+      plans: url.searchParams.getAll("plans"),
+      newMembers: url.searchParams.get("newMembers") === "true",
+      expired30Days: url.searchParams.get("expired30Days") === "true",
+      expiringIn1Week: url.searchParams.get("expiringIn1Week") === "true",
+    };
+    const sortBy = url.searchParams.get("sortBy") || "name";
+    const sortOrder = url.searchParams.get("sortOrder") || "asc";
 
-    // Select fields based on request type
-    const select = isPrefetch 
-      ? 'id, full_name, photo_url'
-      : `
+    const [facilityResponse, membersResponse, plansResponse] = await Promise.all([
+      supabase.from("facilities").select("name").eq("id", facilityId).single(),
+      supabase.from("members").select(`
         id, 
         full_name, 
         email, 
@@ -115,96 +63,47 @@ export const loader: LoaderFunction = async ({ params, request }) => {
         balance,
         joined_date,
         memberships(status, end_date, plans(name))
-      `;
-
-    // Parallel data fetching with error handling
-    const [facilityResponse, membersResponse, plansResponse] = await Promise.all([
-      supabase
-        .from("facilities")
-        .select("name")
-        .eq("id", facilityId)
-        .single()
-        .then(res => {
-          if (res.error) throw new Error("Failed to fetch facility");
-          return res;
-        }),
-
-      supabase
-        .from("members")
-        .select(select)
-        .eq("facility_id", facilityId)
-        .then(res => {
-          if (res.error) throw new Error("Failed to fetch members");
-          return res;
-        }),
-
-      !isPrefetch ? 
-        supabase
-          .from("plans")
-          .select("id, name")
-          .eq("facility_id", facilityId)
-          .then(res => {
-            if (res.error) throw new Error("Failed to fetch plans");
-            return res;
-          }) :
-        Promise.resolve({ data: [] })
+      `).eq("facility_id", facilityId),
+      supabase.from("plans").select("id, name").eq("facility_id", facilityId),
     ]);
+
+    if (facilityResponse.error) throw facilityResponse.error;
+    if (membersResponse.error) throw membersResponse.error;
+    if (plansResponse.error) throw plansResponse.error;
 
     const now = new Date();
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    // Process members data efficiently
-    const processedMembers = membersResponse.data.map((member: any) => {
-      const serializedMember = serializeMemberData(member);
-      if (!isPrefetch && member.memberships) {
-        serializedMember.status = member.memberships.length > 0
-          ? member.memberships[0].status === "active"
-            ? new Date(member.memberships[0].end_date) <= sevenDaysFromNow
-              ? "expiring"
-              : "active"
-            : "expired"
-          : "expired";
-      }
-      return serializedMember;
-    });
+    const processedMembers = membersResponse.data.map((member: any) => ({
+      ...member,
+      status: member.memberships.length > 0
+        ? member.memberships[0].status === "active"
+          ? new Date(member.memberships[0].end_date) <= sevenDaysFromNow
+            ? "expiring"
+            : "active"
+          : "expired"
+        : "expired",
+    }));
 
-    const cacheDuration = isPrefetch ? 60 : 300;
-
-    return json(
-      {
-        facility: facilityResponse.data,
-        members: processedMembers,
-        plans: plansResponse.data,
-        currentFilters: {
-          status: searchParams.getAll("status"),
-          plans: searchParams.getAll("plans"),
-          newMembers: searchParams.get("newMembers") === "true",
-          expired30Days: searchParams.get("expired30Days") === "true",
-          expiringIn1Week: searchParams.get("expiringIn1Week") === "true",
-        },
-        currentSort: { 
-          by: searchParams.get("sortBy") || "name",
-          order: searchParams.get("sortOrder") || "asc"
-        },
-      },
-      {
-        headers: createCacheHeaders(cacheDuration),
-      }
-    );
+    return json({
+      facility: facilityResponse.data,
+      members: processedMembers,
+      plans: plansResponse.data,
+      currentFilters: filters,
+      currentSort: { by: sortBy, order: sortOrder },
+    },
+  {
+          headers: createCacheHeaders(300),
+        });
   } catch (error) {
-    handleError(error);
+    console.error("Error in loader:", error);
+    throw new Response("Error loading data", { status: 500 });
   }
 };
 
-export function headers() {
-  return {
-    ...createCacheHeaders(300),
-    "Vary": "Cookie, Purpose"
-  };
-}
 
 function PlanFilterQueue({ plans, selectedPlans, onPlanSelect }: {
-  plans: Plan[];
+  plans: Array<{ id: string; name: string }>;
   selectedPlans: string[];
   onPlanSelect: (plan: string) => void;
 }) {
@@ -227,7 +126,7 @@ function PlanFilterQueue({ plans, selectedPlans, onPlanSelect }: {
             <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-[#886fa6]'}`} />
             <span className="text-sm font-medium">{plan.name}</span>
           </button>
-        );
+        )
       })}
     </div>
   );
@@ -262,7 +161,7 @@ function StatusFilterQueue({ selectedStatuses, onStatusSelect }: {
             <div className={`w-2 h-2 rounded-full ${status.color}`} />
             <span className="text-sm font-medium capitalize">{status.id}</span>
           </button>
-        );
+        )
       })}
     </div>
   );
@@ -270,9 +169,8 @@ function StatusFilterQueue({ selectedStatuses, onStatusSelect }: {
 
 export default function MembersPage() {
   const params = useParams();
-  const data = useLoaderData<LoaderData>();
+  const data = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const fetcher = useFetcher();
 
   const {
     facility,
@@ -338,7 +236,7 @@ export default function MembersPage() {
     setSearchParams(new URLSearchParams());
   };
 
-  const handleMemberClick = (memberId: string) => {
+  const handleMemberClick = (memberId: number) => {
     navigate(`${memberId}`, {
       state: { member: members.find((m) => m.id === memberId) },
     });
@@ -354,9 +252,9 @@ export default function MembersPage() {
         (member) =>
           (member.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             member.phone.includes(searchTerm)) &&
-          (statusFilter.length === 0 || statusFilter.includes(member.status || '')) &&
+          (statusFilter.length === 0 || statusFilter.includes(member.status)) &&
           (planFilter.length === 0 ||
-            member.memberships.some((m) => planFilter.includes(m.plan_name)))
+            member.memberships.some((m) => planFilter.includes(m.plans.name)))
       );
 
     if (showJoinedRecently) {
@@ -395,12 +293,7 @@ export default function MembersPage() {
     return result;
   }, [members, searchTerm, statusFilter, planFilter, sortOption, showJoinedFirst, showJoinedRecently, showMembersWithNoPlan]);
 
- 
-  // Prefetch member data on hover
-  const prefetchMember = useCallback((memberId: string) => {
-    fetcher.load(`/${params.facilityId}/members/${memberId}`);
-  }, [fetcher, params.facilityId]);
-
+  
   if (!facility) {
     return <div className="p-4">Facility not found</div>;
   }
@@ -412,12 +305,13 @@ export default function MembersPage() {
           Members - {facility?.name || "Loading..."}
         </h1>
         <div className="flex items-center space-x-4">
-          <a href={`tel:${facility.phone}`}>
+          {/* <Bell className="h-6 w-6 text-[#886fa6]" /> */}
+          <a href="tel:7010976271">
             <Phone className="h-6 w-6 text-[#886fa6]" />
           </a>
-          <Link to={`/${params.facilityId}/settings`}>
+          <a href={`/${params.facilityId}/settings`}>
             <Settings className="h-6 w-6 text-[#886fa6]" />
-          </Link>
+          </a>
         </div>
       </header>
 
@@ -435,7 +329,7 @@ export default function MembersPage() {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-[#886fa6] dark:hover:bg-[#3A3A52]/90"
+                className="h-8 w-8 text-[#886fa6]  dark:hover:bg-[#3A3A52]/90"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
               >
                 <Filter className="text-[#886fa6]" />
@@ -451,10 +345,7 @@ export default function MembersPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="dark:bg-[#4A4A62]" align="end">
-                  <DropdownMenuItem 
-                    className="dark:hover:bg-[#3A3A52]/90" 
-                    onSelect={() => handleSortChange("name")}
-                  >
+                  <DropdownMenuItem className="dark:hover:bg-[#3A3A52]/90" onSelect={() => handleSortChange("name")}>
                     Sort by Name{" "}
                     {sortOption.by === "name" &&
                       (sortOption.order === "asc" ? (
@@ -463,10 +354,7 @@ export default function MembersPage() {
                         <SortDesc className="ml-2 h-4 w-4" />
                       ))}
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="dark:hover:bg-[#3A3A52]/90" 
-                    onSelect={() => handleSortChange("joined")}
-                  >
+                  <DropdownMenuItem className="dark:hover:bg-[#3A3A52]/90" onSelect={() => handleSortChange("joined")}>
                     Sort by Join Date{" "}
                     {sortOption.by === "joined" &&
                       (sortOption.order === "asc" ? (
@@ -494,7 +382,7 @@ export default function MembersPage() {
         </div>
 
         {isFilterOpen && (
-          <Card className="p-4 bg-background dark:text-white">
+          <Card className="p-4 bg-background  dark:text-white">
             <div className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2">Status</h4>
@@ -520,9 +408,7 @@ export default function MembersPage() {
                     variant={showJoinedFirst ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowJoinedFirst(!showJoinedFirst)}
-                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${
-                      showJoinedFirst ? "bg-[#886fa6] hover:bg-[#886fa6]/90 text-white" : ""
-                    }`}
+                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${showJoinedFirst ? "bg-[#886fa6] hover:bg-[#886fa6]/90 text-white" : ""}`}
                   >
                     Joined First
                   </Button>
@@ -530,9 +416,7 @@ export default function MembersPage() {
                     variant={showJoinedRecently ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowJoinedRecently(!showJoinedRecently)}
-                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${
-                      showJoinedRecently ? "bg-[#886fa6] hover:bg-[#886fa6]/90 text-white" : ""
-                    }`}
+                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${showJoinedRecently ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}`}
                   >
                     Recent Members
                   </Button>
@@ -540,9 +424,7 @@ export default function MembersPage() {
                     variant={showMembersWithNoPlan ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowMembersWithNoPlan(!showMembersWithNoPlan)}
-                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${
-                      showMembersWithNoPlan ? "bg-[#886fa6] hover:bg-[#886fa6]/90 text-white" : ""
-                    }`}
+                    className={`dark:bg-[#212237] dark:hover:bg-[#212237]/90 border-none rounded-2xl ${showMembersWithNoPlan ? "bg-[#886fa6] hover:bg-[#886fa6]/90" : ""}`}
                   >
                     No Plan
                   </Button>
@@ -556,11 +438,7 @@ export default function MembersPage() {
           <div className="flex items-center space-x-2 flex-wrap">
             <span className="text-sm text-gray-500">Filtered by:</span>
             {statusFilter.map((filter) => (
-              <Badge 
-                key={filter} 
-                variant="secondary" 
-                className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]"
-              >
+              <Badge key={filter} variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 {capitalizeFirstLetter(filter)}
                 <button
                   onClick={() => handleStatusFilter(filter)}
@@ -571,67 +449,38 @@ export default function MembersPage() {
               </Badge>
             ))}
             {planFilter.map((plan) => (
-              <Badge 
-                key={plan} 
-                variant="secondary" 
-                className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]"
-              >
+              <Badge key={plan} variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 {plan}
-                <button 
-                  onClick={() => handlePlanFilter(plan)} 
-                  className="ml-1"
-                >
+                <button onClick={() => handlePlanFilter(plan)} className="ml-1">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             ))}
             {showJoinedFirst && (
-              <Badge 
-                variant="secondary" 
-                className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]"
-              >
+              <Badge variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 Joined First
-                <button 
-                  onClick={() => setShowJoinedFirst(false)} 
-                  className="ml-1"
-                >
+                <button onClick={() => setShowJoinedFirst(false)} className="ml-1">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
             {showJoinedRecently && (
-              <Badge 
-                variant="secondary" 
-                className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]"
-              >
+              <Badge variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 Joined Recently
-                <button 
-                  onClick={() => setShowJoinedRecently(false)} 
-                  className="ml-1"
-                >
+                <button onClick={() => setShowJoinedRecently(false)} className="ml-1">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
             {showMembersWithNoPlan && (
-              <Badge 
-                variant="secondary" 
-                className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]"
-              >
+              <Badge variant="secondary" className="text-xs bg-[#f0ebff] dark:bg-[#212237] text-[#886fa6]">
                 No Plan
-                <button 
-                  onClick={() => setShowMembersWithNoPlan(false)} 
-                  className="ml-1"
-                >
+                <button onClick={() => setShowMembersWithNoPlan(false)} className="ml-1">
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             )}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={clearFilters}
-            >
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
               Clear all
             </Button>
           </div>
@@ -644,11 +493,10 @@ export default function MembersPage() {
             {!filteredMembers?.length ? (
               <div className="text-center py-4">No members found</div>
             ) : (
-              filteredMembers.map((member) => (
+              filteredMembers.map((member: any) => (
                 <div
                   key={member.id}
                   onClick={() => handleMemberClick(member.id)}
-                  
                   className="flex items-center gap-3 border-b border-[#886fa6]/20 last:border-0 pb-4 last:pb-0 cursor-pointer hover:bg-violet-50 dark:hover:bg-[#212237]/50 rounded-lg p-2 transition-colors"
                 >
                   <Avatar className="h-12 w-12">
@@ -678,18 +526,18 @@ export default function MembersPage() {
                   </div>
                   <div
                     className={`
-                      h-2 w-2 rounded-full
-                      ${
-                        member.status === "active"
-                          ? "bg-green-500"
-                          : member.status === "expired"
-                          ? "bg-red-500"
-                          : "bg-yellow-500"
-                      }
+                    h-2 w-2 rounded-full
+                    ${
+                      member.status === "active"
+                        ? "bg-green-500"
+                        : member.status === "expired"
+                        ? "bg-red-500"
+                        : "bg-yellow-500"
+                    }
                     `}
                   />
                   <span className="hidden md:inline">
-                    {member.status ? capitalizeFirstLetter(member.status) : ''}
+                    {capitalizeFirstLetter(member.status)}
                   </span>
                 </div>
               ))
