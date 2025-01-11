@@ -128,7 +128,7 @@ export const action = async ({ request }) => {
     return json({ error: insertError.message }, { status: 500 });
   }
 
-  return redirect('admin/facilities');
+  return redirect('/admin/facilities');
 };
 
 export default function AddFacility() {
