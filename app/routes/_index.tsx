@@ -1,6 +1,6 @@
 import { ActionFunction, json, type LoaderFunction, redirect } from "@remix-run/node";
 import { useLoaderData, Link, useNavigate, Form } from "@remix-run/react";
-import { Dumbbell, VibrateIcon as Volleyball, Users, Calendar, ChevronRight, CodeIcon as ChartColumnIncreasing, Settings, Plus, UserCog, LogOut, Moon, Sun, BookOpen } from 'lucide-react';
+import { Dumbbell, Volleyball, Users, Calendar, ChevronRight, ChartColumnIncreasing, Settings, Plus, UserCog, LogOut, Moon, Sun, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { createServerClient, parse, serialize } from '@supabase/ssr';
@@ -36,6 +36,7 @@ import {
 import { ThemeToggle } from "~/components/theme-toggle";
 import SportsDotLogo from "~/assets/sportsdot-favicon-16-01.svg";
 import { Separator } from "~/components/ui/separator";
+import { getAuthenticatedUser } from "~/utils/currentUser";
 
 interface FacilitySubscription {
   end_date: string;
@@ -61,20 +62,7 @@ interface LoaderData {
 }
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const supabaseAuth = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (key) => parse(request.headers.get("Cookie") || "")[key],
-        set: () => {},
-        remove: () => {},
-      },
-    }
-  );
-
-  const { data: { user } } = await supabaseAuth.auth.getUser();
-  
+  const user= await getAuthenticatedUser(request);
   if (!user) {
     return redirect('/login');
   }
@@ -361,7 +349,7 @@ export default function Dashboard() {
           <header className="text-card-foreground p-4 sticky top-0 z-1 shadow-sm bg-[#f0ebff] dark:bg-[#212237]">
             <div className="container mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <SidebarTrigger />
+                <SidebarTrigger className="dark:hover:bg-[#212237]/80"/>
                 <h1 className="text-xl font-bold">Facility Dashboard</h1>
               </div>
             </div>
