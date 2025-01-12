@@ -421,7 +421,7 @@ export default function Index() {
                           </p>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="text-destructive">Expired</Badge>
+                      <Badge variant="secondary" className="text-destructive dark:text-white">Expired</Badge>
                     </Link>
                   </li>
                 ))

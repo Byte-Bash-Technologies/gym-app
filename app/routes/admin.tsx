@@ -19,6 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { createServerClient, parse, serialize } from "@supabase/ssr";
 import { useState, useEffect } from "react";
+import { ThemeToggle } from "~/components/theme-toggle";
 
 export const loader: LoaderFunction = async ({ request }) => {
   const response = new Response();
@@ -177,9 +178,16 @@ export default function AdminDashboard() {
             </Link>
           ))}
         </nav>
-      </ScrollArea>
-      {(isDesktopSidebarOpen || isMobile) && (
-        <div className="mt-auto p-6">
+        <div className={`flex items-center justify-between rounded-lg border p-4 ${!isDesktopSidebarOpen && !isMobile ? "hidden" : ""}`}>
+          <div>
+            <h3 className="font-semibold">Theme</h3>
+            <p className="text-muted-foreground text-sm">Toggle light & dark mode</p>
+          </div>
+          <ThemeToggle />
+        </div>
+            </ScrollArea>
+            {(isDesktopSidebarOpen || isMobile) && (
+        <div className="mt-auto p-2">
           <UserProfile user={user} />
         </div>
       )}
@@ -198,7 +206,7 @@ export default function AdminDashboard() {
 
     return (
       <nav aria-label="Breadcrumb" className="mb-4">
-        <ol className="flex items-center space-x-2 text-sm text-gray-500">
+        <ol className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
           <li>
             <Link to="/admin/dashboard" className="hover:text-gray-700">
               <Home className="h-4 w-4" />
@@ -211,7 +219,7 @@ export default function AdminDashboard() {
               {index === breadcrumbs.length - 1 ? (
                 <span className="font-medium text-gray-900">{crumb.label}</span>
               ) : (
-                <Link to={crumb.url} className="hover:text-gray-700">
+                <Link to={crumb.url} className="hover:text-gray-600">
                   {crumb.label}
                 </Link>
               )}
@@ -223,7 +231,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden dark:bg-[#212237]">
       {/* Sidebar for desktop */}
       <aside
         className={`hidden lg:flex lg:flex-col ${

@@ -155,11 +155,11 @@ export default function AdminDashboard() {
   const data = useLoaderData<DashboardData>();
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 bg-white dark:bg-[#212237]">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Facility Insights Dashboard</h1>
         <Link to="/signup">
-          <Button>
+          <Button className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52] dark:text-white">
             <UserPlus className="mr-2 h-4 w-4" />
             Add User
           </Button>
@@ -233,11 +233,11 @@ export default function AdminDashboard() {
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
+              <SelectContent className="dark:bg-[#4A4A62]">
+                <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="today">Today</SelectItem>
+                <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="week">This Week</SelectItem>
+                <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="month">This Month</SelectItem>
+                <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="all">All Time</SelectItem>
               </SelectContent>
             </Select>
           </CardHeader>

@@ -1,5 +1,5 @@
-import { json, LoaderFunction, ActionFunction, redirect } from "@remix-run/node";
-import { useLoaderData, Form, useActionData, useNavigate, Link } from "@remix-run/react";
+import { json, LoaderFunction, ActionFunction,  } from "@remix-run/node";
+import { useLoaderData, Form, useActionData, Link,  } from "@remix-run/react";
 import { supabase } from "~/utils/supabase.server";
 import { getAuthenticatedUser } from "~/utils/currentUser";
 import { UserPlus2, UserX2, AlertCircle, Phone, Mail, ArrowLeft } from 'lucide-react';
@@ -41,6 +41,13 @@ interface LoaderData {
   trainers: Trainer[];
 }
 
+interface ActionData {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  action?: "add-trainer" | "remove-trainer";
+}
+
 export const loader: LoaderFunction = async ({ params, request }) => {
   const user = await getAuthenticatedUser(request);
   const facilityId = params.facilityId;
@@ -56,7 +63,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     .single();
 
   if (error || facility.user_id !== user.id) {
-    throw new Response("Not Found", { status: 404 });
+    throw new Response("Not Found", { status: 409 });
   }
 
   const { data: trainers, error: trainersError } = await supabase
@@ -79,6 +86,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
 
   return json({ facility, trainers: trainers || [] });
 };
+export { ErrorBoundary } from "~/components/CatchErrorBoundary";
 
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
@@ -162,7 +170,7 @@ export const action: ActionFunction = async ({ request }) => {
 
 export default function TrainersPage() {
   const { facility, trainers } = useLoaderData<LoaderData>();
-  const actionData = useActionData();
+  const actionData = useActionData<ActionData>();
   const { toast } = useToast();
   const [isAddTrainerDialogOpen, setIsAddTrainerDialogOpen] = useState(false);
   const [trainerEmail, setTrainerEmail] = useState("");
@@ -301,7 +309,7 @@ export default function TrainersPage() {
                 Enter the email address of the trainer you want to add. They must have a Sportsdot account.
                 <div className="mt-2">
                   <span>Don&apos;t have an account? </span>
-                  <Link to="/signup" className="font-medium text-[#8e76af] hover:text-[#8e76af]/90">
+                  <Link to={`/${facility.id}/signup`} className="font-medium text-[#8e76af] hover:text-[#8e76af]/90">
                     Create one
                   </Link>
                 </div>
