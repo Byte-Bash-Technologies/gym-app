@@ -118,7 +118,7 @@ export default function UsersList() {
   }, [searchTerm, sortOption, setSearchParams]);
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-20 relative">
+    <div className="min-h-screen dark:bg-[#3A3A52] relative">
 
       <main className="p-4 space-y-4">
         <div className="p-4">
@@ -126,7 +126,7 @@ export default function UsersList() {
             <Input
               type="text"
               placeholder="Search by name or email"
-              className="pl-10 pr-20 py-2 w-full bg-white rounded-full"
+              className="pl-10 pr-20 py-2 w-full bg-white rounded-full dark:bg-[#4A4A62]"
               onChange={handleSearch}
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -144,13 +144,13 @@ export default function UsersList() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8"
+                    className="h-8 w-8 hover:dark:bg-[#3A3A52]"
                   >
                     <ChevronDown className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => handleSortChange("full_name")}>
+                <DropdownMenuContent align="end" className="dark:bg-[#4A4A62]">
+                  <DropdownMenuItem className="hover:dark:bg-[#3A3A52]" onSelect={() => handleSortChange("full_name")}>
                     Sort by Name{" "}
                     {sortOption.by === "full_name" &&
                       (sortOption.order === "asc" ? (
@@ -159,7 +159,7 @@ export default function UsersList() {
                         <SortDesc className="ml-2 h-4 w-4" />
                       ))}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => handleSortChange("created_at")}>
+                  <DropdownMenuItem className="hover:dark:bg-[#3A3A52]" onSelect={() => handleSortChange("created_at")}>
                     Sort by Join Date{" "}
                     {sortOption.by === "created_at" &&
                       (sortOption.order === "asc" ? (
@@ -205,7 +205,7 @@ export default function UsersList() {
                     </p>
                   </div>
                   <div className="flex space-x-2">
-                      <Button variant="ghost" size="icon" asChild>
+                      <Button variant="ghost" size="icon" className="hover:dark:bg-[#3A3A52]" asChild>
                         <Link to={`/admin/users/${user.id}/edit`}>
                           <Pencil className="w-4 h-4" />
                         </Link>
@@ -222,7 +222,7 @@ export default function UsersList() {
       </main>
 
       <Link to="/signup" className="fixed right-6 bottom-[7rem]">
-        <Button className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg">
+        <Button className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 dark:bg-[#3A3A52] hover:dark:bg-[#3A3A52]/90 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>

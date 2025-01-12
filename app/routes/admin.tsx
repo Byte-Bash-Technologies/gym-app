@@ -70,7 +70,7 @@ interface UserProfileProps {
 
 const UserProfile: React.FC<UserProfileProps> = ({ user }) => (
   <div className="space-y-4">
-    <div className="flex items-center space-x-4 p-4 bg-gray-100 rounded-lg">
+    <div className="flex items-center space-x-4 p-4 bg-[#f9ebff] dark:bg-[#4A4A62] rounded-lg">
       <Avatar>
         <AvatarImage src={user.avatar_url ?? ''} alt={user.full_name ?? 'User'} />
         <AvatarFallback>{user.full_name?.charAt(0)}</AvatarFallback>
@@ -128,13 +128,13 @@ export default function AdminDashboard() {
   ];
 
   const Sidebar = ({ isMobile = false }) => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-[#f0ebff] dark:bg-[#212237]">
       <ScrollArea
         className={`flex-grow py-6 ${
           isDesktopSidebarOpen || isMobile ? "px-6" : "px-2"
         }`}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 ">
           <h2
             className={`text-lg font-semibold ${
               !isDesktopSidebarOpen && !isMobile ? "hidden" : ""
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
     });
 
     return (
-      <nav aria-label="Breadcrumb" className="mb-4">
+      <nav aria-label="Breadcrumb" className="mb-2">
         <ol className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
           <li>
             <Link to="/admin/dashboard" className="hover:text-gray-700">
@@ -231,10 +231,10 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden dark:bg-[#212237]">
+    <div className="flex h-screen overflow-hidden bg-[f0ebff] dark:bg-[#212237]">
       {/* Sidebar for desktop */}
       <aside
-        className={`hidden lg:flex lg:flex-col ${
+        className={`hidden dark:bg-[#212237] lg:flex lg:flex-col ${
           isDesktopSidebarOpen ? "lg:w-64" : "lg:w-16"
         } transition-all duration-300 ease-in-out`}
       >
@@ -250,7 +250,7 @@ export default function AdminDashboard() {
 
       <main className="flex-1 overflow-y-auto">
         {/* Top bar */}
-        <header className="flex items-center justify-between p-4 border-b lg:hidden">
+        <header className="flex items-center justify-between p-4 border-b lg:hidden bg-[#f0ebff] dark:bg-[#212237]">
           <Sheet>
             <SheetTrigger asChild>
               <Button
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Main content */}
-        <div className="p-6">
+        <div className="p-6 bg-[#f0ebff] dark:bg-[#212237]">
           <Breadcrumbs />
           <Outlet />
         </div>

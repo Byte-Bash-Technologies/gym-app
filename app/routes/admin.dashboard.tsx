@@ -155,11 +155,11 @@ export default function AdminDashboard() {
   const data = useLoaderData<DashboardData>();
 
   return (
-    <div className="container mx-auto p-4 bg-white dark:bg-[#212237]">
+    <div className="container mx-auto pt-4 bg-[#f0ebff] dark:bg-[#212237]">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Facility Insights Dashboard</h1>
         <Link to="/signup">
-          <Button className="dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52] dark:text-white">
+          <Button className="bg-[#886fa6] dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52] dark:text-white">
             <UserPlus className="mr-2 h-4 w-4" />
             Add User
           </Button>
@@ -269,11 +269,11 @@ export default function AdminDashboard() {
         <CardHeader>
           <CardTitle>Facility Details</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {data.facilityDetails.map((facility) => (
               <Link key={facility.id} to={`/admin/facilities/${facility.id}`} className="block">
-                <Card className="h-full hover:shadow-md transition-shadow">
+                <Card className="h-full hover:shadow-md transition-shadow bg-[#f0ebff]">
                   <CardHeader>
                     <CardTitle>{facility.name}</CardTitle>
                   </CardHeader>

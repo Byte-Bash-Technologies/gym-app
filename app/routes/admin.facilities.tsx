@@ -83,11 +83,11 @@ export default function FacilitiesList() {
     }
   };
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 pt-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Facilities</h2>
         <Link to="/admin/add-facility">
-          <Button>
+          <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:text-white">
             <Plus className="mr-2 h-4 w-4" /> Add Facility
           </Button>
         </Link>
@@ -116,7 +116,7 @@ export default function FacilitiesList() {
                   <Button
                 variant="ghost"
                 size="icon"
-                className="text-destructive hover:text-destructive"
+                className="text-destructive dark:text-white dark:hover:bg-[#3A3A52] hover:text-destructive"
                 onClick={() => handleDelete(facility.id)}
               >
                 <Trash2 className="h-4 w-4" />
@@ -128,7 +128,7 @@ export default function FacilitiesList() {
         ))}
       </div>
       <Link to="/admin/add-facility" className="fixed right-6 bottom-6">
-        <Button size="icon" className="h-14 w-14 rounded-full">
+        <Button size="icon" className="h-14 w-14 rounded-full bg-[#886fa6] dark:bg-[#3A3A52] dark:text-white">
           <Plus className="h-6 w-6" />
         </Button>
       </Link>

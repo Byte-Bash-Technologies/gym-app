@@ -35,11 +35,11 @@ export default function SubscriptionList() {
   const { plans } = useLoaderData<{ plans: SubscriptionPlan[] }>();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:h-full">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-semibold">Subscription Plans</h3>
         <Link to="/admin/subscriptions/new">
-          <Button>
+          <Button className="bg-[#886fa6] dark:bg-[#3A3A52] dark:text-white hover:bg-[#886fa6]/90 dark:hover:bg-[#3A3A52]/90">
             <Plus className="mr-2 h-4 w-4" /> Add New Plan
           </Button>
         </Link>
@@ -52,13 +52,13 @@ export default function SubscriptionList() {
         <CardContent>
           <Table>
             <TableHeader>
-              <TableRow>
+                <TableRow className="hover:none">
                 <TableHead>Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Duration</TableHead>
                 {/* <TableHead className="hidden md:table-cell">Features</TableHead> */}
                 <TableHead>Actions</TableHead>
-              </TableRow>
+                </TableRow>
             </TableHeader>
             <TableBody>
               {plans.map((plan) => (
@@ -83,7 +83,7 @@ export default function SubscriptionList() {
                   <TableCell>
                     <div className="flex space-x-2">
                       <Link to={`${plan.id}/edit`}>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="dark:bg-[#3A3A52] dark:text-white dark:hover:text-white/90">
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </Link>
@@ -92,7 +92,7 @@ export default function SubscriptionList() {
                           e.preventDefault();
                         }
                         }}>
-                        <Button type="submit" variant="outline" size="sm" className="text-red-500 hover:text-red-700">
+                        <Button type="submit" variant="outline" size="sm" className="text-destructive hover:text-destructive/90 dark:bg-[#3A3A52] dark:text-white dark:hover:text-white/90">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         </Form>

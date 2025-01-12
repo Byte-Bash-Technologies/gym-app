@@ -169,7 +169,7 @@ export default function AddFacility() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto pt-4">
       <Card className="max-w-md mx-auto">
         <Form method="post" className="space-y-4" encType="multipart/form-data">
           <CardHeader>
@@ -179,29 +179,29 @@ export default function AddFacility() {
           <CardContent>
             <div className="space-y-2 mb-4">
               <Label htmlFor="name">Facility Name</Label>
-              <Input type="text" name="name" id="name" required />
+              <Input type="text" className="dark:bg-[#4A4A68]" name="name" id="name" required />
             </div>
             <div className="space-y-2 mb-4">
               <Label htmlFor="type">Facility Type</Label>
               <Select name="type" required>
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#4A4A68]">
                   <SelectValue placeholder="Select a facility type" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gym">Gym</SelectItem>
-                  <SelectItem value="badminton">Badminton</SelectItem>
+                <SelectContent className="dark:bg-[#4A4A68]">
+                  <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="gym">Gym</SelectItem>
+                  <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" value="badminton">Badminton</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2 mb-4">
               <Label htmlFor="user_id">Assign User</Label>
               <Select name="user_id" value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#4A4A68]">
                   <SelectValue placeholder="Select a user" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#4A4A68]">
                   {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
+                    <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" key={user.id} value={user.id}>
                       {user.full_name} ({user.phone})
                     </SelectItem>
                   ))}
@@ -210,7 +210,7 @@ export default function AddFacility() {
             </div>
             <div className="space-y-2 mb-4">
               <Label htmlFor="phone_number">Phone Number</Label>
-              <Input type="tel" name="phone_number" id="phone_number" required />
+              <Input type="tel" className="dark:bg-[#4A4A68]" name="phone_number" id="phone_number" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
@@ -218,7 +218,7 @@ export default function AddFacility() {
                 name="address"
                 id="address"
                 rows={3}
-                className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none"
+                className="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none dark:bg-[#4A4A68]"
                 required
               />
             </div>
@@ -233,7 +233,7 @@ export default function AddFacility() {
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
+                <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer flex flex-col items-center dark:bg-[#4A4A68]">
                   {preview ? (
                     <img
                       src={preview}
@@ -258,7 +258,7 @@ export default function AddFacility() {
             )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isSubmitting} className="w-full">
+            <Button type="submit" disabled={isSubmitting} className="w-full bg-[#886fa6] dark:bg-[#3A3A52] dark:text-white">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
