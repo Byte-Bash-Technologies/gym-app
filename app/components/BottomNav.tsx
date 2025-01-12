@@ -9,17 +9,27 @@ interface NavItem {
   icon: React.ElementType;
 }
 
-export default function BottomNav() {
+interface BottomNavProps {
+  isTrainer: boolean;
+}
+
+export default function BottomNav({ isTrainer }: BottomNavProps) {
   const params = useParams();
   const location = useLocation();
   const prefetchedRoutes = useRef<Set<string>>(new Set());
 
-  const navItems: NavItem[] = useMemo(() => [
-    { name: 'Home', path: 'home', icon: Home },
-    { name: 'Transaction', path: 'transaction', icon: Wallet },
-    { name: 'Report', path: 'report', icon: PieChart },
-    { name: 'Members', path: 'members', icon: Users },
-  ], []);
+  const navItems: NavItem[] = useMemo(() => {
+    const items = [
+      { name: 'Home', path: 'home', icon: Home },
+      { name: 'Transaction', path: 'transaction', icon: Wallet },
+      { name: 'Report', path: 'report', icon: PieChart },
+      { name: 'Members', path: 'members', icon: Users },
+    ];
+    if (isTrainer) {
+      return items.filter(item => item.path !== 'transaction' && item.path !== 'report');
+    }
+    return items;
+  }, [isTrainer]);
 
   const [activeTab, setActiveTab] = useState(() => {
     return navItems.find(item => location.pathname.includes(`/${item.path}`))?.path || 'home';
@@ -84,4 +94,3 @@ export default function BottomNav() {
     </nav>
   );
 }
-

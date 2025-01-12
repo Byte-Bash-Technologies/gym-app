@@ -28,6 +28,9 @@ interface Plan {
   price: number;
   description: string;
 }
+interface ActionData {
+  error?: string;
+}
 
 export const loader: LoaderFunction = async ({params}) => {
   const { facilityId } = params;
@@ -94,7 +97,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 
 export default function Plans() {
   const { plans } = useLoaderData<{ plans: Plan[] }>();
-  const actionData = useActionData();
+  const actionData = useActionData<ActionData>();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);

@@ -15,48 +15,28 @@ import {
 } from "~/components/ui/dialog";
 import { ActionFunction } from "@remix-run/node";
 import { ThemeToggle } from "~/components/theme-toggle";
-
+import { supabase } from "~/utils/supabase.server";
+import { getAuthenticatedUser, logoutUser } from "~/utils/currentUser";
 
 export const loader: LoaderFunction = async ({ params, request }) => {
   const { facilityId } = params;
   const response = new Response();
-
-  const supabaseClient = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (key) => parse(request.headers.get("Cookie") || "")[key],
-        set: (key, value, options) => {
-          response.headers.append("Set-Cookie", serialize(key, value, options));
-        },
-        remove: (key, options) => {
-          response.headers.append("Set-Cookie", serialize(key, "", options));
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabaseClient.auth.getUser();
-
+  const user=await getAuthenticatedUser(request);
   if (!user) {
     return redirect("/login");
   }
 
-  const { data: userData, error: userError } = await supabaseClient
+  const { data: userData, error: userError } = await supabase
     .from("users")
     .select("*")
     .eq("id", user.id)
     .single();
 
   if (userError) {
-    console.error("Error fetching user data:", userError);
     return redirect("/login");
   }
 
-  const { data: facility, error: facilityError } = await supabaseClient
+  const { data: facility, error: facilityError } = await supabase
     .from("facilities")
     .select("*")
     .eq("id", facilityId)
@@ -67,7 +47,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     return redirect("/");
   }
 
-  const { data: subscription, error: subscriptionError } = await supabaseClient
+  const { data: subscription, error: subscriptionError } = await supabase
     .from("facility_subscriptions")
     .select("*, subscription_plans(*)")
     .eq("facility_id", facilityId)
@@ -87,31 +67,17 @@ export const action: ActionFunction = async ({ request }) => {
   const action = formData.get("action");
   const response = new Response();
 
-  const supabaseClient = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (key) => parse(request.headers.get("Cookie") || "")[key],
-        set: (key, value, options) => {
-          response.headers.append("Set-Cookie", serialize(key, value, options));
-        },
-        remove: (key, options) => {
-          response.headers.append("Set-Cookie", serialize(key, "", options));
-        },
-      },
-    }
-  );
+
   if (action === "logout") {
-   supabaseClient.auth.signOut();
+   logoutUser(request);
    return redirect("/login");
   }
 
   return null;
 };
 
-export default function Component() {
-  const { user, facility, subscription } = useLoaderData<typeof loader>();
+export default function Settings() {
+  const { user, facility, subscription } = useLoaderData<{ user: any, facility: any, subscription: any }>();
   const navigate = useNavigate();
   const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
@@ -352,7 +318,7 @@ export default function Component() {
               </ul>
               <p>
                 For more detailed information, please visit our{" "}
-                <a href="/help-center" className="text-purple-300 underline">
+                <a href="help-center" className="text-purple-300 underline">
                   Help Center
                 </a>
                 .

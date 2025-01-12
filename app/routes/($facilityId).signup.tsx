@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { json, redirect, ActionFunction, LoaderFunction } from '@remix-run/node';
-import { useActionData, useLoaderData, Form, Link } from '@remix-run/react';
+import { useActionData, useLoaderData, Form, Link, useNavigate } from '@remix-run/react';
 import { createServerClient, parse, serialize } from '@supabase/ssr';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -11,24 +11,10 @@ import { supabase } from "~/utils/supabase.server";
 import iconImage from '~/assets/sportsdot-favicon-64-01.svg';
 import { ImagePlus, Check, X, Eye, EyeOff } from 'lucide-react';
 
+import { getAuthenticatedUser } from '~/utils/currentUser';
 export const loader: LoaderFunction = async ({ request }) => {
-  const response = new Response();
-  const supabase = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (key) => parse(request.headers.get("Cookie") || "")[key],
-        set: (key, value, options) => {
-          response.headers.append("Set-Cookie", serialize(key, value, options));
-        },
-        remove: (key, options) => {
-          response.headers.append("Set-Cookie", serialize(key, "", options));
-        },
-      },
-    }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
+  
+  const user=await getAuthenticatedUser(request);
 
   if (!user) {
     return json({ isCurrentUserAdmin: false });
@@ -48,7 +34,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   return json({ isCurrentUserAdmin: userData.is_admin });
 };
 
-export const action: ActionFunction = async ({ request }) => {
+export const action: ActionFunction = async ({ request, params }) => {
   const response = new Response();
 
   const formData = await request.formData();
@@ -58,7 +44,7 @@ export const action: ActionFunction = async ({ request }) => {
   const phoneNumber = formData.get('phoneNumber') as string;
   const photo = formData.get('photo') as File;
   const isAdmin = formData.get('isAdmin') === 'on';
-
+  
 
     // Validate password strength
     if (password.length < 8) {
@@ -142,12 +128,13 @@ export const action: ActionFunction = async ({ request }) => {
       return json({ error: 'Failed to create user profile' });
       
     }
-
-    return redirect('/admin/users', {
-      headers: response.headers,
-    });
-  }
-
+    if (params.facilityId) {
+      return redirect(`/${params.facilityId}/trainers`)
+    } 
+    else {
+      return redirect('/admin/users');
+    };
+    }
   return json({ error: 'An unexpected error occurred' });
 };
 

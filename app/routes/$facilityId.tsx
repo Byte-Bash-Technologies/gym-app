@@ -44,11 +44,21 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     return json({ facilityId, endDate: null });
   }
 
+  const { data: trainerData, error: trainerError } = await supabase
+    .from("facility_trainers")
+    .select("id")
+    .eq("facility_id", facilityId)
+    .eq("user_id", userId)
+    .single();
+
+  const isTrainer = !trainerError && trainerData ? true : false;
+
   return json({
     facilityId,
     endDate: data?.end_date,
     facilityName: facility.name,
     facilityType: facility.type,
+    isTrainer,
   });
 };
 export { ErrorBoundary } from "~/components/CatchErrorBoundary";
@@ -56,8 +66,15 @@ export default function FacilityLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const params = useParams();
   const location = useLocation();
-  const { endDate, facilityName, facilityType } =
-    useLoaderData<typeof loader>();
+
+  const { endDate, facilityName, facilityType, isTrainer } =
+    useLoaderData<{
+      facilityId: string;
+      endDate: string | null;
+      facilityName: string;
+      facilityType: string;
+      isTrainer: boolean;
+    }>();
 
 
   const isSubscriptionExpired = !endDate || new Date(endDate) < new Date();
@@ -65,7 +82,7 @@ export default function FacilityLayout() {
  
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen ">
       <main className="flex-grow container mx-auto">
         {isSubscriptionExpired ? (
           <SubscriptionExpiredMessage
@@ -81,7 +98,7 @@ export default function FacilityLayout() {
           )
         )}
       </main>
-      <BottomNav />
+      <BottomNav isTrainer={isTrainer} />
     </div>
   );
 }
