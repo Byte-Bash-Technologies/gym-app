@@ -82,7 +82,7 @@ export default function EditUser() {
               <Input id="email" name="email" type="email" defaultValue={user.email} required />
             </div>
 
-            <Button type="submit" className="w-full dark:bg-[#3A3A52] dark:text-white">
+            <Button type="submit" className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] hover:dark:bg-[#3A3A52]/90 dark:text-white">
               Update User
             </Button>
           </CardContent>

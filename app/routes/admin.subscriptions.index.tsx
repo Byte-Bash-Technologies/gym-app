@@ -36,7 +36,7 @@ export default function SubscriptionList() {
 
   return (
     <div className="space-y-6 sm:h-full">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-2">
         <h3 className="text-xl font-semibold">Subscription Plans</h3>
         <Link to="/admin/subscriptions/new">
           <Button className="bg-[#886fa6] dark:bg-[#3A3A52] dark:text-white hover:bg-[#886fa6]/90 dark:hover:bg-[#3A3A52]/90">
@@ -45,14 +45,14 @@ export default function SubscriptionList() {
         </Link>
       </div>
 
-      <Card>
+      <Card >
         <CardHeader>
           <CardTitle>All Plans</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
-                <TableRow className="hover:none">
+                <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Duration</TableHead>

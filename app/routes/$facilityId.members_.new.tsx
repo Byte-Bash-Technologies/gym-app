@@ -1,5 +1,5 @@
 // app/routes/$facilityId.members.new.tsx
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   json,
   useActionData,
@@ -66,6 +66,7 @@ export const action: ActionFunction = async ({ request, params }) => {
   const plan_id = formData.get("plan_id") as string;
   const payment_amount = parseFloat(formData.get("payment_amount") as string);
   const discount = parseFloat(formData.get("discount") as string) || 0;
+  const start_date = formData.get("start_date") as string;
 
   // Generate admission number
   const facilityPrefix = (params.facilityId as string)
@@ -134,10 +135,10 @@ export const action: ActionFunction = async ({ request, params }) => {
       return json({ error: memberError.message }, { status: 400 });
     }
 
-    const duration = planData?.duration || 0;
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + duration);
+    
+    const startDate = new Date(formData.get("startDate") as string);
+    const endDate = new Date(startDate.getTime() + planData?.duration * 24 * 60 * 60 * 1000).toISOString();
+    
 
     // Create membership
     const { error: membershipError } = await supabase
@@ -147,7 +148,7 @@ export const action: ActionFunction = async ({ request, params }) => {
           member_id: memberData[0].id,
           plan_id,
           start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
+          end_date: endDate,
           status: "active",
           price: planPrice,
           discount,
@@ -225,40 +226,31 @@ export const action: ActionFunction = async ({ request, params }) => {
       return json({ error: memberError.message }, { status: 400 });
     }
   }
-
   // Send WhatsApp message if phone number is provided
-  if (phone.length === 10) {
+
     const message = `Welcome to our gym, ${full_name}! ${
       plan_id ? "Your membership plan has been activated." : ""
     } Download your membership details here: https://${process.env.APP_URL}/invoice/${
       transactionID || ""
     }`;
-    const whatsappUrl = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
-    return redirect(whatsappUrl);
-  }
-  const { data: memberId, error: memberIdError } = await supabase
-    .from("members")
-    .select("id")
-    .eq("admission_no", admission_no)
-    .single();
-
-  if (memberIdError) {
-    return json({ error: memberIdError.message }, { status: 400 });
-  }
-  return redirect(`/${params.facilityId}/members/${memberId.id}`);
+   const whatsappLink = `https://wa.me/91${phone}?text=${encodeURIComponent(
+      message
+    )}`;
+   
+  return json({whatsappLink,redirectUrl:`/${params.facilityId}/members/`});
 };
 
 export default function NewMemberForm() {
   const { facilityName, plans } = useLoaderData<typeof loader>();
-  const actionData = useActionData();
+  const actionData = useActionData<{ error?: string; whatsappLink?: string; redirectUrl?: string }>();
   const [formError, setFormError] = useState<string | null>(null);
   const [addPlan, setAddPlan] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
-  const [isLoading, setIsLoading] = useState(false);
   const params = useParams();
   const [preview, setPreview] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -273,6 +265,18 @@ export default function NewMemberForm() {
       setPreview(null);
     }
   };
+
+  useEffect(()=>{
+    if (actionData?.error) {
+      setIsLoading(false);
+    }
+    if(actionData?.whatsappLink){
+      window.open(actionData.whatsappLink,'_blank');
+      if (actionData.redirectUrl) {
+        window.location.href = actionData.redirectUrl;
+      }
+    }
+  },[actionData])
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (!event.currentTarget.checkValidity()) {
@@ -289,17 +293,11 @@ export default function NewMemberForm() {
     setPaymentAmount(plan?.price || 0);
   };
 
-  useEffect(() => {
-    if (actionData?.error) {
-      setIsLoading(false);
-    }
-  }, [actionData]);
-
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <header className="bg-card text-card-foreground p-4 flex items-center justify-between">
+    <div className="min-h-screen bg-background dark:bg-[#212237] pb-20">
+      <header className="bg-card dark:bg-[#4A4A62] text-card-foreground p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
+          <Button variant="ghost" className="hover:dark:bg-[#212237]" size="icon" onClick={() => window.history.back()}>
             <ArrowLeft className="h-6 w-6" />
           </Button>
           <h1 className="text-xl font-bold">New member</h1>
@@ -315,7 +313,7 @@ export default function NewMemberForm() {
       </header>
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(event) => { setIsLoading(true); handleSubmit(event); }}
         method="post"
         className="p-4 space-y-6"
         encType="multipart/form-data"
@@ -331,7 +329,7 @@ export default function NewMemberForm() {
           <Label htmlFor="full_name">
             Name <span className="text-destructive">*</span>
           </Label>
-          <Input id="full_name" name="full_name" placeholder="Name" required />
+          <Input id="full_name" name="full_name" className="dark:bg-[#4A4A62]" placeholder="Name" required />
         </div>
 
         <div className="space-y-2">
@@ -339,6 +337,7 @@ export default function NewMemberForm() {
           <Input
             id="email"
             name="email"
+            className="dark:bg-[#4A4A62]"
             type="email"
             placeholder="example@gmail.com"
           />
@@ -351,7 +350,8 @@ export default function NewMemberForm() {
           <Input
             id="phone"
             name="phone"
-            placeholder="+91 XX XX X X X"
+            className="dark:bg-[#4A4A62]"
+            placeholder="XX XX XX XX XX"
             required
             pattern="[0-9]{10}"
             title="Please enter a 10-digit phone number"
@@ -363,6 +363,7 @@ export default function NewMemberForm() {
           <Textarea
             id="address"
             name="address"
+            className="dark:bg-[#4A4A62]"
             placeholder="Enter your address"
           />
         </div>
@@ -374,6 +375,7 @@ export default function NewMemberForm() {
           <Input
             type="date"
             id="date_of_birth"
+            className="dark:bg-[#4A4A62]"
             name="date_of_birth"
             required
           />
@@ -384,13 +386,13 @@ export default function NewMemberForm() {
           <RadioGroup defaultValue="male" name="gender" className="flex gap-4">
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="male" id="male" />
-              <Label htmlFor="male" className="bg-secondary px-4 py-2 rounded-full">
+              <Label htmlFor="male" className="bg-secondary px-4 py-2 rounded-full dark:bg-[#4A4A62]">
                 Male
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="female" id="female" />
-              <Label htmlFor="female" className="bg-secondary px-4 py-2 rounded-full">
+              <Label htmlFor="female" className="bg-secondary px-4 py-2 rounded-full dark:bg-[#4A4A62]">
                 Female
               </Label>
             </div>
@@ -400,10 +402,10 @@ export default function NewMemberForm() {
         <div className="space-y-2">
           <Label>Blood group</Label>
           <Select name="blood_type">
-            <SelectTrigger>
+            <SelectTrigger className="dark:bg-[#4A4A62]">
               <SelectValue placeholder="Please select" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="dark:bg-[#4A4A62]">
               <SelectItem value="A+">A+</SelectItem>
               <SelectItem value="A-">A-</SelectItem>
               <SelectItem value="B+">B+</SelectItem>
@@ -418,12 +420,12 @@ export default function NewMemberForm() {
 
         <div className="space-y-2">
           <Label htmlFor="height">Height</Label>
-          <Input id="height" name="height" placeholder="-- cm" type="number" />
+          <Input id="height" name="height" className="dark:bg-[#4A4A62]" placeholder="-- cm" type="number" />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="weight">Weight</Label>
-          <Input id="weight" name="weight" placeholder="-- kg" type="number" />
+          <Input id="weight" name="weight" className="dark:bg-[#4A4A62]" placeholder="-- kg" type="number" />
         </div>
 
         <div className="space-y-2">
@@ -437,7 +439,7 @@ export default function NewMemberForm() {
               className="hidden"
               onChange={handleFileChange}
             />
-            <div className="border-2 border-dashed border-input rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
+            <div className="border-2 dark:bg-[#4A4A62] border-dashed border-input rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
               {preview ? (
                 <img
                   src={preview}
@@ -457,6 +459,7 @@ export default function NewMemberForm() {
         <div className="flex items-center space-x-2">
           <Switch
             id="add-plan"
+            className="dark:bg-[#4A4A62]"
             checked={addPlan}
             onCheckedChange={setAddPlan}
           />
@@ -468,17 +471,28 @@ export default function NewMemberForm() {
             <div className="space-y-2">
               <Label htmlFor="plan_id">Membership Plan</Label>
               <Select name="plan_id" onValueChange={handlePlanChange}>
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#4A4A62]">
                   <SelectValue placeholder="Select a plan" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#4A4A62]">
                   {plans.map((plan: Plan) => (
-                    <SelectItem key={plan.id} value={plan.id}>
+                    <SelectItem className="dark:focus:bg-[#3A3A52]/90 dark:hover:bg-[#3A3A52]/90" key={plan.id} value={plan.id}>
                       {plan.name} - ₹{plan.price}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Plan Start Date</Label>
+              <Input
+                type="date"
+                id="start_date"
+                name="start_date"
+                className="dark:bg-[#4A4A62]"
+                required
+              />
             </div>
 
             {selectedPlan && (
@@ -488,6 +502,7 @@ export default function NewMemberForm() {
                   <Input
                     id="discount"
                     name="discount"
+                    className="dark:bg-[#4A4A62]"
                     type="number"
                     min="0"
                     max={selectedPlan.price}
@@ -501,6 +516,7 @@ export default function NewMemberForm() {
                   <Input
                     id="payment_amount"
                     name="payment_amount"
+                    className="dark:bg-[#4A4A62]"
                     type="number"
                     min="0"
                     max={selectedPlan.price - discount}
@@ -531,12 +547,12 @@ export default function NewMemberForm() {
 
         <Button
           type="submit"
-          className="w-full bg-[#8e76af] hover:bg-[#8e76af]/90 text-white py-6 rounded-full text-lg"
+          className="w-full bg-[#8e76af] hover:bg-[#8e76af]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white py-6 rounded-full text-lg"
+          disabled={isLoading}
         >
-          Add member
+         {isLoading ? "Adding member..." : "Add Member"}
         </Button>
       </form>
     </div>
   );
 }
-

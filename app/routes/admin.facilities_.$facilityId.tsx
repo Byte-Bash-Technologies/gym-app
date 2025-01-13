@@ -1,5 +1,5 @@
 import { json, LoaderFunction, ActionFunction } from "@remix-run/node";
-import { useLoaderData, useNavigate, useFetcher } from "@remix-run/react";
+import { useLoaderData, useNavigate, useFetcher, Link } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { Label } from "~/components/ui/label";
 import { supabase } from "~/utils/supabase.server";
 import { CreditCard, Calendar, AlertTriangle, Plus, RefreshCcw } from 'lucide-react';
+import { Edit } from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -180,7 +181,7 @@ export default function FacilityProfile() {
   }, [fetcher, navigate]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-6">
       <Card>
         <CardHeader className="flex flex-row items-center gap-4">
           <Avatar className="h-20 w-20">
@@ -208,14 +209,23 @@ export default function FacilityProfile() {
                 : 'No active subscription'}
             </span>
           </div>
+            <div className="flex items-center gap-2">
+              <Link to={`/admin/facilities/${facility.id}/edit`}>
+            <Button variant="outline" className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white hover:text-white">
+              <Edit className="h-4 w-4" /> Edit Facility
+            </Button>
+          </Link>
+            </div>
           <div>
             <Dialog open={isChangeSubscriptionOpen} onOpenChange={setIsChangeSubscriptionOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline"
+                className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white hover:text-white"
+                >
                   {hasActiveSubscription ? (<><RefreshCcw className="h-4 w-4 mr-2" /> Change Subscription</>) : (<><Plus className="h-4 w-4 mr-2" /> Add Subscription</>)}
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="dark:bg-[#212237] dark:text-white">
                 <DialogHeader>
                   <DialogTitle>{hasActiveSubscription ? 'Change Subscription' : 'Add Subscription'}</DialogTitle>
                 </DialogHeader>
@@ -223,12 +233,12 @@ export default function FacilityProfile() {
                   <div className="space-y-2">
                     <Label htmlFor="plan">Select Plan</Label>
                     <Select onValueChange={setSelectedPlan} value={selectedPlan}>
-                      <SelectTrigger id="plan">
-                        <SelectValue placeholder="Select a plan" />
+                      <SelectTrigger id="plan" className="dark:bg-[#3A3A52] dark:text-white">
+                        <SelectValue className="dark:bg-[#3A3A52] dark:text-white" placeholder="Select a plan" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="dark:bg-[#3A3A52] dark:text-white">
                         {allSubscriptions.map((sub) => (
-                          <SelectItem key={sub.id} value={sub.id}>
+                          <SelectItem key={sub.id} value={sub.id} className="hover:dark:bg-[#4A4A62]">
                             {sub.name} - ₹{sub.price} / {sub.duration_days} days
                           </SelectItem>
                         ))}
@@ -238,19 +248,20 @@ export default function FacilityProfile() {
                   <div className="space-y-2">
                     <Label htmlFor="paymentMethod">Payment Method</Label>
                     <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-                      <SelectTrigger id="paymentMethod">
+                      <SelectTrigger className="dark:bg-[#3A3A52] dark:text-white" id="paymentMethod">
                         <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="credit_card">Credit Card</SelectItem>
-                        <SelectItem value="debit_card">Debit Card</SelectItem>
-                        <SelectItem value="upi">UPI</SelectItem>
+                      <SelectContent className="dark:bg-[#3A3A52] dark:text-white">
+                        <SelectItem className="dark:focus:bg-[#4A4A62]/90 dark:hover:bg-[#4A4A62]/90" value="cash">Cash</SelectItem>
+                        <SelectItem className="dark:focus:bg-[#4A4A62]/90 dark:hover:bg-[#4A4A62]/90" value="credit_card">Credit Card</SelectItem>
+                        <SelectItem className="dark:focus:bg-[#4A4A62]/90 dark:hover:bg-[#4A4A62]/90" value="debit_card">Debit Card</SelectItem>
+                        <SelectItem className="dark:focus:bg-[#4A4A62]/90 dark:hover:bg-[#4A4A62]/90" value="upi">UPI</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <Button 
-                    onClick={handleRenewMembership} 
+                    onClick={handleRenewMembership}
+                    className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white hover:text-white" 
                     disabled={!selectedPlan || !paymentMethod || fetcher.state === 'submitting'}
                   >
                     {fetcher.state === 'submitting' 

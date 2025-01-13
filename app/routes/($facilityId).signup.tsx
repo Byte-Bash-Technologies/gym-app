@@ -139,7 +139,7 @@ export const action: ActionFunction = async ({ request, params }) => {
 };
 
 export default function Signup() {
-  const actionData = useActionData();
+  const actionData = useActionData<{ error?: string }>();
   const { isCurrentUserAdmin } = useLoaderData<{ isCurrentUserAdmin: boolean }>();
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);

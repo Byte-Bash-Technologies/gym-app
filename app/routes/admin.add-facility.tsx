@@ -10,25 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { AlertCircle, Loader2, Upload, ImagePlus } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { supabase } from "~/utils/supabase.server";
+import { getAuthenticatedUser } from "~/utils/currentUser";
 
 export const loader = async ({ request }) => {
-  const response = new Response();
-  const supabaseClient = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (key) => parse(request.headers.get("Cookie") || "")[key],
-        set: (key, value, options) => {
-          response.headers.append("Set-Cookie", serialize(key, value, options));
-        },
-        remove: (key, options) => {
-          response.headers.append("Set-Cookie", serialize(key, "", options));
-        },
-      },
-    }
-  );
-  const { data: { user } } = await supabaseClient.auth.getUser();
+  const user = await getAuthenticatedUser(request);
   if (!user) {
     return redirect('/login');
   }

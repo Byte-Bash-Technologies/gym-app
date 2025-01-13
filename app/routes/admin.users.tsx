@@ -120,8 +120,8 @@ export default function UsersList() {
   return (
     <div className="min-h-screen dark:bg-[#3A3A52] relative">
 
-      <main className="p-4 space-y-4">
-        <div className="p-4">
+      <main className="p-2 space-y-4 sm:w-full">
+        <div className="pt-4">
           <div className="relative flex items-center">
             <Input
               type="text"
@@ -177,44 +177,44 @@ export default function UsersList() {
         <h2 className="text-lg font-semibold mb-4">All Users</h2>
 
         <Card className="p-4">
-          <div className="rounded-3xl p-4 space-y-4">
+          <div className="rounded-3xl p-4 space-y-4 overflow-x-auto">
             {!filteredUsers?.length ? (
               <div className="text-center py-4">No users found</div>
             ) : (
               filteredUsers.map((user: User) => (
-                <div
-                  key={user.id}
-                  className="flex items-center gap-3 border-b border-gray-200 last:border-0 pb-4 last:pb-0"
-                >
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage
-                      src={user.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.full_name}`}
-                      alt={user.full_name}
-                    />
-                    <AvatarFallback>{user.full_name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{user.full_name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
-                  <div className="text-right hidden md:block">
-                    <p className="text-xs text-muted-foreground">
-                      Joined: {new Date(user.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex space-x-2">
-                      <Button variant="ghost" size="icon" className="hover:dark:bg-[#3A3A52]" asChild>
-                        <Link to={`/admin/users/${user.id}/edit`}>
-                          <Pencil className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      {/* <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button> */}
-                    </div>
-                </div>
+          <div
+            key={user.id}
+            className="flex items-center gap-3 border-b border-gray-200 last:border-0 pb-4 last:pb-0"
+          >
+            <Avatar className="h-12 w-12">
+              <AvatarImage
+                src={user.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${user.full_name}`}
+                alt={user.full_name}
+              />
+              <AvatarFallback>{user.full_name[0]}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold truncate">{user.full_name}</h3>
+              <p className="text-sm text-muted-foreground truncate">
+                {user.email}
+              </p>
+            </div>
+            <div className="text-right hidden md:block">
+              <p className="text-xs text-muted-foreground">
+                Joined: {new Date(user.created_at).toLocaleDateString()}
+              </p>
+            </div>
+            <div className="flex space-x-2">
+              <Button variant="ghost" size="icon" className="hover:dark:bg-[#3A3A52]" asChild>
+                <Link to={`/admin/users/${user.id}/edit`}>
+            <Pencil className="w-4 h-4" />
+                </Link>
+              </Button>
+              {/* <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user)}>
+                <Trash2 className="w-4 h-4" />
+              </Button> */}
+            </div>
+          </div>
               ))
             )}
           </div>
@@ -222,7 +222,7 @@ export default function UsersList() {
       </main>
 
       <Link to="/signup" className="fixed right-6 bottom-[7rem]">
-        <Button className="w-14 h-14 rounded-full bg-primary hover:bg-primary/90 dark:bg-[#3A3A52] hover:dark:bg-[#3A3A52]/90 text-white shadow-lg">
+        <Button className="w-14 h-14 rounded-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] hover:dark:bg-[#3A3A52]/90 text-white shadow-lg">
           <UserPlus className="h-6 w-6" />
         </Button>
       </Link>

@@ -16,7 +16,7 @@ export default function AdminSettings() {
       <h2 className="text-2xl font-bold">Admin Settings</h2>
 
       <Tabs defaultValue="general">
-        <TabsList>
+        <TabsList className='bg-[#886fa6] dark:bg-[#3A3A52] text-white'>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
@@ -37,7 +37,7 @@ export default function AdminSettings() {
                   <Label htmlFor="adminEmail">Admin Email</Label>
                   <Input id="adminEmail" type="email" defaultValue="john@example.com" />
                 </div>
-                <Button type="submit">Save Changes</Button>
+                <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] hover:dark:bg-[#3A3A52]/90 dark:text-white" type="submit">Save Changes</Button>
               </Form>
             </CardContent>
           </Card>
@@ -53,6 +53,7 @@ export default function AdminSettings() {
                 <Label htmlFor="emailNotifications">Email Notifications</Label>
                 <Switch
                   id="emailNotifications"
+                  className="mr-2"
                   checked={emailNotifications}
                   onCheckedChange={setEmailNotifications}
                 />
@@ -61,6 +62,7 @@ export default function AdminSettings() {
                 <Label htmlFor="smsNotifications">SMS Notifications</Label>
                 <Switch
                   id="smsNotifications"
+                  className="mr-2"
                   checked={smsNotifications}
                   onCheckedChange={setSmsNotifications}
                 />
@@ -88,7 +90,7 @@ export default function AdminSettings() {
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
                   <Input id="confirmPassword" type="password" />
                 </div>
-                <Button type="submit">Change Password</Button>
+                <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] hover:dark:bg-[#3A3A52]/90 dark:text-white" type="submit">Change Password</Button>
               </Form>
             </CardContent>
           </Card>

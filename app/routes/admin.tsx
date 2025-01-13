@@ -3,7 +3,7 @@ import { useLoaderData } from "@remix-run/react";
 import { json, LoaderFunction } from "@remix-run/node";
 import { Button } from "~/components/ui/button";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "~/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "~/components/ui/sheet";
 import {
   Plus,
   Menu,
@@ -146,6 +146,7 @@ export default function AdminDashboard() {
             <Button
               variant="ghost"
               size="icon"
+              className="hover:dark:bg-[#4A4A62] dark:text-white"
               onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
             >
               {isDesktopSidebarOpen ? (
@@ -161,9 +162,9 @@ export default function AdminDashboard() {
             <Link
               key={item.href}
               to={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-all hover:text-gray-900 ${
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-all hover:text-gray-600 ${
                 location.pathname === item.href
-                  ? "bg-gray-100 text-gray-900"
+                  ? "bg-[#886fa6] text-white dark:bg-[#4A4A62] dark:text-white"
                   : ""
               }`}
               title={item.label}
@@ -178,7 +179,7 @@ export default function AdminDashboard() {
             </Link>
           ))}
         </nav>
-        <div className={`flex items-center justify-between rounded-lg border p-4 ${!isDesktopSidebarOpen && !isMobile ? "hidden" : ""}`}>
+        <div className={`flex items-center justify-between rounded-lg mt-4 border p-4 ${!isDesktopSidebarOpen && !isMobile ? "hidden" : ""}`}>
           <div>
             <h3 className="font-semibold">Theme</h3>
             <p className="text-muted-foreground text-sm">Toggle light & dark mode</p>
@@ -243,6 +244,7 @@ export default function AdminDashboard() {
 
       {/* Mobile sidebar */}
       <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+        <SheetTitle></SheetTitle>
         <SheetContent side="left" className="w-64 p-0">
           <Sidebar isMobile={true} />
         </SheetContent>
@@ -267,7 +269,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Main content */}
-        <div className="p-6 bg-[#f0ebff] dark:bg-[#212237]">
+        <div className="p-4 pb-0 pr-2 bg-[#f0ebff] h- full dark:bg-[#212237]">
           <Breadcrumbs />
           <Outlet />
         </div>

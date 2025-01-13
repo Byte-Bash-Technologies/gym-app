@@ -82,7 +82,7 @@ export default function FacilityLayout() {
  
 
   return (
-    <div className="flex flex-col min-h-screen ">
+    <div className="flex flex-col min-h-screen bg-background dark:bg-[#212237]">
       <main className="flex-grow container mx-auto">
         {isSubscriptionExpired ? (
           <SubscriptionExpiredMessage

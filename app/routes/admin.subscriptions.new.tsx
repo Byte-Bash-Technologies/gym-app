@@ -78,7 +78,7 @@ export default function NewSubscriptionPlan() {
                 <AlertDescription>{actionData.error}</AlertDescription>
               </Alert>
             )}
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] hover:dark:bg-[#3A3A52]/90 dark:text-white" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

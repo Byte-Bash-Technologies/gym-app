@@ -1,22 +1,21 @@
 import { json, LoaderFunction, ActionFunction, redirect } from "@remix-run/node";
-import { useLoaderData, useActionData, Form } from "@remix-run/react";
+import { useLoaderData, useActionData, Form, useNavigation } from "@remix-run/react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Button } from "~/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { supabase } from "~/utils/supabase.server";
 import { useState } from "react";
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, ImagePlus } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 
 interface Facility {
   id: string;
   name: string;
-  type: string;
   logo_url: string;
-  status: 'active' | 'inactive';
-  member_count: number;
+  address: string;
+  phone: string;
+  email: string;
 }
 
 export const loader: LoaderFunction = async ({ params }) => {
@@ -38,15 +37,51 @@ export const loader: LoaderFunction = async ({ params }) => {
 export const action: ActionFunction = async ({ request, params }) => {
   const { facilityId } = params;
   const formData = await request.formData();
-  const updates = Object.fromEntries(formData);
+  
+  const name = formData.get("name");
+  const address = formData.get("address");
+  const phone = formData.get("phone");
+  const email = formData.get("email");
+  const logo = formData.get("logo") as File;
 
-  const { error } = await supabase
+  let logoUrl = null;
+  
+  // Only process logo if a new file was uploaded
+  if (logo && logo.size > 0) {
+    const fileExt = logo.name.split('.').pop();
+    const fileName = `${facilityId}-${Date.now()}.${fileExt}`;
+    
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('facility-logos')
+      .upload(fileName, logo);
+
+    if (uploadError) {
+      return json({ error: "Failed to upload logo" }, { status: 400 });
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('facility-logos')
+      .getPublicUrl(fileName);
+
+    logoUrl = publicUrl;
+  }
+
+  // Update facility details
+  const { error: updateError } = await supabase
     .from('facilities')
-    .update(updates)
+    .update({
+      name,
+      address,
+      phone,
+      email,
+      ...(logoUrl && { logo_url: logoUrl }),
+    })
     .eq('id', facilityId);
 
-  if (error) {
-    return json({ error: error.message });
+  if (updateError) {
+    return json({ error: updateError.message }, { status: 400 });
   }
 
   return redirect(`/admin/facilities/${facilityId}`);
@@ -55,7 +90,8 @@ export const action: ActionFunction = async ({ request, params }) => {
 export default function EditFacility() {
   const { facility } = useLoaderData<{ facility: Facility }>();
   const actionData = useActionData();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
   const [logoPreview, setLogoPreview] = useState(facility.logo_url);
 
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,17 +103,6 @@ export default function EditFacility() {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    const form = event.currentTarget;
-    await fetch(form.action, {
-      method: form.method,
-      body: new FormData(form),
-    });
-    setIsSubmitting(false);
   };
 
   return (
@@ -92,7 +117,7 @@ export default function EditFacility() {
         </Alert>
       )}
 
-      <Form method="post" encType="multipart/form-data" onSubmit={handleSubmit}>
+      <Form method="post" encType="multipart/form-data">
         <Card>
           <CardHeader>
             <CardTitle>Facility Details</CardTitle>
@@ -100,29 +125,79 @@ export default function EditFacility() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Facility Name</Label>
-              <Input id="name" name="name" defaultValue={facility.name} required />
+              <Input 
+                id="name" 
+                name="name" 
+                defaultValue={facility.name} 
+                required 
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="logo">Logo</Label>
-              <Input id="logo" name="logo" type="file" accept="image/*" onChange={handleLogoChange} />
-              {logoPreview && <img src={logoPreview} alt="Logo preview" className="mt-2 h-20 w-20 object-cover rounded-full" />}
+              <Label htmlFor="address">Address</Label>
+              <Input 
+                id="address" 
+                name="address" 
+                defaultValue={facility.address} 
+                required 
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select name="status" defaultValue={facility.status}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input 
+                id="phone" 
+                name="phone" 
+                type="tel"
+                defaultValue={facility.phone} 
+                required 
+              />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                name="email" 
+                type="email"
+                defaultValue={facility.email} 
+                required 
+              />
+            </div>
+
+            {/* <div className="space-y-2">
+              <Label htmlFor="logo">Facility Logo</Label>
+              <label htmlFor="logo" className="block">
+                <Input
+                  id="logo"
+                  name="logo"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoChange}
+                />
+                <div className="border-2 dark:bg-[#4A4A62] border-dashed border-input rounded-lg p-4 text-center cursor-pointer flex flex-col items-center">
+                  {logoPreview ? (
+                    <img
+                      src={logoPreview}
+                      alt="Facility logo"
+                      className="h-32 w-32 object-cover rounded-full mb-2"
+                    />
+                  ) : (
+                    <>
+                      <ImagePlus className="h-8 w-8 mb-2" />
+                      <span>Upload logo</span>
+                    </>
+                  )}
+                </div>
+              </label>
+            </div> */}
+
+            <Button 
+              type="submit" 
+              className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90 text-white hover:text-white" 
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

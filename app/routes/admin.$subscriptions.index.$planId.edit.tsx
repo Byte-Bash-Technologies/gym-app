@@ -96,7 +96,7 @@ export default function EditSubscriptionPlan() {
                 required 
               />
             </div> */}
-            <Button type="submit">Update Plan</Button>
+            <Button className="bg-[#886fa6] hover:bg-[#886fa6]/90 dark:bg-[#3A3A52] hover:dark:bg-[#3A3A52]/90 dark:text-white" type="submit">Update Plan</Button>
           </Form>
           {actionData?.error && (
             <p className="text-red-500 mt-4">{actionData.error}</p>

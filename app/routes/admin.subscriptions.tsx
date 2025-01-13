@@ -12,7 +12,7 @@ export default function SubscriptionLayout() {
   }, [navigate]);
 
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-6 pt-6 h-full">
       <h2 className="text-2xl font-bold">Subscription Management</h2>
       <Outlet />
     </div>

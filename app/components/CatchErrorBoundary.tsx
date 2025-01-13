@@ -5,6 +5,7 @@ import {
 import NoUsersFound from "./NoUserFound";
 import NoFacility from "./NoFacility";
 import NoTrainerAccess from "./NoAccessTrainer";
+import NetworkError from "./network-error";
   
   export function ErrorBoundary() {
     const error = useRouteError();
@@ -35,6 +36,11 @@ import NoTrainerAccess from "./NoAccessTrainer";
         }
       
     } else if (error instanceof Error) {
+      if (error.message === "Failed to fetch") {
+            return (
+                <NetworkError />
+            );
+        }
       return (
         <div>
           <h1>Error</h1>

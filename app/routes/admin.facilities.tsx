@@ -83,7 +83,7 @@ export default function FacilitiesList() {
     }
   };
   return (
-    <div className="space-y-6 pt-6">
+    <div className="space-y-6 pt-6 pb-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Facilities</h2>
         <Link to="/admin/add-facility">
