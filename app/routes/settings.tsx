@@ -317,6 +317,7 @@ export default function Settings() {
                         name="email"
                         type="email"
                         defaultValue={user.email}
+                        disabled
                         required
                       />
                     </div>
