@@ -2,24 +2,28 @@ import { json, type LoaderFunction } from "@remix-run/node";
 import { getAuthenticatedUser } from "~/utils/currentUser";
 import { supabase } from "~/utils/supabase.server";
 
-export const loader: LoaderFunction = async ({ params,request }) => {
+export const loader: LoaderFunction = async ({ params, request }) => {
   const user = await getAuthenticatedUser(request);
   const facilityId = params.facilityId;
+
+  // Verify facility access first
   const { data: facility, error: facilityError } = await supabase
-  .from("facilities")
-  .select("name")
-  .eq("id", facilityId)
-  .eq("user_id", user.id)
-  .single();
-if (facilityError) {
-  throw new Response("No access", { status: 409 });
-}
+    .from("facilities")
+    .select("name")
+    .eq("id", facilityId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (facilityError) {
+    throw new Response("No access", { status: 409 });
+  }
 
   if (!facilityId) {
     throw new Error("Facility ID is required");
   }
 
   try {
+    // Parallel fetch all data with Promise.all
     const [
       totalReceivedData,
       pendingPaymentData,
@@ -41,7 +45,7 @@ if (facilityError) {
         .gt('balance', 0),
       supabase
         .from('transactions')
-        .select('id, amount, created_at,member_id ,members (full_name)')
+        .select('id, amount, created_at, member_id, members (full_name)')
         .eq('facility_id', facilityId)
         .order('created_at', { ascending: false })
         .limit(3),
@@ -78,7 +82,7 @@ if (facilityError) {
 
     const todayTotal = todayIncome.data?.reduce((sum, t) => sum + t.amount, 0) || 0;
     const yesterdayTotal = yesterdayIncome.data?.reduce((sum, t) => sum + t.amount, 0) || 0;
-    const percentageChange = ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100;
+    const percentageChange = yesterdayTotal ? ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100 : 0;
 
     const earningSummary = Array.from({ length: 7 }, (_, i) => {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
@@ -108,6 +112,12 @@ if (facilityError) {
         percentageChange,
       },
       earningSummary,
+    }, {
+      headers: {
+        // Cache for 1 minute on client
+        "Cache-Control": "private, max-age=60",
+        "Vary": "Cookie",
+      },
     });
   } catch (error) {
     console.error('Error in loader:', error);

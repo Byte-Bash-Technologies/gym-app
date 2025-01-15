@@ -49,49 +49,60 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   const user = await getAuthenticatedUser(request);
   const facilityId = params.facilityId;
 
-  // Fetch gyms
-  const { data: gyms, error: gymsError } = await supabase
-    .from("facilities")
-    .select("id, name")
-    .eq("user_id", user.id);
-
-  if (gymsError) throw new Error("Failed to fetch gyms");
-
-  // Fetch current gym
-  const { data: currentGym, error: currentGymError } = await supabase
-    .from("facilities")
-    .select("id, name, logo_url")
-    .eq("id", facilityId)
-    .single();
-
-  if (currentGymError) throw new Error("Failed to fetch current gym");
-
-  // Fetch members and their memberships for the specific facility
-  const { data: members, error: membersError } = await supabase
-    .from("members")
-    .select(
-      `
-      id,
-      full_name,
-      balance,
-      joined_date,
-      memberships (
+  // Parallel fetch all required data
+  const [
+    gymsResponse,
+    currentGymResponse,
+    membersResponse,
+    birthdaysResponse
+  ] = await Promise.all([
+    supabase
+      .from("facilities")
+      .select("id, name")
+      .eq("user_id", user.id),
+    supabase
+      .from("facilities")
+      .select("id, name, logo_url")
+      .eq("id", facilityId)
+      .single(),
+    supabase
+      .from("members")
+      .select(`
         id,
-        start_date,
-        end_date,
-        status,
-        is_disabled,
-        plans (name, duration, price)
-      )
-    `
-    )
-    .eq("facility_id", facilityId);
+        full_name,
+        balance,
+        joined_date,
+        memberships (
+          id,
+          start_date,
+          end_date,
+          status,
+          is_disabled,
+          plans (name, duration, price)
+        )
+      `)
+      .eq("facility_id", facilityId),
+    supabase
+      .from("members")
+      .select("id, full_name, photo_url, date_of_birth, phone")
+      .eq("facility_id", facilityId)
+  ]);
 
-  if (membersError) throw new Error("Failed to fetch members and memberships");
+  // Handle errors
+  if (gymsResponse.error) throw new Error("Failed to fetch gyms");
+  if (currentGymResponse.error) throw new Error("Failed to fetch current gym");
+  if (membersResponse.error) throw new Error("Failed to fetch members");
+  if (birthdaysResponse.error) throw new Error("Failed to fetch birthdays");
+
+  const { data: gyms } = gymsResponse;
+  const { data: currentGym } = currentGymResponse;
+  const { data: members } = membersResponse;
+  const { data: birthdays } = birthdaysResponse;
 
   const now = new Date();
   const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
+  // Process stats
   const statsData: Stats = {
     activeMembers: 0,
     expiringSoon: 0,
@@ -103,6 +114,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
   const expiringSoonMembers: Member[] = [];
   const membersWithBalance: Member[] = [];
 
+  // Process members data
   const processedMembers = members.map((member: any) => {
     if (member.balance > 0) {
       membersWithBalance.push(member);
@@ -142,15 +154,7 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     };
   });
 
-  // Fetch birthdays
-  const today = now.toISOString().split("T")[0];
-  const { data: birthdays, error: birthdaysError } = await supabase
-    .from("members")
-    .select("id, full_name,photo_url, date_of_birth, phone")
-    .eq("facility_id", facilityId);
-
-  if (birthdaysError) throw new Error("Failed to fetch birthdays");
-
+  // Process birthdays
   const todayBirthdays = birthdays.filter((member) => {
     const dob = new Date(member.date_of_birth);
     return dob.getMonth() === now.getMonth() && dob.getDate() === now.getDate();
@@ -163,13 +167,18 @@ export const loader: LoaderFunction = async ({ params, request }) => {
     birthdays: todayBirthdays.map((b) => ({
       id: b.id,
       name: b.full_name,
-      avatar:b.photo_url,
+      avatar: b.photo_url,
       phone: b.phone,
     })),
     expiredMembers,
     expiringSoonMembers,
     membersWithBalance,
     currentDate: now.toISOString(),
+  }, {
+    headers: {
+      "Cache-Control": "private, max-age=60",
+      "Vary": "Cookie",
+    },
   });
 };
 
@@ -220,26 +229,33 @@ export default function Index() {
       {/* Header */}
       <header className="bg-card dark:bg-[#4A4A62] text-card-foreground p-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={currentGym.logo_url || `https://api.dicebear.com/9.x/identicon/svg/${currentGym.name[0]}`} alt={currentGym.name} />
-            <AvatarFallback>{currentGym.name[0]}</AvatarFallback>
-          </Avatar>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center dark:hover:bg-[#3A3A52]/90">
-                <span className="font-bold">{currentGym.name}</span>
-                <ChevronDown className="h-4 w-4 ml-1" />
+              <Button variant="ghost" className="flex items-center gap-2 hover:bg-accent">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={currentGym.logo_url || `https://api.dicebear.com/9.x/identicon/svg/${currentGym.name}`} alt={currentGym.name} />
+                    <AvatarFallback>{currentGym.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-semibold">{currentGym.name}</span>
+                </div>
+                <ChevronDown className="h-4 w-4 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="dark:bg-[#4A4A62]">
+            <DropdownMenuContent align="start" className="w-[200px] dark:bg-[#4A4A62]">
               {gyms.map((gym: Gym) => (
-                <DropdownMenuItem className="dark:hover:bg-[#3A3A52]/90" key={gym.id}>
+                <DropdownMenuItem key={gym.id} className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={gym.logo_url || `https://api.dicebear.com/9.x/identicon/svg/${gym.name}`} alt={gym.name} />
+                    <AvatarFallback>{gym.name[0]}</AvatarFallback>
+                  </Avatar>
                   <Link to={`/${gym.id}/home`} className="w-full">
                     {gym.name}
                   </Link>
                 </DropdownMenuItem>
               ))}
-              <DropdownMenuItem className="dark:hover:bg-[#3A3A52]/90">
+              <DropdownMenuItem className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
                 <Link to="/" className="w-full">
                   Manage Facilities
                 </Link>
