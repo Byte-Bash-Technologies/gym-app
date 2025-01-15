@@ -9,7 +9,10 @@ import type { LinksFunction } from "@remix-run/node";
 import InstallPWAButton from "~/components/InstallPWAButton";
 import { ThemeProvider } from "~/components/theme-provider";
 import NetworkStatus from "~/components/NetworkStatus";
+import { useEffect } from "react";
+import { registerServiceWorker } from "~/utils/service-worker";
 import "./tailwind.css";
+import React from "react";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -59,6 +62,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   return (
     <ThemeProvider defaultTheme="system" attribute="class">
       <Outlet />
