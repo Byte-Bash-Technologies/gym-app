@@ -57,14 +57,14 @@ export default function ForgotPassword() {
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2">
             <Link to="/login">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="hover:dark:bg-[#3A3A52]/9">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
             <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
           </div>
           <CardDescription>
-            Enter your email address and we'll send you instructions to reset your password
+            Enter your email address and we&apos;ll send you instructions to reset your password
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,8 +91,9 @@ export default function ForgotPassword() {
               <Input
                 id="email"
                 name="email"
+                className="dark:bg-[#4A4A62]"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="example@gmail.com"
                 required
                 disabled={isSubmitting || actionData?.success}
               />
@@ -100,7 +101,7 @@ export default function ForgotPassword() {
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full bg-[#886fa6] hover:bg-[#886fa6]/90 text-white dark:bg-[#3A3A52] dark:hover:bg-[#3A3A52]/90"
               disabled={isSubmitting || actionData?.success}
             >
               {isSubmitting ? (
