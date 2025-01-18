@@ -21,42 +21,48 @@ import { getAuthenticatedUser, logoutUser } from "~/utils/currentUser";
 export const loader: LoaderFunction = async ({ params, request }) => {
   const { facilityId } = params;
   const response = new Response();
-  const user=await getAuthenticatedUser(request);
+  const user = await getAuthenticatedUser(request);
   if (!user) {
     return redirect("/login");
   }
 
-  const { data: userData, error: userError } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+  const startTime = Date.now();
 
-  if (userError) {
+  // Fetch data in parallel
+  const [{ data: userData }, { data: facility }, { data: subscription }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("facilities")
+      .select("*")
+      .eq("id", facilityId)
+      .single(),
+    supabase
+      .from("facility_subscriptions")
+      .select("*, subscription_plans(*)")
+      .eq("facility_id", facilityId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single()
+  ]);
+
+  const endTime = Date.now();
+  console.log(`Supabase "Settings" query time: ${endTime - startTime}ms`);
+
+  if (!userData) {
     return redirect("/login");
   }
 
-  const { data: facility, error: facilityError } = await supabase
-    .from("facilities")
-    .select("*")
-    .eq("id", facilityId)
-    .single();
-
-  if (facilityError) {
-    console.error("Error fetching facility data:", facilityError);
+  if (!facility) {
+    console.error("Error fetching facility data: Facility not found");
     return redirect("/");
   }
 
-  const { data: subscription, error: subscriptionError } = await supabase
-    .from("facility_subscriptions")
-    .select("*, subscription_plans(*)")
-    .eq("facility_id", facilityId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
-
-  if (subscriptionError) {
-    console.error("Error fetching subscription data:", subscriptionError);
+  if (subscription.error) {
+    console.error("Error fetching subscription data:", subscription.error);
   }
 
   return json({ user: userData, facility, subscription });
